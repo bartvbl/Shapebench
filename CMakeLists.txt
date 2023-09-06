@@ -31,7 +31,7 @@ include_directories (
         ../libShapeDescriptor/src/
         lib/cuda-samples/Common
         lib/arrrgh
-        ${CUDA_INCLUDE_DIRS}
+        ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 
 #
@@ -40,10 +40,11 @@ include_directories (
 file (GLOB         LIBRARY_SOURCES )
 file (GLOB_RECURSE PROJECT_HEADERS src/*.hpp
         src/*.h)
-file (GLOB_RECURSE PROJECT_SOURCES src/*.cpp
-        src/*.cxx
-        src/*.cc
-        src/*.c)
+file (GLOB_RECURSE PROJECT_SOURCES
+        src/benchmark-core/*.cpp
+        src/benchmark-core/*.cxx
+        src/benchmark-core/*.cu
+        src/main.cpp)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
 target_link_libraries (shapebench ShapeDescriptor)
