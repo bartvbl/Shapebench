@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+lib/*
+cmake-build-debug/*
+cmake-build-release/*
+.idea/*
+src/clutter-simulator/.idea/*
