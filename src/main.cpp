@@ -3,11 +3,13 @@
 #include "arrrgh.hpp"
 #include "shapeDescriptor/utilities/CUDAContextCreator.h"
 #include "shapeDescriptor/utilities/CUDAAvailability.h"
+#include "shapeDescriptor/utilities/read/GLTFLoader.h"
+#include "shapeDescriptor/utilities/dump/meshDumper.h"
 
 int main(int argc, const char** argv) {
     arrrgh::parser parser("shapebench", "Benchmark tool for 3D local shape descriptors");
     const auto& showHelp = parser.add<bool>(
-            "help", "Show this help message", '?', arrrgh::Optional, false);
+            "help", "Show this help message", 'h', arrrgh::Optional, false);
     const auto& datasetDirectory = parser.add<std::string>(
             "dataset-directory", "Directory containing OBJ, PLY, or OFF files", '\0', arrrgh::Optional, "");
     const auto& randomSeed = parser.add<std::string>(
@@ -46,4 +48,17 @@ int main(int argc, const char** argv) {
     if(!ShapeDescriptor::isCUDASupportAvailable()) {
         throw std::runtime_error("This benchmark requires CUDA support to operate.");
     }
+
+    ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadGLTFMesh("/mnt/VOID/datasets/objaverse/hf-objaverse-v1/glbs/000-023/cd19be32833148cbbcfd78453b5d49e7.glb", ShapeDescriptor::RecomputeNormals::DO_NOT_RECOMPUTE);
+    ShapeDescriptor::dump::mesh(mesh, "output.obj");
+
+    // Generate representative descriptor set
+        // Compute descriptor set
+        // Compute distance list
+
+    // Determine optimal support radius
+        // For a range of support radii:
+            // While distance between descriptor pair has not exceeded noise floor
+                // increase offset between support radii and regenerate descriptor pair
+    //
 }

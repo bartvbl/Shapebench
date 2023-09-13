@@ -23,6 +23,7 @@ set (CMAKE_SUPPRESS_REGENERATION TRUE) # Suppresses ZERO_CHECK
 add_definitions(-DspinImageWidthPixels=64)
 
 add_subdirectory(../libShapeDescriptor libShapeDescriptor)
+
 #
 # Set include paths
 #
