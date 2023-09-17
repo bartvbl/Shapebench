@@ -1,3 +1,9 @@
 [submodule "lib/json"]
 	path = lib/json
 	url = https://github.com/nlohmann/json
+[submodule "lib/arrrgh"]
+	path = lib/arrrgh
+	url = https://github.com/ElectricToy/arrrgh
+[submodule "lib/cuda-samples"]
+	path = lib/cuda-samples
+	url = https://github.com/NVIDIA/cuda-samples
