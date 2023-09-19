@@ -32,6 +32,8 @@ include_directories (
         ../libShapeDescriptor/src/
         lib/cuda-samples/Common
         lib/arrrgh
+        lib/tinygltf
+        lib/json/include
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 

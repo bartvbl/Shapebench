@@ -7,3 +7,6 @@
 [submodule "lib/cuda-samples"]
 	path = lib/cuda-samples
 	url = https://github.com/NVIDIA/cuda-samples
+[submodule "lib/tinygltf"]
+	path = lib/tinygltf
+	url = https://github.com/syoyo/tinygltf
