@@ -100,7 +100,7 @@ int main(int argc, const char** argv) {
         unsigned int pointCloudCount = 0;
         size_t processedMeshCount = 0;
         #pragma omp parallel for schedule(dynamic) default(none) shared(processedMeshCount, std::cout, datasetFiles, baseDatasetDirectory, nextID, datasetCache, derivedDatasetDirectory, pointCloudCount, datasetCacheFile)
-        for(size_t i = 0; i < 5000 /*datasetFiles.size()*/; i++) {
+        for(size_t i = 0; i < datasetFiles.size(); i++) {
             #pragma omp atomic
             processedMeshCount++;
             if(processedMeshCount % 100 == 99) {
