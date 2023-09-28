@@ -10,8 +10,10 @@
 #include "benchmark-core/MissingBenchmarkConfigurationException.h"
 #include "benchmark-core/constants.h"
 #include "shapeDescriptor/utilities/read/MeshLoader.h"
-#include "tiny_gltf.h"
+#include <tiny_gltf.h>
 #include "shapeDescriptor/utilities/write/CompressedMesh.h"
+#include "shapeDescriptor/utilities/read/PointCloudLoader.h"
+#include "shapeDescriptor/utilities/free/pointCloud.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -21,7 +23,7 @@ bool meshIsPointCloud(const std::filesystem::path& file) {
     std::array<unsigned int, 3> fileHeader {0, 0, 0};
     inputStream.read((char*)fileHeader.data(), sizeof(fileHeader));
     assert(fileHeader.at(0) == 0x46546C67);
-    assert(fileHeader.at(1) == 2);
+    assert(fileHeader.at(1) == 2); // GLTF revision should be 2
     unsigned int totalSize = fileHeader.at(2);
 
     unsigned int headerChunkLength;
@@ -126,7 +128,7 @@ int main(int argc, const char** argv) {
         unsigned int pointCloudCount = 0;
         size_t processedMeshCount = 0;
         #pragma omp parallel for schedule(dynamic) default(none) shared(processedMeshCount, std::cout, datasetFiles, baseDatasetDirectory, nextID, datasetCache, derivedDatasetDirectory, pointCloudCount, datasetCacheFile)
-        for(size_t i = 0; i < datasetFiles.size(); i++) {
+        for(size_t i = 0; i < 5000 /*datasetFiles.size()*/; i++) {
             #pragma omp atomic
             processedMeshCount++;
             if(processedMeshCount % 100 == 99) {
@@ -139,15 +141,17 @@ int main(int argc, const char** argv) {
             datasetEntry["filePath"] = filePath;
             bool isPointCloud = meshIsPointCloud(datasetFiles.at(i));
             datasetEntry["isPointCloud"] = isPointCloud;
+            std::filesystem::path compressedMeshPath = derivedDatasetDirectory / filePath;
+            compressedMeshPath.replace_extension(".cm");
             if(isPointCloud) {
                 #pragma omp atomic
                 pointCloudCount++;
+                ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::utilities::loadPointCloud(datasetFiles.at(i));
+                ShapeDescriptor::utilities::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
+                ShapeDescriptor::free::pointCloud(cloud);
             } else {
-                // File is included in dataset. Create a compressed copy of it
                 ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
-                std::filesystem::path compressedMeshPath = derivedDatasetDirectory / filePath;
-                compressedMeshPath.replace_extension(".cm");
-                ShapeDescriptor::utilities::writeCompressedMesh(mesh, compressedMeshPath, true);
+                ShapeDescriptor::utilities::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                 ShapeDescriptor::free::mesh(mesh);
             }
             #pragma omp critical
