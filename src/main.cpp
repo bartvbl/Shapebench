@@ -11,6 +11,8 @@
 #include "benchmark-core/constants.h"
 #include "shapeDescriptor/utilities/read/MeshLoader.h"
 #include "tiny_gltf.h"
+#include "shapeDescriptor/utilities/write/CompressedMesh.h"
+#include <memory>
 #include <nlohmann/json.hpp>
 
 bool meshIsPointCloud(const std::filesystem::path& file) {
@@ -42,6 +44,7 @@ bool meshIsPointCloud(const std::filesystem::path& file) {
     }
     return false;
 }
+
 
 int main(int argc, const char** argv) {
     arrrgh::parser parser("shapebench", "Benchmark tool for 3D local shape descriptors");
@@ -99,37 +102,67 @@ int main(int argc, const char** argv) {
     }
 
 
-    if(!configuration.contains("datasetRootDir")) {
-        throw Shapebench::MissingBenchmarkConfigurationException("datasetRootDir");
+    if(!configuration.contains("compressedDatasetRootDir")) {
+        throw Shapebench::MissingBenchmarkConfigurationException("compressedDatasetRootDir");
     }
-    const std::filesystem::path datasetDirectory = configuration.at("datasetRootDir");
+    const std::filesystem::path baseDatasetDirectory = configuration.at("objaverseDatasetRootDir");
+    const std::filesystem::path derivedDatasetDirectory = configuration.at("compressedDatasetRootDir");
     const std::filesystem::path datasetCacheFile = cacheDirectory / Shapebench::datasetCacheFileName;
     if(!std::filesystem::exists(datasetCacheFile) || true) {
-        std::cout << "No dataset cache file was found. Analysing dataset.." << std::endl;
-        const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::utilities::listDirectoryAndSubdirectories(datasetDirectory);
+        std::cout << "No dataset cache file was found. Analysing dataset.. (this will likely take multiple hours)" << std::endl;
+        const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::utilities::listDirectoryAndSubdirectories(baseDatasetDirectory);
 
         // TODO: once data is available, do a hash check of all files
         std::cout << "    Found " << datasetFiles.size() << " files." << std::endl;
 
         nlohmann::json datasetCache = {};
-        datasetCache["metadata"]["datasetDirectory"] = std::filesystem::absolute(datasetDirectory).string();
+        datasetCache["metadata"]["baseDatasetRootDir"] = std::filesystem::absolute(baseDatasetDirectory).string();
+        datasetCache["metadata"]["compressedDatasetRootDir"] = std::filesystem::absolute(derivedDatasetDirectory).string();
         datasetCache["metadata"]["configurationFile"] = std::filesystem::absolute(configurationFileLocation).string();
         datasetCache["metadata"]["cacheDirectory"] = std::filesystem::absolute(cacheDirectory).string();
 
         datasetCache["files"] = {};
         size_t nextID = 0;
+        unsigned int pointCloudCount = 0;
+        size_t processedMeshCount = 0;
+        #pragma omp parallel for schedule(dynamic) default(none) shared(processedMeshCount, std::cout, datasetFiles, baseDatasetDirectory, nextID, datasetCache, derivedDatasetDirectory, pointCloudCount, datasetCacheFile)
         for(size_t i = 0; i < datasetFiles.size(); i++) {
-            std::cout << "\r    Computing dataset cache.. Processed: " << (i+1) << "/" << datasetFiles.size() << " (" << (100.0*(double(i+1)/double(datasetFiles.size()))) << "%)" << std::flush;
+            #pragma omp atomic
+            processedMeshCount++;
+            if(processedMeshCount % 100 == 99) {
+                std::cout << "\r    Computing dataset cache.. Processed: " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%), excluded " << pointCloudCount << " point clouds" << std::flush;
+            }
 
             nlohmann::json datasetEntry;
             datasetEntry["id"] = nextID;
-            datasetEntry["filePath"] = std::filesystem::absolute(datasetFiles.at(i));
+            std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)), baseDatasetDirectory);
+            datasetEntry["filePath"] = filePath;
             bool isPointCloud = meshIsPointCloud(datasetFiles.at(i));
             datasetEntry["isPointCloud"] = isPointCloud;
+            if(isPointCloud) {
+                #pragma omp atomic
+                pointCloudCount++;
+            } else {
+                // File is included in dataset. Create a compressed copy of it
+                ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
+                std::filesystem::path compressedMeshPath = derivedDatasetDirectory / filePath;
+                compressedMeshPath.replace_extension(".cm");
+                ShapeDescriptor::utilities::writeCompressedMesh(mesh, compressedMeshPath, true);
+                ShapeDescriptor::free::mesh(mesh);
+            }
+            #pragma omp critical
+            {
+                datasetCache["files"].push_back(datasetEntry);
+                nextID++;
 
-            datasetCache["files"].push_back(datasetEntry);
-            nextID++;
+                if((nextID + 1) % 50000 == 0) {
+                    std::cout << std::endl << "Writing backup JSON.. " << std::endl;
+                    std::ofstream outCacheStream {datasetCacheFile};
+                    outCacheStream << datasetCache.dump(4);
+                }
+            };
         }
+        std::cout << std::endl;
 
         std::ofstream outCacheStream {datasetCacheFile};
         outCacheStream << datasetCache.dump(4);

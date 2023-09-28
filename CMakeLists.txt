@@ -11,6 +11,7 @@ project (ShapeBench C CXX CUDA)
 set(CMAKE_CXX_STANDARD 20)
 
 enable_language(CUDA)
+find_package(OpenMP REQUIRED)
 
 #
 # CMake setup
@@ -34,6 +35,7 @@ include_directories (
         lib/arrrgh
         lib/tinygltf
         lib/json/include
+        ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 
@@ -50,4 +52,4 @@ file (GLOB_RECURSE PROJECT_SOURCES
         src/main.cpp)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor)
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX)
