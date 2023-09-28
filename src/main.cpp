@@ -17,35 +17,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 
-bool meshIsPointCloud(const std::filesystem::path& file) {
-    std::ifstream inputStream{file};
 
-    std::array<unsigned int, 3> fileHeader {0, 0, 0};
-    inputStream.read((char*)fileHeader.data(), sizeof(fileHeader));
-    assert(fileHeader.at(0) == 0x46546C67);
-    assert(fileHeader.at(1) == 2); // GLTF revision should be 2
-    unsigned int totalSize = fileHeader.at(2);
-
-    unsigned int headerChunkLength;
-    unsigned int ignored_headerChunkType;
-    inputStream.read((char*) &headerChunkLength, sizeof(unsigned int));
-    inputStream.read((char*) &ignored_headerChunkType, sizeof(unsigned int));
-
-    std::string jsonChunkContents;
-    jsonChunkContents.resize(headerChunkLength);
-    inputStream.read(jsonChunkContents.data(), headerChunkLength);
-
-    nlohmann::json jsonHeader = nlohmann::json::parse(jsonChunkContents);
-
-    for(const nlohmann::json& meshElement : jsonHeader.at("meshes")) {
-        for(const nlohmann::json& primitive : meshElement.at("primitives")) {
-            if(primitive.at("mode") == TINYGLTF_MODE_POINTS) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
 
 
 int main(int argc, const char** argv) {
@@ -139,7 +111,7 @@ int main(int argc, const char** argv) {
             datasetEntry["id"] = nextID;
             std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)), baseDatasetDirectory);
             datasetEntry["filePath"] = filePath;
-            bool isPointCloud = meshIsPointCloud(datasetFiles.at(i));
+            bool isPointCloud = ShapeDescriptor::utilities::gltfContainsPointCloud(datasetFiles.at(i));
             datasetEntry["isPointCloud"] = isPointCloud;
             std::filesystem::path compressedMeshPath = derivedDatasetDirectory / filePath;
             compressedMeshPath.replace_extension(".cm");
