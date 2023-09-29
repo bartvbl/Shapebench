@@ -11,7 +11,7 @@
 #include "benchmark-core/constants.h"
 #include "shapeDescriptor/utilities/read/MeshLoader.h"
 #include <tiny_gltf.h>
-#include "shapeDescriptor/utilities/write/CompressedMesh.h"
+#include "shapeDescriptor/utilities/write/CompressedGeometryFile.h"
 #include "shapeDescriptor/utilities/read/PointCloudLoader.h"
 #include "shapeDescriptor/utilities/free/pointCloud.h"
 #include <memory>
