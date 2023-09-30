@@ -108,7 +108,7 @@ int main(int argc, const char** argv) {
             }
 
             nlohmann::json datasetEntry;
-            datasetEntry["id"] = nextID;
+            datasetEntry["id"] = i;
             std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)), baseDatasetDirectory);
             datasetEntry["filePath"] = filePath;
             bool isPointCloud = ShapeDescriptor::utilities::gltfContainsPointCloud(datasetFiles.at(i));

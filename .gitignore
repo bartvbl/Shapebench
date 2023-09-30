@@ -32,7 +32,9 @@
 *.app
 
 lib/*
-cmake-build-debug/*
-cmake-build-release/*
+cmake-build-debug*
+cmake-build-release*
 .idea/*
+res/*
+output/*
 src/clutter-simulator/.idea/*
