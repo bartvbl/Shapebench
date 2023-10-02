@@ -7,6 +7,8 @@
 #include "shapeDescriptor/utilities/read/PointCloudLoader.h"
 #include "shapeDescriptor/utilities/write/CompressedGeometryFile.h"
 #include "shapeDescriptor/utilities/read/MeshLoader.h"
+#include "shapeDescriptor/utilities/read/CompressedGeometryFile.h"
+#include "shapeDescriptor/utilities/hash/MeshHasher.h"
 #include <shapeDescriptor/utilities/free/mesh.h>
 #include <shapeDescriptor/utilities/free/pointCloud.h>
 
@@ -26,13 +28,14 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
     datasetCache["files"] = {};
     size_t nextID = 0;
     unsigned int pointCloudCount = 0;
+    unsigned int hashMismatches = 0;
     size_t processedMeshCount = 0;
-    #pragma omp parallel for schedule(dynamic) default(none) shared(processedMeshCount, std::cout, datasetFiles, originalDatasetDirectory, nextID, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
+    #pragma omp parallel for schedule(dynamic) default(none) shared(hashMismatches, processedMeshCount, std::cout, datasetFiles, originalDatasetDirectory, nextID, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
     for(size_t i = 0; i < datasetFiles.size(); i++) {
         #pragma omp atomic
         processedMeshCount++;
         if(processedMeshCount % 100 == 99) {
-            std::cout << "\r    Computing dataset cache.. Processed: " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%), found " << pointCloudCount << " point clouds" << std::flush;
+            std::cout << "\r    Computing dataset cache.. Processed: " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%), found " << pointCloudCount << " point clouds, " << hashMismatches << " mismatched hashes" << std::flush;
         }
 
         nlohmann::json datasetEntry;
@@ -55,7 +58,19 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                 ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
                 ShapeDescriptor::utilities::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                 datasetEntry["vertexCount"] = mesh.vertexCount;
+                uint32_t hash = ShapeDescriptor::hashMesh(mesh);
+                datasetEntry["meshHash"] = hash;
                 ShapeDescriptor::free::mesh(mesh);
+
+                ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::utilities::readMeshFromCompressedGeometryFile(compressedMeshPath);
+                uint32_t readBackHash = ShapeDescriptor::hashMesh(readMesh);
+                ShapeDescriptor::free::mesh(readMesh);
+                if(hash != readBackHash) {
+                    std::cout << "\n!! HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
+                    datasetEntry["compressedMeshHash"] = readBackHash;
+                    #pragma omp atomic
+                    hashMismatches++;
+                }
             }
         } catch(std::runtime_error& e) {
             std::cout << "!! ERROR: FILE FAILED TO PARSE: " + filePath.string() + "\n   REASON: " + e.what() + "\n" << std::flush;
