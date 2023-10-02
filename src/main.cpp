@@ -14,6 +14,7 @@
 #include "shapeDescriptor/utilities/write/CompressedGeometryFile.h"
 #include "shapeDescriptor/utilities/read/PointCloudLoader.h"
 #include "shapeDescriptor/utilities/free/pointCloud.h"
+#include "benchmark-core/CompressedDatasetCreator.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -82,76 +83,10 @@ int main(int argc, const char** argv) {
     const std::filesystem::path baseDatasetDirectory = configuration.at("objaverseDatasetRootDir");
     const std::filesystem::path derivedDatasetDirectory = configuration.at("compressedDatasetRootDir");
     const std::filesystem::path datasetCacheFile = cacheDirectory / Shapebench::datasetCacheFileName;
-    if(!std::filesystem::exists(datasetCacheFile) || true) {
-        std::cout << "No dataset cache file was found. Analysing dataset.. (this will likely take multiple hours)" << std::endl;
-        const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::utilities::listDirectoryAndSubdirectories(baseDatasetDirectory);
-
-        // TODO: once data is available, do a hash check of all files
-        std::cout << "    Found " << datasetFiles.size() << " files." << std::endl;
-
-        nlohmann::json datasetCache = {};
-        datasetCache["metadata"]["baseDatasetRootDir"] = std::filesystem::absolute(baseDatasetDirectory).string();
-        datasetCache["metadata"]["compressedDatasetRootDir"] = std::filesystem::absolute(derivedDatasetDirectory).string();
-        datasetCache["metadata"]["configurationFile"] = std::filesystem::absolute(configurationFileLocation).string();
-        datasetCache["metadata"]["cacheDirectory"] = std::filesystem::absolute(cacheDirectory).string();
-
-        datasetCache["files"] = {};
-        size_t nextID = 0;
-        unsigned int pointCloudCount = 0;
-        size_t processedMeshCount = 0;
-        #pragma omp parallel for schedule(dynamic) default(none) shared(processedMeshCount, std::cout, datasetFiles, baseDatasetDirectory, nextID, datasetCache, derivedDatasetDirectory, pointCloudCount, datasetCacheFile)
-        for(size_t i = 0; i < datasetFiles.size(); i++) {
-            #pragma omp atomic
-            processedMeshCount++;
-            if(processedMeshCount % 100 == 99) {
-                std::cout << "\r    Computing dataset cache.. Processed: " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%), excluded " << pointCloudCount << " point clouds" << std::flush;
-            }
-
-            nlohmann::json datasetEntry;
-            datasetEntry["id"] = i;
-            std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)), baseDatasetDirectory);
-            datasetEntry["filePath"] = filePath;
-            bool isPointCloud = ShapeDescriptor::utilities::gltfContainsPointCloud(datasetFiles.at(i));
-            datasetEntry["isPointCloud"] = isPointCloud;
-            std::filesystem::path compressedMeshPath = derivedDatasetDirectory / filePath;
-            compressedMeshPath.replace_extension(".cm");
-            try {
-                if(isPointCloud) {
-                    #pragma omp atomic
-                    pointCloudCount++;
-                    ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::utilities::loadPointCloud(datasetFiles.at(i));
-                    ShapeDescriptor::utilities::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
-                    datasetEntry["vertexCount"] = cloud.pointCount;
-                    ShapeDescriptor::free::pointCloud(cloud);
-                } else {
-                    ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
-                    ShapeDescriptor::utilities::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
-                    datasetEntry["vertexCount"] = mesh.vertexCount;
-                    ShapeDescriptor::free::mesh(mesh);
-                }
-            } catch(std::runtime_error& e) {
-                std::cout << "!! ERROR: FILE FAILED TO PARSE: " + filePath.string() + "\n   REASON: " + e.what() + "\n" << std::flush;
-                datasetEntry["parseFailed"] = true;
-                datasetEntry["parseFailedReason"] = e.what();
-                datasetEntry["vertexCount"] = -1;
-            }
-
-            #pragma omp critical
-            {
-                datasetCache["files"].push_back(datasetEntry);
-                nextID++;
-
-                if((nextID + 1) % 50000 == 0) {
-                    std::cout << std::endl << "Writing backup JSON.. " << std::endl;
-                    std::ofstream outCacheStream {datasetCacheFile};
-                    outCacheStream << datasetCache.dump(4);
-                }
-            };
-        }
-        std::cout << std::endl;
-
-        std::ofstream outCacheStream {datasetCacheFile};
-        outCacheStream << datasetCache.dump(4);
+    if(!std::filesystem::exists(datasetCacheFile) || !std::filesystem::exists(derivedDatasetDirectory)) {
+        std::cout << "Dataset metadata or compressed dataset was not found." << std::endl
+                  << "Computing compressed dataset.. (this will likely take multiple hours)" << std::endl;
+        Shapebench::computeCompressedDataSet(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
     }
 
 
