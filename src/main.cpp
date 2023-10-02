@@ -115,17 +115,27 @@ int main(int argc, const char** argv) {
             datasetEntry["isPointCloud"] = isPointCloud;
             std::filesystem::path compressedMeshPath = derivedDatasetDirectory / filePath;
             compressedMeshPath.replace_extension(".cm");
-            if(isPointCloud) {
-                #pragma omp atomic
-                pointCloudCount++;
-                ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::utilities::loadPointCloud(datasetFiles.at(i));
-                ShapeDescriptor::utilities::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
-                ShapeDescriptor::free::pointCloud(cloud);
-            } else {
-                ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
-                ShapeDescriptor::utilities::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
-                ShapeDescriptor::free::mesh(mesh);
+            try {
+                if(isPointCloud) {
+                    #pragma omp atomic
+                    pointCloudCount++;
+                    ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::utilities::loadPointCloud(datasetFiles.at(i));
+                    ShapeDescriptor::utilities::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
+                    datasetEntry["vertexCount"] = cloud.pointCount;
+                    ShapeDescriptor::free::pointCloud(cloud);
+                } else {
+                    ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
+                    ShapeDescriptor::utilities::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
+                    datasetEntry["vertexCount"] = mesh.vertexCount;
+                    ShapeDescriptor::free::mesh(mesh);
+                }
+            } catch(std::runtime_error& e) {
+                std::cout << "!! ERROR: FILE FAILED TO PARSE: " + filePath.string() + "\n   REASON: " + e.what() + "\n" << std::flush;
+                datasetEntry["parseFailed"] = true;
+                datasetEntry["parseFailedReason"] = e.what();
+                datasetEntry["vertexCount"] = -1;
             }
+
             #pragma omp critical
             {
                 datasetCache["files"].push_back(datasetEntry);
