@@ -9,6 +9,7 @@
 #include "shapeDescriptor/utilities/read/MeshLoader.h"
 #include "shapeDescriptor/utilities/read/CompressedGeometryFile.h"
 #include "shapeDescriptor/utilities/hash/MeshHasher.h"
+#include "shapeDescriptor/utilities/dump/meshDumper.h"
 #include <shapeDescriptor/utilities/free/mesh.h>
 #include <shapeDescriptor/utilities/free/pointCloud.h>
 
@@ -52,25 +53,36 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                 pointCloudCount++;
                 ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::utilities::loadPointCloud(datasetFiles.at(i));
                 ShapeDescriptor::utilities::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
+                uint32_t hash = ShapeDescriptor::hashPointCloud(cloud);
                 datasetEntry["vertexCount"] = cloud.pointCount;
                 ShapeDescriptor::free::pointCloud(cloud);
+
+                ShapeDescriptor::cpu::PointCloud readCloud = ShapeDescriptor::utilities::readPointCloudFromCompressedGeometryFile(compressedMeshPath);
+                uint32_t readBackHash = ShapeDescriptor::hashPointCloud(readCloud);
+                ShapeDescriptor::free::pointCloud(readCloud);
+
+                if(hash != readBackHash) {
+                    std::cout << "\n!! POINT CLOUD HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
+                    #pragma omp atomic
+                    hashMismatches++;
+                    datasetEntry["compressedMeshHash"] = readBackHash;
+                }
             } else {
                 ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
                 ShapeDescriptor::utilities::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                 datasetEntry["vertexCount"] = mesh.vertexCount;
-                uint32_t hash = ShapeDescriptor::hashMesh(mesh);
-                datasetEntry["meshHash"] = hash;
-                ShapeDescriptor::free::mesh(mesh);
+
 
                 ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::utilities::readMeshFromCompressedGeometryFile(compressedMeshPath);
-                uint32_t readBackHash = ShapeDescriptor::hashMesh(readMesh);
-                ShapeDescriptor::free::mesh(readMesh);
-                if(hash != readBackHash) {
-                    std::cout << "\n!! HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
-                    datasetEntry["compressedMeshHash"] = readBackHash;
+                if(!ShapeDescriptor::compareMesh(mesh, readMesh)) {
+                    std::cout << "\n!! MESH HASH MISMATCH " + compressedMeshPath.string() << std::flush;
                     #pragma omp atomic
                     hashMismatches++;
+                    ShapeDescriptor::dump::mesh(readMesh, compressedMeshPath.replace_extension(".obj"));
                 }
+
+                ShapeDescriptor::free::mesh(mesh);
+                ShapeDescriptor::free::mesh(readMesh);
             }
         } catch(std::runtime_error& e) {
             std::cout << "!! ERROR: FILE FAILED TO PARSE: " + filePath.string() + "\n   REASON: " + e.what() + "\n" << std::flush;
