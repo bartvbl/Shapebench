@@ -75,7 +75,7 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
 
                 ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::utilities::readMeshFromCompressedGeometryFile(compressedMeshPath);
                 if(!ShapeDescriptor::compareMesh(mesh, readMesh)) {
-                    std::cout << "\n!! MESH HASH MISMATCH " + compressedMeshPath.string() << std::flush;
+                    std::cout << "\n!! MESH HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
                     #pragma omp atomic
                     hashMismatches++;
                     ShapeDescriptor::dump::mesh(readMesh, compressedMeshPath.replace_extension(".obj"));
