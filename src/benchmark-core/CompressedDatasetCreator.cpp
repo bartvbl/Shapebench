@@ -53,20 +53,17 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                 pointCloudCount++;
                 ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::utilities::loadPointCloud(datasetFiles.at(i));
                 ShapeDescriptor::utilities::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
-                uint32_t hash = ShapeDescriptor::hashPointCloud(cloud);
                 datasetEntry["vertexCount"] = cloud.pointCount;
-                ShapeDescriptor::free::pointCloud(cloud);
 
                 ShapeDescriptor::cpu::PointCloud readCloud = ShapeDescriptor::utilities::readPointCloudFromCompressedGeometryFile(compressedMeshPath);
-                uint32_t readBackHash = ShapeDescriptor::hashPointCloud(readCloud);
-                ShapeDescriptor::free::pointCloud(readCloud);
 
-                if(hash != readBackHash) {
+                if(ShapeDescriptor::comparePointCloud(cloud, readCloud)) {
                     std::cout << "\n!! POINT CLOUD HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
                     #pragma omp atomic
                     hashMismatches++;
-                    datasetEntry["compressedMeshHash"] = readBackHash;
                 }
+                ShapeDescriptor::free::pointCloud(cloud);
+                ShapeDescriptor::free::pointCloud(readCloud);
             } else {
                 ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
                 ShapeDescriptor::utilities::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
