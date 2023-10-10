@@ -20,5 +20,5 @@ class Dataset {
     std::vector<DatasetEntry> entries;
 public:
     void load(std::filesystem::path &cacheFile);
-    std::vector<VertexInDataset> sampleVertices(uint64_t randomSeed, uint32_t count);
+    std::vector<VertexInDataset> sampleVertices(uint64_t randomSeed, uint32_t count) const;
 };

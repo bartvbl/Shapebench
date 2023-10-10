@@ -26,7 +26,7 @@ void Dataset::load(std::filesystem::path &cacheFile) {
     std::sort(entries.begin(), entries.end());
 }
 
-std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32_t count) {
+std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32_t count) const {
     std::vector<uint32_t> sampleHistogram(entries.size());
     std::vector<VertexInDataset> sampledEntries(count);
 
