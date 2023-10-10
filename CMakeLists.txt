@@ -35,6 +35,7 @@ include_directories (
         lib/arrrgh
         lib/tinygltf
         lib/json/include
+        lib/miniball/cpp/main
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
@@ -49,6 +50,9 @@ file (GLOB_RECURSE PROJECT_SOURCES
         src/benchmark-core/*.cpp
         src/benchmark-core/*.cxx
         src/benchmark-core/*.cu
+        src/methods/*.cpp
+        src/methods/*.cxx
+        src/methods/*.cu
         src/main.cpp)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
