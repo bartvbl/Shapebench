@@ -14,8 +14,9 @@ void Dataset::load(std::filesystem::path &cacheFile) {
     for(uint32_t i = 0; i < fileCount; i++) {
         nlohmann::json jsonEntry = cacheFileContents.at("files").at(i);
         bool isPointCloud = jsonEntry.at("isPointCloud");
+        bool isNotEmpty = jsonEntry.at("vertexCount") > 0;
         // Exclude all point clouds
-        if(!isPointCloud) {
+        if(!isPointCloud && isNotEmpty) {
             DatasetEntry entry;
             entry.vertexCount = jsonEntry.at("vertexCount");
             entry.id = jsonEntry.at("id");
