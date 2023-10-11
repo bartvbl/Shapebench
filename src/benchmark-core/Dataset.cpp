@@ -1,6 +1,7 @@
 #include "Dataset.h"
 #include <fstream>
 #include <random>
+#include <iostream>
 #include "json.hpp"
 
 void Dataset::load(std::filesystem::path &cacheFile) {
@@ -11,6 +12,7 @@ void Dataset::load(std::filesystem::path &cacheFile) {
     uint32_t fileCount = cacheFileContents.at("files").size();
     entries.reserve(fileCount);
 
+    uint32_t excludedCount = 0;
     for(uint32_t i = 0; i < fileCount; i++) {
         nlohmann::json jsonEntry = cacheFileContents.at("files").at(i);
         bool isPointCloud = jsonEntry.at("isPointCloud");
@@ -22,8 +24,11 @@ void Dataset::load(std::filesystem::path &cacheFile) {
             entry.id = jsonEntry.at("id");
             entry.meshFile = std::string(jsonEntry.at("filePath"));
             entries.push_back(entry);
+        } else {
+            excludedCount++;
         }
     }
+    std::cout << "    Excluded " << excludedCount << " meshes and/or point clouds." << std::endl;
     std::sort(entries.begin(), entries.end());
 }
 
