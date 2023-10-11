@@ -112,13 +112,15 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
             datasetEntry["vertexCount"] = -1;
         }
 
-        Seb::Smallest_enclosing_ball<double> ball(3, vertices);
-        double boundingRadius = ball.radius();
-        for(int j = 0; j < 3; j++) {
-            coordinate.at(j) = ball.center_begin()[j];
+        if(!vertices.empty()) {
+            Seb::Smallest_enclosing_ball<double> ball(3, vertices);
+            double boundingRadius = ball.radius();
+            for(int j = 0; j < 3; j++) {
+                coordinate.at(j) = ball.center_begin()[j];
+            }
+            datasetEntry["boundingSphereCentre"] = {coordinate.at(0), coordinate.at(1), coordinate.at(2)};
+            datasetEntry["boundingSphereRadius"] = boundingRadius;
         }
-        datasetEntry["boundingSphereCentre"] = {coordinate.at(0), coordinate.at(1), coordinate.at(2)};
-        datasetEntry["boundingSphereRadius"] = boundingRadius;
 
         #pragma omp critical
         {
