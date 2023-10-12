@@ -4,8 +4,8 @@
 #include <iostream>
 #include "Dataset.h"
 #include "json.hpp"
-#include "methods/Method.h"
 #include "Batch.h"
+#include "methods/Method.h"
 
 namespace Shapebench {
     template<typename DescriptorMethod, typename DescriptorType>
@@ -21,7 +21,12 @@ namespace Shapebench {
 
 
         Batch<uint32_t> batch(representativeSetSize, batchSizeLimit);
-        for()
+
+        for(uint32_t index = 0; index < representativeSetSize; index = batch.next()) {
+            if(batch.isNewBatch()) {
+
+            }
+        }
 
 
         std::chrono::time_point start = std::chrono::steady_clock::now();
