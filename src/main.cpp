@@ -12,13 +12,25 @@
 #include "shapeDescriptor/utilities/read/MeshLoader.h"
 #include <tiny_gltf.h>
 #include "shapeDescriptor/utilities/write/CompressedGeometryFile.h"
+#include <shapeDescriptor/gpu/radialIntersectionCountImageSearcher.cuh>
 #include "shapeDescriptor/utilities/read/PointCloudLoader.h"
 #include "shapeDescriptor/utilities/free/pointCloud.h"
 #include "benchmark-core/CompressedDatasetCreator.h"
+#include "benchmark-core/Dataset.h"
+#include "benchmark-core/SupportRadiusEstimation.h"
+#include "methods/QUICCIMethod.h"
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <random>
 
+template<typename DescriptorMethod, typename DescriptorType>
+void testMethod(const nlohmann::json& configuration, const Dataset& dataset, uint64_t randomSeed) {
+    std::mt19937_64 engine(randomSeed);
+    std::cout << "Performing support radius estimation.." << std::endl;
+    float supportRadius = Shapebench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
+    std::cout << "    Chosen support radius: " << supportRadius << std::endl;
 
+}
 
 
 int main(int argc, const char** argv) {
@@ -83,15 +95,20 @@ int main(int argc, const char** argv) {
     const std::filesystem::path baseDatasetDirectory = configuration.at("objaverseDatasetRootDir");
     const std::filesystem::path derivedDatasetDirectory = configuration.at("compressedDatasetRootDir");
     const std::filesystem::path datasetCacheFile = cacheDirectory / Shapebench::datasetCacheFileName;
-    if(!std::filesystem::exists(datasetCacheFile) || !std::filesystem::exists(derivedDatasetDirectory) || true) {
+    if(!std::filesystem::exists(datasetCacheFile) || !std::filesystem::exists(derivedDatasetDirectory)) {
         std::cout << "Dataset metadata or compressed dataset was not found." << std::endl
                   << "Computing compressed dataset.. (this will likely take multiple hours)" << std::endl;
         Shapebench::computeCompressedDataSet(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
     }
 
 
+    std::cout << "Reading dataset cache.." << std::endl;
+    Dataset dataset;
+    dataset.load(datasetCacheFile);
 
-    std::cout << "Performing parameter estimation.." << std::endl;
+
+    uint64_t randomSeed = configuration.at("randomSeed");
+    testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, dataset, randomSeed);
 
 
 }

@@ -19,6 +19,6 @@ struct DatasetEntry {
 class Dataset {
     std::vector<DatasetEntry> entries;
 public:
-    void load(std::filesystem::path &cacheFile);
+    void load(const std::filesystem::path &cacheFile);
     std::vector<VertexInDataset> sampleVertices(uint64_t randomSeed, uint32_t count) const;
 };

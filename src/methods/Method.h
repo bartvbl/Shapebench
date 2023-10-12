@@ -15,6 +15,7 @@ namespace Shapebench {
         ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(const ShapeDescriptor::gpu::PointCloud mesh,
                                                                        const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
                                                                        float supportRadius);
+        std::string getName();
     };
 
 

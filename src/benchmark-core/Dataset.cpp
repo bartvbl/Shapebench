@@ -4,7 +4,7 @@
 #include <iostream>
 #include "json.hpp"
 
-void Dataset::load(std::filesystem::path &cacheFile) {
+void Dataset::load(const std::filesystem::path &cacheFile) {
     std::ifstream inputStream{cacheFile};
     nlohmann::json cacheFileContents = nlohmann::json::parse(inputStream);
 
@@ -17,8 +17,9 @@ void Dataset::load(std::filesystem::path &cacheFile) {
         nlohmann::json jsonEntry = cacheFileContents.at("files").at(i);
         bool isPointCloud = jsonEntry.at("isPointCloud");
         bool isNotEmpty = jsonEntry.at("vertexCount") > 0;
-        // Exclude all point clouds
-        if(!isPointCloud && isNotEmpty) {
+        bool parseFailed = jsonEntry.contains("parseFailed") && jsonEntry.at("parseFailed");
+        // Exclude all point clouds, empty meshes, and meshes that failed to parse
+        if(!isPointCloud && isNotEmpty && !parseFailed) {
             DatasetEntry entry;
             entry.vertexCount = jsonEntry.at("vertexCount");
             entry.id = jsonEntry.at("id");
@@ -28,6 +29,7 @@ void Dataset::load(std::filesystem::path &cacheFile) {
             excludedCount++;
         }
     }
+    std::cout << "    Dataset contains " << entries.size() << " meshes." << std::endl;
     std::cout << "    Excluded " << excludedCount << " meshes and/or point clouds." << std::endl;
     std::sort(entries.begin(), entries.end());
 }
@@ -37,7 +39,7 @@ std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32
     std::vector<VertexInDataset> sampledEntries(count);
 
     std::mt19937_64 engine(randomSeed);
-    std::uniform_int_distribution<uint32_t> distribution(0, entries.size());
+    std::uniform_int_distribution<uint32_t> distribution(0, entries.size()-1);
 
     for(uint32_t i = 0; i < count; i++) {
         uint32_t chosenMeshIndex = distribution(engine);

@@ -34,3 +34,8 @@ bool Shapebench::Method<DescriptorType>::usesMeshInput() {
     throwUnimplementedException();
     return false;
 }
+
+template<typename DescriptorType>
+std::string Shapebench::Method<DescriptorType>::getName() {
+    return "INVALID METHOD";
+}
