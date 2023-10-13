@@ -1,23 +1,14 @@
 #include <iostream>
 #include <vector>
 #include "CompressedDatasetCreator.h"
-#include "shapeDescriptor/utilities/fileutils.h"
+#include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
-#include "shapeDescriptor/utilities/read/GLTFLoader.h"
-#include "shapeDescriptor/utilities/read/PointCloudLoader.h"
-#include "shapeDescriptor/utilities/write/CompressedGeometryFile.h"
-#include "shapeDescriptor/utilities/read/MeshLoader.h"
-#include "shapeDescriptor/utilities/read/CompressedGeometryFile.h"
-#include "shapeDescriptor/utilities/hash/MeshHasher.h"
-#include "shapeDescriptor/utilities/dump/meshDumper.h"
-#include <shapeDescriptor/utilities/free/mesh.h>
-#include <shapeDescriptor/utilities/free/pointCloud.h>
 #include <Seb.h>
 
 void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalDatasetDirectory,
                                           const std::filesystem::path &compressedDatasetDirectory,
                                           std::filesystem::path metadataFile) {
-    const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::utilities::listDirectoryAndSubdirectories(originalDatasetDirectory);
+    const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::listDirectoryAndSubdirectories(originalDatasetDirectory);
 
     // TODO: once data is available, do a hash check of all files
     std::cout << "    Found " << datasetFiles.size() << " files." << std::endl;
@@ -44,7 +35,7 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
         datasetEntry["id"] = i;
         std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)), originalDatasetDirectory);
         datasetEntry["filePath"] = filePath;
-        bool isPointCloud = ShapeDescriptor::utilities::gltfContainsPointCloud(datasetFiles.at(i));
+        bool isPointCloud = ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
         datasetEntry["isPointCloud"] = isPointCloud;
         std::filesystem::path compressedMeshPath = compressedDatasetDirectory / filePath;
         compressedMeshPath.replace_extension(".cm");
@@ -56,7 +47,7 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
             if(isPointCloud) {
                 #pragma omp atomic
                 pointCloudCount++;
-                ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::utilities::loadPointCloud(datasetFiles.at(i));
+                ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::loadPointCloud(datasetFiles.at(i));
                 ShapeDescriptor::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
                 datasetEntry["vertexCount"] = cloud.pointCount;
 
@@ -67,7 +58,7 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                     #pragma omp atomic
                     hashMismatches++;
                 }
-                ShapeDescriptor::free::pointCloud(readCloud);
+                ShapeDescriptor::free(readCloud);
 
                 vertices.reserve(cloud.pointCount);
                 for(uint32_t vertex = 0; vertex < cloud.pointCount; vertex++) {
@@ -78,9 +69,9 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                     vertices.emplace_back(3, coordinate.begin());
                 }
 
-                ShapeDescriptor::free::pointCloud(cloud);
+                ShapeDescriptor::free(cloud);
             } else {
-                ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::utilities::loadMesh(datasetFiles.at(i));
+                ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(datasetFiles.at(i));
                 ShapeDescriptor::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                 datasetEntry["vertexCount"] = mesh.vertexCount;
 
@@ -90,9 +81,9 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                     std::cout << "\n!! MESH HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
                     #pragma omp atomic
                     hashMismatches++;
-                    ShapeDescriptor::dump::mesh(readMesh, compressedMeshPath.replace_extension(".obj"));
+                    ShapeDescriptor::writeOBJ(readMesh, compressedMeshPath.replace_extension(".obj"));
                 }
-                ShapeDescriptor::free::mesh(readMesh);
+                ShapeDescriptor::free(readMesh);
 
                 vertices.reserve(mesh.vertexCount);
                 for(uint32_t vertex = 0; vertex < mesh.vertexCount; vertex++) {
@@ -103,7 +94,7 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                     vertices.emplace_back(3, coordinate.begin());
                 }
 
-                ShapeDescriptor::free::mesh(mesh);
+                ShapeDescriptor::free(mesh);
             }
         } catch(std::runtime_error& e) {
             std::cout << "!! ERROR: FILE FAILED TO PARSE: " + filePath.string() + "\n   REASON: " + e.what() + "\n" << std::flush;

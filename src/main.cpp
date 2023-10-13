@@ -1,20 +1,10 @@
 
 
 #include "arrrgh.hpp"
-#include "shapeDescriptor/utilities/CUDAContextCreator.h"
-#include "shapeDescriptor/utilities/CUDAAvailability.h"
-#include "shapeDescriptor/utilities/read/GLTFLoader.h"
-#include "shapeDescriptor/utilities/dump/meshDumper.h"
-#include "shapeDescriptor/utilities/fileutils.h"
-#include "shapeDescriptor/utilities/free/mesh.h"
+#include <shapeDescriptor/shapeDescriptor.h>
 #include "benchmark-core/MissingBenchmarkConfigurationException.h"
 #include "benchmark-core/constants.h"
-#include "shapeDescriptor/utilities/read/MeshLoader.h"
 #include <tiny_gltf.h>
-#include "shapeDescriptor/utilities/write/CompressedGeometryFile.h"
-#include <shapeDescriptor/gpu/radialIntersectionCountImageSearcher.cuh>
-#include "shapeDescriptor/utilities/read/PointCloudLoader.h"
-#include "shapeDescriptor/utilities/free/pointCloud.h"
 #include "benchmark-core/CompressedDatasetCreator.h"
 #include "benchmark-core/Dataset.h"
 #include "benchmark-core/SupportRadiusEstimation.h"
@@ -61,7 +51,7 @@ int main(int argc, const char** argv) {
 
     if(forceGPU.value() != -1) {
         std::cout << "Forcing GPU " << forceGPU.value() << std::endl;
-        ShapeDescriptor::utilities::createCUDAContext(forceGPU.value());
+        ShapeDescriptor::createCUDAContext(forceGPU.value());
     }
 
     if(!ShapeDescriptor::isCUDASupportAvailable()) {

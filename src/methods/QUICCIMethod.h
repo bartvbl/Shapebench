@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Method.h"
-#include "shapeDescriptor/common/types/methods/QUICCIDescriptor.h"
+#include <shapeDescriptor/shapeDescriptor.h>
 
 namespace Shapebench {
     struct QUICCIMethod : public Shapebench::Method<ShapeDescriptor::QUICCIDescriptor> {

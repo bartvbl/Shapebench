@@ -31,6 +31,7 @@ add_subdirectory(../libShapeDescriptor libShapeDescriptor)
 include_directories (
         src/
         ../libShapeDescriptor/src/
+        ../libShapeDescriptor/include/
         lib/cuda-samples/Common
         lib/arrrgh
         lib/tinygltf
