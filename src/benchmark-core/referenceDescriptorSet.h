@@ -15,7 +15,12 @@ namespace Shapebench {
             std::array<float, supportRadiusCount> supportRadius,
             uint32_t startIndex = 0,
             uint32_t endIndex = 0xFFFFFFFF) {
-
+        std::array<ShapeDescriptor::gpu::array<DescriptorType>, supportRadiusCount> outputDescriptors;
+        if(verticesToRender.size() == 0) {
+            std::fill(outputDescriptors.begin(), outputDescriptors.end(), ShapeDescriptor::gpu::array<DescriptorType>{nullptr, 0});
+            return outputDescriptors;
+        }
+        ShapeDescriptor::cpu::Mesh currentMesh = ShapeDescriptor::loadMesh(verticesToRender.at(0).meshFile);
     }
 
     template<typename DescriptorMethod, typename DescriptorType>

@@ -36,10 +36,6 @@ namespace Shapebench {
         std::array<ShapeDescriptor::gpu::array<DescriptorType>, 3> sampleDescriptors;
         ShapeDescriptor::gpu::array<DescriptorType> referenceDescriptors;
 
-        std::vector<double> averageDistancesToReferenceSet;
-        std::vector<double> averageDeviatedDistancesLow;
-        std::vector<double> averageDeviatedDistancesHigh;
-
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
         uint32_t sampleDescriptorSetSize = supportRadiusConfig.at("sampleDescriptorSetSize");
         float supportRadiusStart = supportRadiusConfig.at("radiusDeviationStep");
@@ -49,9 +45,9 @@ namespace Shapebench {
 
         std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize);
 
-        averageDistancesToReferenceSet.resize(numberOfSupportRadiiToTry);
-        averageDeviatedDistancesLow.resize(numberOfSupportRadiiToTry);
-        averageDeviatedDistancesHigh.resize(numberOfSupportRadiiToTry);
+        std::vector<double> averageDistancesToReferenceSet(numberOfSupportRadiiToTry);
+        std::vector<double> averageDeviatedDistancesLow(numberOfSupportRadiiToTry);
+        std::vector<double> averageDeviatedDistancesHigh(numberOfSupportRadiiToTry);
 
         std::chrono::time_point start = std::chrono::steady_clock::now();
 
