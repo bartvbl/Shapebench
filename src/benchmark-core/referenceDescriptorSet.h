@@ -16,11 +16,27 @@ namespace Shapebench {
             uint32_t startIndex = 0,
             uint32_t endIndex = 0xFFFFFFFF) {
         std::array<ShapeDescriptor::gpu::array<DescriptorType>, supportRadiusCount> outputDescriptors;
-        if(verticesToRender.size() == 0) {
-            std::fill(outputDescriptors.begin(), outputDescriptors.end(), ShapeDescriptor::gpu::array<DescriptorType>{nullptr, 0});
+        if(verticesToRender.empty()) {
+            ShapeDescriptor::gpu::array<DescriptorType> emptyArray = {0, nullptr};
+            std::fill(outputDescriptors.begin(), outputDescriptors.end(), emptyArray);
             return outputDescriptors;
         }
-        ShapeDescriptor::cpu::Mesh currentMesh = ShapeDescriptor::loadMesh(verticesToRender.at(0).meshFile);
+        std::filesystem::path currentMeshPath = verticesToRender.at(startIndex).meshFile;
+        ShapeDescriptor::cpu::Mesh currentMesh = ShapeDescriptor::loadMesh(currentMeshPath);
+        std::vector<uint32_t> vertexIndices;
+
+        endIndex = std::min<uint32_t>(endIndex, verticesToRender.size());
+        for(uint32_t i = startIndex; i < endIndex; i++) {
+            // We have moved on to a new mesh. Load the new one
+            if(verticesToRender.at(startIndex).meshFile != currentMeshPath) {
+
+
+                ShapeDescriptor::free(currentMesh);
+                currentMeshPath = verticesToRender.at(startIndex).meshFile;
+                currentMesh = ShapeDescriptor::loadMesh(currentMeshPath);
+            }
+            vertexIndices.push_back(verticesToRender.at(i).vertexIndex);
+        }
     }
 
     template<typename DescriptorMethod, typename DescriptorType>

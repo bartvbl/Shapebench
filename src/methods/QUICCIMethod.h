@@ -11,6 +11,10 @@ namespace Shapebench {
             return 0.5;
         }
 
+        static bool hasGPUKernels() {
+            return true;
+        }
+
         static ShapeDescriptor::cpu::array<uint32_t> computeDescriptorRanks(
                 ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> needleDescriptors,
                 ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> haystackDescriptors) {

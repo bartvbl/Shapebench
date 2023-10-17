@@ -18,9 +18,14 @@ namespace Shapebench {
             throwUnimplementedException();
             return false;
         }
+        static bool hasGPUKernels() {
+            throwUnimplementedException();
+            return false;
+        }
         static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
                 ShapeDescriptor::gpu::Mesh mesh,
                 ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
+                const nlohmann::json& config,
                 float supportRadius) {
             throwUnimplementedException();
             return {};
@@ -28,6 +33,23 @@ namespace Shapebench {
         static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
                 const ShapeDescriptor::gpu::PointCloud mesh,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
+                const nlohmann::json& config,
+                float supportRadius) {
+            throwUnimplementedException();
+            return {};
+        }
+        static ShapeDescriptor::cpu::array<DescriptorType> computeDescriptors(
+                ShapeDescriptor::cpu::Mesh mesh,
+                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const nlohmann::json& config,
+                float supportRadius) {
+            throwUnimplementedException();
+            return {};
+        }
+        static ShapeDescriptor::cpu::array<DescriptorType> computeDescriptors(
+                const ShapeDescriptor::cpu::PointCloud mesh,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const nlohmann::json& config,
                 float supportRadius) {
             throwUnimplementedException();
             return {};

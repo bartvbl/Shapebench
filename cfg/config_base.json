@@ -16,7 +16,7 @@
       "radiusDeviationStep": 0.1,
       "radiusSearchStep": 0.02,
       "numberOfSupportRadiiToTry": 50,
-      "radiusSensitivityDeviation": 0.01;
+      "radiusSensitivityDeviation": 0.01
     }
   },
 

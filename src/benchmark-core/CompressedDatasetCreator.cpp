@@ -76,7 +76,8 @@ void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalD
                 datasetEntry["vertexCount"] = mesh.vertexCount;
 
                 // Integrity check
-                ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::readMeshFromCompressedGeometryFile(compressedMeshPath);
+                ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::loadMeshFromCompressedGeometryFile(
+                        compressedMeshPath);
                 if(!ShapeDescriptor::compareMesh(mesh, readMesh)) {
                     std::cout << "\n!! MESH HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
                     #pragma omp atomic
