@@ -6,7 +6,7 @@
 
 
 template<typename DescriptorMethod>
-bool shouldRunOnGPU(const nlohmann::json& config, uint32_t descriptorCount) {
+bool shouldGenerateDescriptorsOnGPU(const nlohmann::json& config, uint32_t descriptorCount) {
     bool cudaSupportAvailable = ShapeDescriptor::isCUDASupportAvailable();
     bool methodHasGPUImplementation = DescriptorMethod::hasGPUKernels();
     const uint32_t defaultThreshold = 0; // Always pick GPU if available
@@ -21,36 +21,30 @@ template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsAndSaveToCPU(const ShapeDescriptor::cpu::Mesh& mesh,
                                                                            ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> origins,
                                                                            const nlohmann::json& config,
-                                                                           float supportRadius,
-                                                                           uint64_t randomSeed) {
-    ShapeDescriptor::cpu::array<DescriptorType> descriptors;
-    bool runOnGPU = shouldRunOnGPU<DescriptorMethod>(config, origins.length);
-    bool methodRequiresPointCloud = DescriptorMethod::usesPointCloudInput();
-
-    ShapeDescriptor::cpu::PointCloud pointCloud;
-    if(methodRequiresPointCloud) {
-        pointCloud = ShapeDescriptor::sampleMesh(mesh, )
-    }
-
-    if(runOnGPU) {
-
-
-    } else {
-
-        descriptors = DescriptorMethod::computeDescriptors(
-                ShapeDescriptor::cpu::Mesh mesh,
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
-        const nlohmann::json& config,
-        float supportRadius)
-    }
-    return descriptors;
+                                                                           float supportRadius) {
+    return DescriptorMethod::computeDescriptors(mesh, origins, config, supportRadius);
 }
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::gpu::array<DescriptorType> computeDescriptorsAndSaveToGPU(const ShapeDescriptor::gpu::Mesh& mesh,
                                                                            ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> origins,
                                                                            const nlohmann::json& config,
-                                                                           float supportRadius,
-                                                                           uint64_t randomSeed) {
+                                                                           float supportRadius) {
+    return DescriptorMethod::computeDescriptors(mesh, origins, config, supportRadius);
+}
 
+template<typename DescriptorMethod, typename DescriptorType>
+ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsAndSaveToCPU(const ShapeDescriptor::cpu::PointCloud& cloud,
+                                                                           ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> origins,
+                                                                           const nlohmann::json& config,
+                                                                           float supportRadius) {
+    return DescriptorMethod::computeDescriptors(cloud, origins, config, supportRadius);
+}
+
+template<typename DescriptorMethod, typename DescriptorType>
+ShapeDescriptor::gpu::array<DescriptorType> computeDescriptorsAndSaveToGPU(const ShapeDescriptor::gpu::PointCloud& cloud,
+                                                                           ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> origins,
+                                                                           const nlohmann::json& config,
+                                                                           float supportRadius) {
+    return DescriptorMethod::computeDescriptors(cloud, origins, config, supportRadius);
 }

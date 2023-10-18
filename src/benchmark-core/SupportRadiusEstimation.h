@@ -10,12 +10,12 @@
 #include "referenceDescriptorSet.h"
 
 namespace Shapebench {
-    double computeAverageRank(ShapeDescriptor::cpu::array<uint32_t> ranks, uint32_t representativeSetSize) {
+    uint64_t sum(ShapeDescriptor::cpu::array<uint32_t> ranks) {
         uint64_t rankSum = 0;
         for(uint32_t i = 0; i < ranks.length; i++) {
             rankSum += ranks[i];
         }
-        return double(rankSum) / double(representativeSetSize);
+        return rankSum;
     }
 
 
@@ -33,56 +33,47 @@ namespace Shapebench {
                 ? uint32_t(config.at("limits").at("representativeSetBatchSizeLimit"))
                 : representativeSet.size();
 
-        std::array<ShapeDescriptor::gpu::array<DescriptorType>, 3> sampleDescriptors;
+        ShapeDescriptor::gpu::array<DescriptorType> sampleDescriptors;
         ShapeDescriptor::gpu::array<DescriptorType> referenceDescriptors;
 
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
         uint32_t sampleDescriptorSetSize = supportRadiusConfig.at("sampleDescriptorSetSize");
         float supportRadiusStart = supportRadiusConfig.at("radiusDeviationStep");
         float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");
-        float radiusSensitivityDeviation = supportRadiusConfig.at("radiusSensitivityDeviation");
         uint32_t numberOfSupportRadiiToTry = supportRadiusConfig.at("numberOfSupportRadiiToTry");
 
         std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize);
 
-        std::vector<double> averageDistancesToReferenceSet(numberOfSupportRadiiToTry);
-        std::vector<double> averageDeviatedDistancesLow(numberOfSupportRadiiToTry);
-        std::vector<double> averageDeviatedDistancesHigh(numberOfSupportRadiiToTry);
+        std::vector<uint64_t> sumsOfRanks(numberOfSupportRadiiToTry);
 
         std::chrono::time_point start = std::chrono::steady_clock::now();
 
         for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {
             float supportRadius = supportRadiusStart + supportRadiusStep * float(supportRadiusStep);
-            float deviatedSupportRadiusLow = (1 - radiusSensitivityDeviation) * supportRadius;
-            float deviatedSupportRadiusHigh = (1 + radiusSensitivityDeviation) * supportRadius;
 
             for(uint32_t index = 0; index < representativeSetSize; index += batchSizeLimit) {
                 std::cout << "\r    Testing support radius " << supportRadius << "/" << (float(numberOfSupportRadiiToTry) * float(radiusStep) + supportRadiusStart) << " - vertex " << index << "/" << representativeSetSize << std::flush;
                 uint32_t startIndex = index;
                 uint32_t endIndex = std::min<uint32_t>(index + batchSizeLimit, representativeSetSize);
 
-                std::array<float, 3> sampleSupportRadii = {deviatedSupportRadiusLow, supportRadius, deviatedSupportRadiusHigh};
-                sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType, 3>(sampleVerticesSet, config, sampleSupportRadii);
+                sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(sampleVerticesSet, config, supportRadius);
 
                 referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, config, supportRadius, startIndex, endIndex);
 
-                ShapeDescriptor::cpu::array<uint32_t> ranksDeviatedLow = DescriptorMethod::computeDescriptorRanks(sampleDescriptors.at(0), referenceDescriptors);
-                averageDeviatedDistancesLow.at(index) += computeAverageRank(ranksDeviatedLow, representativeSetSize);
+                ShapeDescriptor::cpu::array<uint32_t> ranks = DescriptorMethod::computeDescriptorRanks(sampleDescriptors, referenceDescriptors);
+                sumsOfRanks.at(radiusStep) += sum(ranks);
 
-                ShapeDescriptor::cpu::array<uint32_t> ranks = DescriptorMethod::computeDescriptorRanks(sampleDescriptors.at(1), referenceDescriptors);
-                averageDistancesToReferenceSet.at(index) += computeAverageRank(ranksDeviatedLow, representativeSetSize);
-
-                ShapeDescriptor::cpu::array<uint32_t> ranksDeviatedHigh = DescriptorMethod::computeDescriptorRanks(sampleDescriptors.at(2), referenceDescriptors);
-                averageDeviatedDistancesHigh.at(index) += computeAverageRank(ranksDeviatedLow, representativeSetSize);
-
-                ShapeDescriptor::free(ranksDeviatedLow);
                 ShapeDescriptor::free(ranks);
-                ShapeDescriptor::free(ranksDeviatedHigh);
                 ShapeDescriptor::free(referenceDescriptors);
-                ShapeDescriptor::free(sampleDescriptors.at(0));
-                ShapeDescriptor::free(sampleDescriptors.at(1));
-                ShapeDescriptor::free(sampleDescriptors.at(2));
+                ShapeDescriptor::free(sampleDescriptors);
             }
+        }
+
+        std::vector<double> averageRanks(numberOfSupportRadiiToTry);
+        for(int i = 0; i < averageRanks.size(); i++) {
+            averageRanks.at(i) = double(sumsOfRanks.at(i)) / double(numberOfSupportRadiiToTry);
+            float supportRadius = supportRadiusStart + i * float(supportRadiusStep);
+            std::cout << i << ", " << supportRadius << ", " << averageRanks.at(i);
         }
 
         std::chrono::time_point end = std::chrono::steady_clock::now();

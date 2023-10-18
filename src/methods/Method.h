@@ -9,6 +9,10 @@ namespace Shapebench {
         static void throwUnimplementedException() {
             throw std::logic_error("This method is required but has not been implemented.");
         }
+    protected:
+        static void throwIncompatibleException() {
+            throw std::runtime_error("This method does not support this method");
+        }
     public:
         static bool usesMeshInput() {
             throwUnimplementedException();
@@ -31,7 +35,7 @@ namespace Shapebench {
             return {};
         }
         static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
-                const ShapeDescriptor::gpu::PointCloud mesh,
+                const ShapeDescriptor::gpu::PointCloud cloud,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
                 const nlohmann::json& config,
                 float supportRadius) {
@@ -47,7 +51,7 @@ namespace Shapebench {
             return {};
         }
         static ShapeDescriptor::cpu::array<DescriptorType> computeDescriptors(
-                const ShapeDescriptor::cpu::PointCloud mesh,
+                const ShapeDescriptor::cpu::PointCloud cloud,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
                 float supportRadius) {
