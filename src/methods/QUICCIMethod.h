@@ -33,6 +33,7 @@ namespace Shapebench {
                 const nlohmann::json& config,
                 float supportRadius) {
             throwIncompatibleException();
+            return {};
         }
         static ShapeDescriptor::cpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
                 ShapeDescriptor::cpu::Mesh mesh,
@@ -47,6 +48,7 @@ namespace Shapebench {
                 const nlohmann::json& config,
                 float supportRadius) {
             throwIncompatibleException();
+            return {};
         }
         static std::string getName() {
             return "QUICCI";

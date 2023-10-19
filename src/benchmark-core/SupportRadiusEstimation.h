@@ -49,16 +49,16 @@ namespace Shapebench {
         std::chrono::time_point start = std::chrono::steady_clock::now();
 
         for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {
-            float supportRadius = supportRadiusStart + supportRadiusStep * float(supportRadiusStep);
+            float supportRadius = supportRadiusStart + float(radiusStep) * float(supportRadiusStep);
 
             for(uint32_t index = 0; index < representativeSetSize; index += batchSizeLimit) {
-                std::cout << "\r    Testing support radius " << supportRadius << "/" << (float(numberOfSupportRadiiToTry) * float(radiusStep) + supportRadiusStart) << " - vertex " << index << "/" << representativeSetSize << std::flush;
+                std::cout << "\r    Testing support radius " << supportRadius << "/" << (float(numberOfSupportRadiiToTry) * float(supportRadiusStep) + supportRadiusStart) << " - vertex " << index << "/" << representativeSetSize << std::flush;
                 uint32_t startIndex = index;
                 uint32_t endIndex = std::min<uint32_t>(index + batchSizeLimit, representativeSetSize);
 
-                sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(sampleVerticesSet, config, supportRadius);
+                sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(sampleVerticesSet, dataset, config, supportRadius, randomEngine());
 
-                referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, config, supportRadius, startIndex, endIndex);
+                referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, dataset, config, supportRadius, randomEngine(), startIndex, endIndex);
 
                 ShapeDescriptor::cpu::array<uint32_t> ranks = DescriptorMethod::computeDescriptorRanks(sampleDescriptors, referenceDescriptors);
                 sumsOfRanks.at(radiusStep) += sum(ranks);

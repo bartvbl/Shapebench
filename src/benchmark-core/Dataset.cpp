@@ -23,6 +23,7 @@ void Dataset::load(const std::filesystem::path &cacheFile) {
             DatasetEntry entry;
             entry.vertexCount = jsonEntry.at("vertexCount");
             entry.id = jsonEntry.at("id");
+            entry.computedObjectRadius = jsonEntry.at("boundingSphereRadius");
             entry.meshFile = std::string(jsonEntry.at("filePath"));
             entries.push_back(entry);
         } else {
@@ -48,7 +49,7 @@ std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32
     uint32_t nextIndex = 0;
     for(uint32_t i = 0; i < entries.size(); i++) {
         for(uint32_t j = 0; j < sampleHistogram.at(i); j++) {
-            sampledEntries.at(nextIndex).meshFile = entries.at(i).meshFile;
+            sampledEntries.at(nextIndex).meshID = i;
             std::uniform_int_distribution<uint32_t> vertexIndexDistribution(0, entries.at(i).vertexCount);
             sampledEntries.at(nextIndex).vertexIndex = vertexIndexDistribution(engine);
             nextIndex++;
@@ -56,6 +57,10 @@ std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32
     }
     assert(nextIndex == count);
     return sampledEntries;
+}
+
+const DatasetEntry &Dataset::at(uint32_t meshID) const {
+    return entries.at(meshID);
 }
 
 bool DatasetEntry::operator<(DatasetEntry &other) {
