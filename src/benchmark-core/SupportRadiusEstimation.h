@@ -10,14 +10,31 @@
 #include "referenceDescriptorSet.h"
 
 namespace Shapebench {
-    uint64_t sum(ShapeDescriptor::cpu::array<uint32_t> ranks) {
-        uint64_t rankSum = 0;
-        for(uint32_t i = 0; i < ranks.length; i++) {
-            rankSum += ranks[i];
+    inline std::vector<ShapeDescriptor::cpu::Mesh> loadMeshRange(const nlohmann::json& config, const Dataset& dataset, const std::vector<VertexInDataset>& vertices, uint32_t startIndex, uint32_t endIndex) {
+        // Load up to < endIndex, so this is correct
+        uint32_t meshCount = endIndex - startIndex;
+        std::vector<ShapeDescriptor::cpu::Mesh> meshes(meshCount);
+        #pragma omp parallel for default(none) shared(meshCount, dataset, startIndex, meshes, config, vertices)
+        for(uint32_t i = 0; i < meshCount; i++) {
+            const DatasetEntry& entry = dataset.at(vertices.at(startIndex + i).meshID);
+            meshes.at(i) = readDatasetMesh(config, entry.meshFile, entry.computedObjectRadius);
         }
-        return rankSum;
+
+        return meshes;
     }
 
+    inline void freeMeshRange(std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
+        for(ShapeDescriptor::cpu::Mesh& mesh : meshes) {
+            ShapeDescriptor::free(mesh);
+        }
+    }
+
+    template<typename DescriptorType>
+    void freeDescriptorVector(std::vector<ShapeDescriptor::gpu::array<DescriptorType>>& descriptorList) {
+        for(ShapeDescriptor::gpu::array<DescriptorType>& descriptorArray : descriptorList) {
+            ShapeDescriptor::free(descriptorArray);
+        }
+    }
 
     template<typename DescriptorMethod, typename DescriptorType>
     float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed) {
@@ -26,54 +43,65 @@ namespace Shapebench {
         uint32_t representativeSetSize = config.at("representativeSetObjectCount");
         std::mt19937_64 randomEngine(randomSeed);
 
-        std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize);
-
-        uint32_t batchSizeLimit =
-                config.contains("limits") && config.at("limits").contains("representativeSetBatchSizeLimit")
-                ? uint32_t(config.at("limits").at("representativeSetBatchSizeLimit"))
-                : representativeSet.size();
-
-        ShapeDescriptor::gpu::array<DescriptorType> sampleDescriptors;
-        ShapeDescriptor::gpu::array<DescriptorType> referenceDescriptors;
-
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
         uint32_t sampleDescriptorSetSize = supportRadiusConfig.at("sampleDescriptorSetSize");
         float supportRadiusStart = supportRadiusConfig.at("radiusDeviationStep");
         float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");
         uint32_t numberOfSupportRadiiToTry = supportRadiusConfig.at("numberOfSupportRadiiToTry");
 
+        uint32_t referenceBatchSizeLimit =
+                config.contains("limits") && config.at("limits").contains("representativeSetBatchSizeLimit")
+                ? uint32_t(config.at("limits").at("representativeSetBatchSizeLimit"))
+                : representativeSetSize;
+        uint32_t sampleBatchSizeLimit =
+                config.contains("limits") && config.at("limits").contains("sampleBatchSizeLimit")
+                ? uint32_t(config.at("limits").at("sampleBatchSizeLimit"))
+                : sampleDescriptorSetSize;
+
+        std::vector<ShapeDescriptor::gpu::array<DescriptorType>> sampleDescriptors;
+        std::vector<ShapeDescriptor::gpu::array<DescriptorType>> referenceDescriptors;
+
+        std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize);
         std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize);
 
-        std::vector<uint64_t> sumsOfRanks(numberOfSupportRadiiToTry);
+        std::vector<uint32_t> computedRanks(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
+
+        std::vector<float> supportRadiiToTry(numberOfSupportRadiiToTry);
+        for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {
+            supportRadiiToTry.at(radiusStep) = supportRadiusStart + float(radiusStep) * float(supportRadiusStep);
+        }
 
         std::chrono::time_point start = std::chrono::steady_clock::now();
 
-        for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {
-            float supportRadius = supportRadiusStart + float(radiusStep) * float(supportRadiusStep);
+        for(uint32_t referenceStartIndex = 0; referenceStartIndex < representativeSetSize; referenceStartIndex += referenceBatchSizeLimit) {
+            uint32_t referenceEndIndex = std::min<uint32_t>(referenceStartIndex + referenceBatchSizeLimit, representativeSetSize);
+            std::cout << "    Processing reference batch " << (referenceStartIndex + 1) << "-" << (referenceEndIndex + 1) << "/" << representativeSetSize << std::endl;
 
-            for(uint32_t index = 0; index < representativeSetSize; index += batchSizeLimit) {
-                std::cout << "\r    Testing support radius " << supportRadius << "/" << (float(numberOfSupportRadiiToTry) * float(supportRadiusStep) + supportRadiusStart) << " - vertex " << index << "/" << representativeSetSize << std::flush;
-                uint32_t startIndex = index;
-                uint32_t endIndex = std::min<uint32_t>(index + batchSizeLimit, representativeSetSize);
+            std::vector<ShapeDescriptor::cpu::Mesh> representativeSetMeshes = loadMeshRange(config, dataset,representativeSet,referenceStartIndex, referenceEndIndex);
 
-                sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(sampleVerticesSet, dataset, config, supportRadius, randomEngine());
+            referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
+                    representativeSet, dataset, config, supportRadiiToTry, randomEngine(), referenceStartIndex, referenceEndIndex);
 
-                referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, dataset, config, supportRadius, randomEngine(), startIndex, endIndex);
+            for(uint32_t sampleStartIndex = 0; sampleStartIndex < sampleDescriptorSetSize; sampleStartIndex += sampleBatchSizeLimit) {
+                uint32_t sampleEndIndex = std::min<uint32_t>(sampleStartIndex + sampleBatchSizeLimit, sampleDescriptorSetSize);
+                std::cout << "        Computing ranks for sample " << (sampleStartIndex + 1) << "-" << (sampleEndIndex + 1) << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << (referenceEndIndex + 1) << "/" << representativeSetSize << std::endl;
+                sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
+                        sampleVerticesSet, dataset, config, supportRadiiToTry, randomEngine(), sampleStartIndex, sampleEndIndex);
 
-                ShapeDescriptor::cpu::array<uint32_t> ranks = DescriptorMethod::computeDescriptorRanks(sampleDescriptors, referenceDescriptors);
-                sumsOfRanks.at(radiusStep) += sum(ranks);
+                for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
+                    ShapeDescriptor::cpu::array<uint32_t> ranks = DescriptorMethod::computeDescriptorRanks(sampleDescriptors.at(i), referenceDescriptors.at(i));
+                    // TODO: copy ranks to output array
+                    // TODO: ranks function should output zeroes since descriptors are the same but it does not because it assumes you want to compare to the descriptor at index i.
+                    ShapeDescriptor::free(ranks);
+                }
 
-                ShapeDescriptor::free(ranks);
-                ShapeDescriptor::free(referenceDescriptors);
-                ShapeDescriptor::free(sampleDescriptors);
+                freeDescriptorVector<DescriptorType>(sampleDescriptors);
             }
-        }
 
-        std::vector<double> averageRanks(numberOfSupportRadiiToTry);
-        for(int i = 0; i < averageRanks.size(); i++) {
-            averageRanks.at(i) = double(sumsOfRanks.at(i)) / double(numberOfSupportRadiiToTry);
-            float supportRadius = supportRadiusStart + i * float(supportRadiusStep);
-            std::cout << i << ", " << supportRadius << ", " << averageRanks.at(i);
+
+
+            freeDescriptorVector<DescriptorType>(referenceDescriptors);
+            freeMeshRange(representativeSetMeshes);
         }
 
         std::chrono::time_point end = std::chrono::steady_clock::now();
