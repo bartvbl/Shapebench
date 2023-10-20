@@ -75,16 +75,18 @@ namespace Shapebench {
 
         for(uint32_t referenceStartIndex = 0; referenceStartIndex < representativeSetSize; referenceStartIndex += referenceBatchSizeLimit) {
             uint32_t referenceEndIndex = std::min<uint32_t>(referenceStartIndex + referenceBatchSizeLimit, representativeSetSize);
-            std::cout << "    Processing reference batch " << (referenceStartIndex + 1) << "-" << (referenceEndIndex + 1) << "/" << representativeSetSize << std::endl;
-
+            std::cout << "    Processing reference batch " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
+            std::cout << "    Loading meshes.." << std::endl;
             std::vector<ShapeDescriptor::cpu::Mesh> representativeSetMeshes = loadMeshRange(config, dataset,representativeSet,referenceStartIndex, referenceEndIndex);
 
+            std::cout << "    Computing reference descriptors.." << std::endl;
+            // TODO: make this function use cached meshes
             referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
                     representativeSet, dataset, config, supportRadiiToTry, randomEngine(), referenceStartIndex, referenceEndIndex);
 
             for(uint32_t sampleStartIndex = 0; sampleStartIndex < sampleDescriptorSetSize; sampleStartIndex += sampleBatchSizeLimit) {
                 uint32_t sampleEndIndex = std::min<uint32_t>(sampleStartIndex + sampleBatchSizeLimit, sampleDescriptorSetSize);
-                std::cout << "        Computing ranks for sample " << (sampleStartIndex + 1) << "-" << (sampleEndIndex + 1) << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << (referenceEndIndex + 1) << "/" << representativeSetSize << std::endl;
+                std::cout << "        Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
                 sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
                         sampleVerticesSet, dataset, config, supportRadiiToTry, randomEngine(), sampleStartIndex, sampleEndIndex);
 
