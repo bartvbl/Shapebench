@@ -61,10 +61,10 @@ namespace Shapebench {
             for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
                 meanOfMeans += (distances.at(distancesStartIndex + i).mean - meanOfMeans) / float(i + 1);
                 meanOfVariance += (distances.at(distancesStartIndex + i).variance - meanOfVariance) / float(i + 1);
-                minMeans = std::min(minMeans, distances.at(i).mean);
-                maxMeans = std::max(maxMeans, distances.at(i).mean);
-                minVariance = std::min(minVariance, distances.at(i).variance);
-                maxVariance = std::max(maxVariance, distances.at(i).variance);
+                minMeans = std::min(minMeans, distances.at(distancesStartIndex + i).mean);
+                maxMeans = std::max(maxMeans, distances.at(distancesStartIndex + i).mean);
+                minVariance = std::min(minVariance, distances.at(distancesStartIndex + i).variance);
+                maxVariance = std::max(maxVariance, distances.at(distancesStartIndex + i).variance);
             }
             outputBuffer << "means: " << minMeans << ", " << meanOfMeans << ", " << maxMeans << ", variances: " << minVariance << ", " << meanOfVariance << ", " << maxVariance << std::endl;
         }
