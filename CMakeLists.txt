@@ -45,8 +45,10 @@ include_directories (
 # Add files
 #
 file (GLOB         LIBRARY_SOURCES )
-file (GLOB_RECURSE PROJECT_HEADERS src/*.hpp
-        src/*.h)
+file (GLOB_RECURSE PROJECT_HEADERS
+        src/*.hpp
+        src/*.h
+        src/*.cuh)
 file (GLOB_RECURSE PROJECT_SOURCES
         src/benchmark-core/*.cpp
         src/benchmark-core/*.cxx
@@ -54,7 +56,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         src/methods/*.cpp
         src/methods/*.cxx
         src/methods/*.cu
-        src/main.cpp)
+        src/main.cu)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
 target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX)
