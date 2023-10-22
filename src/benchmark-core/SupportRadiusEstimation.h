@@ -52,11 +52,13 @@ namespace Shapebench {
             outputBuffer << radius << ", "
                          << (float(radius) * supportRadiusStep + supportRadiusStart) << ", ";
             float meanOfMeans = 0;
+            float meanOfVariance = 0;
             uint32_t distancesStartIndex = radius * numberOfSampleDescriptors;
             for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
                 meanOfMeans += (distances.at(distancesStartIndex + i).mean - meanOfMeans) / float(i + 1);
+                meanOfVariance += (distances.at(distancesStartIndex + i).variance - meanOfVariance) / float(i + 1);
             }
-            outputBuffer << meanOfMeans << std::endl;
+            outputBuffer << meanOfMeans << ", " << meanOfVariance << std::endl;
         }
 
         std::ofstream outputFile("support_radii.txt");
