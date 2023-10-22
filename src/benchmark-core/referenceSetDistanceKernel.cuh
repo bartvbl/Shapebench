@@ -49,7 +49,7 @@ __global__ void referenceSetDistanceKernel(
         // Note: will be NaN if runningCount <= 1
         distance.variance = runningSumOfSquaredDifferences / float(runningCount - 1);
 
-        distances[sampleDescriptorIndex] = distance;
+        distances.content[sampleDescriptorIndex] = distance;
     }
 };
 
