@@ -50,7 +50,7 @@ namespace Shapebench {
             for(uint32_t i = startIndex; i <= endIndex; i++) {
                 // We have moved on to a new mesh. Load the new one. Also includes a case for the final iteration
                 if(i == endIndex || currentMeshIndex != verticesToRender.at(i).meshID) {
-                    const ShapeDescriptor::cpu::Mesh& currentMesh = meshes.at(i - startIndex);
+                    const ShapeDescriptor::cpu::Mesh& currentMesh = meshes.at(std::min(i - startIndex, endIndex - 1));
                     ShapeDescriptor::gpu::Mesh currentMeshGPU = ShapeDescriptor::copyToGPU(currentMesh);
 
                     for(uint32_t index = 0; index < vertexIndices.size(); index++) {
