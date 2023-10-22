@@ -52,8 +52,9 @@ namespace Shapebench {
             outputBuffer << radius << ", "
                          << (float(radius) * supportRadiusStep + supportRadiusStart) << ", ";
             float meanOfMeans = 0;
+            uint32_t distancesStartIndex = radius * numberOfSampleDescriptors;
             for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
-                meanOfMeans += (distances.at(i).mean - meanOfMeans) / float(i + 1);
+                meanOfMeans += (distances.at(distancesStartIndex + i).mean - meanOfMeans) / float(i + 1);
             }
             outputBuffer << meanOfMeans << std::endl;
         }
