@@ -8,11 +8,17 @@
 #include "Batch.h"
 #include "methods/Method.h"
 #include "referenceDescriptorSet.h"
+#include "referenceSetDistanceKernel.cuh"
 
 namespace Shapebench {
     inline std::vector<ShapeDescriptor::cpu::Mesh> loadMeshRange(const nlohmann::json& config, const Dataset& dataset, const std::vector<VertexInDataset>& vertices, uint32_t startIndex, uint32_t endIndex) {
         // Load up to < endIndex, so this is correct
         uint32_t meshCount = endIndex - startIndex;
+
+        // We load the mesh for each vertex. This assumes that most of these will be unique anyway
+        // That is, there is only one vertex sampled per mesh.
+        // If this assumption changes later we'll have to create a second vector containing an index buffer
+        // which mesh in a condensed vector to use
         std::vector<ShapeDescriptor::cpu::Mesh> meshes(meshCount);
         #pragma omp parallel for default(none) shared(meshCount, dataset, startIndex, meshes, config, vertices)
         for(uint32_t i = 0; i < meshCount; i++) {
@@ -34,6 +40,28 @@ namespace Shapebench {
         for(ShapeDescriptor::gpu::array<DescriptorType>& descriptorArray : descriptorList) {
             ShapeDescriptor::free(descriptorArray);
         }
+    }
+
+    void printDistancesTable(const std::vector<DescriptorDistance> &distances,
+                             uint32_t numberOfSampleDescriptors,
+                             float supportRadiusStart,
+                             float supportRadiusStep,
+                             uint32_t supportRadiusCount) {
+        std::stringstream outputBuffer;
+        for(uint32_t radius = 0; radius < supportRadiusCount; radius++) {
+            outputBuffer << radius << ", "
+                         << (float(radius) * supportRadiusStep + supportRadiusStart) << ", ";
+            float meanOfMeans = 0;
+            for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
+                meanOfMeans += distances.at(i).mean / float(i + 1);
+            }
+            outputBuffer << meanOfMeans << std::endl;
+        }
+
+        std::ofstream outputFile("support_radii.txt");
+        outputFile << outputBuffer.str();
+
+        std::cout << outputBuffer.str() << std::endl;
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
@@ -64,7 +92,7 @@ namespace Shapebench {
         std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize);
         std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize);
 
-        std::vector<uint32_t> computedRanks(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
+        std::vector<DescriptorDistance> descriptorDistances(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
 
         std::vector<float> supportRadiiToTry(numberOfSupportRadiiToTry);
         for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {
@@ -80,30 +108,36 @@ namespace Shapebench {
             std::vector<ShapeDescriptor::cpu::Mesh> representativeSetMeshes = loadMeshRange(config, dataset,representativeSet,referenceStartIndex, referenceEndIndex);
 
             std::cout << "    Computing reference descriptors.." << std::endl;
-            // TODO: make this function use cached meshes
             referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
-                    representativeSet, dataset, config, supportRadiiToTry, randomEngine(), referenceStartIndex, referenceEndIndex);
+                    representativeSet, representativeSetMeshes, config, supportRadiiToTry, randomEngine(), referenceStartIndex, referenceEndIndex);
 
             for(uint32_t sampleStartIndex = 0; sampleStartIndex < sampleDescriptorSetSize; sampleStartIndex += sampleBatchSizeLimit) {
                 uint32_t sampleEndIndex = std::min<uint32_t>(sampleStartIndex + sampleBatchSizeLimit, sampleDescriptorSetSize);
                 std::cout << "        Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
+                std::vector<ShapeDescriptor::cpu::Mesh> sampleSetMeshes = loadMeshRange(config, dataset,sampleVerticesSet,sampleStartIndex, sampleEndIndex);
                 sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
-                        sampleVerticesSet, dataset, config, supportRadiiToTry, randomEngine(), sampleStartIndex, sampleEndIndex);
+                        sampleVerticesSet, sampleSetMeshes, config, supportRadiiToTry, randomEngine(), sampleStartIndex, sampleEndIndex);
 
                 for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
-                    ShapeDescriptor::cpu::array<uint32_t> ranks = DescriptorMethod::computeDescriptorRanks(sampleDescriptors.at(i), referenceDescriptors.at(i));
-                    // TODO: copy ranks to output array
-                    // TODO: ranks function should output zeroes since descriptors are the same but it does not because it assumes you want to compare to the descriptor at index i.
-                    ShapeDescriptor::free(ranks);
+                    ShapeDescriptor::cpu::array<DescriptorDistance> distances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleDescriptors.at(i), referenceDescriptors.at(i));
+
+                    uint32_t distancesStartIndex = i * sampleDescriptorSetSize + sampleStartIndex;
+                    std::copy(distances.content, distances.content + distances.length, descriptorDistances.data() + distancesStartIndex);
+
+                    ShapeDescriptor::free(distances);
                 }
-
                 freeDescriptorVector<DescriptorType>(sampleDescriptors);
+                freeMeshRange(sampleSetMeshes);
             }
-
-
 
             freeDescriptorVector<DescriptorType>(referenceDescriptors);
             freeMeshRange(representativeSetMeshes);
+
+            printDistancesTable(descriptorDistances,
+                                sampleDescriptorSetSize,
+                                supportRadiusStart,
+                                supportRadiusStep,
+                                numberOfSupportRadiiToTry);
         }
 
         std::chrono::time_point end = std::chrono::steady_clock::now();

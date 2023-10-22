@@ -23,7 +23,7 @@ namespace Shapebench {
     template<typename DescriptorMethod, typename DescriptorType>
     std::vector<ShapeDescriptor::gpu::array<DescriptorType>> computeReferenceDescriptors(
             const std::vector<VertexInDataset> &verticesToRender,
-            const Dataset& dataset,
+            const std::vector<ShapeDescriptor::cpu::Mesh>& meshes,
             const nlohmann::json &config,
             std::vector<float> supportRadii,
             uint64_t randomSeed,
@@ -50,8 +50,7 @@ namespace Shapebench {
             for(uint32_t i = startIndex; i <= endIndex; i++) {
                 // We have moved on to a new mesh. Load the new one. Also includes a case for the final iteration
                 if(i == endIndex || currentMeshIndex != verticesToRender.at(i).meshID) {
-                    const DatasetEntry& currentDatasetEntry = dataset.at(currentMeshIndex);
-                    ShapeDescriptor::cpu::Mesh currentMesh = readDatasetMesh(config, currentDatasetEntry.meshFile, currentDatasetEntry.computedObjectRadius);
+                    const ShapeDescriptor::cpu::Mesh& currentMesh = meshes.at(i - startIndex);
                     ShapeDescriptor::gpu::Mesh currentMeshGPU = ShapeDescriptor::copyToGPU(currentMesh);
 
                     for(uint32_t index = 0; index < vertexIndices.size(); index++) {
@@ -80,7 +79,6 @@ namespace Shapebench {
 
                     ShapeDescriptor::free(descriptors);
                     ShapeDescriptor::free(gpuOrigins);
-                    ShapeDescriptor::free(currentMesh);
                     ShapeDescriptor::free(currentMeshGPU);
 
                     vertexIndices.clear();
