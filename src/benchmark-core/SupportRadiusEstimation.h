@@ -53,12 +53,20 @@ namespace Shapebench {
                          << (float(radius) * supportRadiusStep + supportRadiusStart) << ", ";
             float meanOfMeans = 0;
             float meanOfVariance = 0;
+            float minMeans = distances.at(0).mean;
+            float maxMeans = distances.at(0).mean;
+            float minVariance = distances.at(0).variance;
+            float maxVariance = distances.at(0).variance;
             uint32_t distancesStartIndex = radius * numberOfSampleDescriptors;
             for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
                 meanOfMeans += (distances.at(distancesStartIndex + i).mean - meanOfMeans) / float(i + 1);
                 meanOfVariance += (distances.at(distancesStartIndex + i).variance - meanOfVariance) / float(i + 1);
+                minMeans = std::min(minMeans, distances.at(i).mean);
+                maxMeans = std::max(maxMeans, distances.at(i).mean);
+                minVariance = std::min(minVariance, distances.at(i).variance);
+                maxVariance = std::max(maxVariance, distances.at(i).variance);
             }
-            outputBuffer << meanOfMeans << ", " << meanOfVariance << std::endl;
+            outputBuffer << "means: " << minMeans << ", " << meanOfMeans << ", " << maxMeans << ", variances: " << minVariance << ", " << meanOfVariance << ", " << maxVariance << std::endl;
         }
 
         std::ofstream outputFile("support_radii.txt");
