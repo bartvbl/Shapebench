@@ -53,7 +53,7 @@ namespace Shapebench {
                          << (float(radius) * supportRadiusStep + supportRadiusStart) << ", ";
             float meanOfMeans = 0;
             for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
-                meanOfMeans += distances.at(i).mean / float(i + 1);
+                meanOfMeans += (distances.at(i).mean - meanOfMeans) / float(i + 1);
             }
             outputBuffer << meanOfMeans << std::endl;
         }
