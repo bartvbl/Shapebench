@@ -38,6 +38,7 @@ namespace Shapebench {
             return outputDescriptors;
         }
 
+        #pragma omp parallel for
         for(uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
             uint32_t indicesToProcess = std::min<uint32_t>(endIndex, verticesToRender.size()) - startIndex;
             ShapeDescriptor::gpu::array<DescriptorType> radiusDescriptors(indicesToProcess);
