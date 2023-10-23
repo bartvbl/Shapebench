@@ -19,6 +19,7 @@ find_package(OpenMP REQUIRED)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set (CMAKE_VERBOSE_MAKEFILE 0) # 1 should be used for debugging
 set (CMAKE_SUPPRESS_REGENERATION TRUE) # Suppresses ZERO_CHECK
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-Xcompiler -fopenmp")
 
 # Method specific settings
 add_definitions(-DspinImageWidthPixels=64)
