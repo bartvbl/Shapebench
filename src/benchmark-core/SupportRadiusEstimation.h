@@ -103,6 +103,7 @@ namespace Shapebench {
                 config.contains("limits") && config.at("limits").contains("sampleSetBatchSizeLimit")
                 ? uint32_t(config.at("limits").at("sampleSetBatchSizeLimit"))
                 : sampleDescriptorSetSize;
+        std::cout << "    Batch sizes: representative -> " << referenceBatchSizeLimit << ", sample -> " << sampleBatchSizeLimit;
 
         std::vector<ShapeDescriptor::cpu::array<DescriptorType>> sampleDescriptors;
         std::vector<ShapeDescriptor::cpu::array<DescriptorType>> referenceDescriptors;
@@ -140,6 +141,7 @@ namespace Shapebench {
 
                 std::cout << "    Computing distances.." << std::endl;
                 for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
+                    // TODO: run this on GPU
                     ShapeDescriptor::cpu::array<DescriptorDistance> distances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleDescriptors.at(i), referenceDescriptors.at(i));
 
                     uint32_t distancesStartIndex = i * sampleDescriptorSetSize + sampleStartIndex;

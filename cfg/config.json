@@ -1,0 +1,77 @@
+{
+    "version": 1.0,
+
+    "objaverseDatasetRootDir": "/mnt/VOID/datasets/objaverse/hf-objaverse-v1/glbs",
+    "compressedDatasetRootDir": "/mnt/OBJAVERSE/objaverse-reduced",
+    "cacheDirectory": "/mnt/OBJAVERSE/shapebench/cache",
+
+
+    "randomSeed": 523948794,
+    "representativeSetObjectCount": 10000,
+    "pointSampleDensity": 100,
+
+    "parameterSelection": {
+        "supportRadius": {
+            "sampleDescriptorSetSize": 10000,
+            "radiusDeviationStep": 0.02,
+            "radiusSearchStep": 0.01,
+            "numberOfSupportRadiiToTry": 100
+        }
+    },
+
+    "limits": {
+        "representativeSetBatchSizeLimit": 1250,
+        "sampleSetBatchSizeLimit": 1250,
+        "computeDescriptorsOnGPUThreshold": 50
+    },
+
+    "experimentsToRun": [
+        {
+            "name": "Additive Noise",
+            "addedObjectCount": 10
+        },
+        {
+            "name": "Subtractive Noise",
+            "visibilityImageResolution": [8126,8126]
+        },
+        {
+            "name": "Alternate Triangulation",
+            "vertexDisplacementMin": 0.001,
+            "vertexDisplacementMax": 0.005,
+            "vertexDisplacementStep": 0.0001
+        },
+        {
+            "name": "Normal Vector Noise",
+            "maxAngleDeviationDegrees": 10,
+            "angleDeviationStepDegrees": 1
+        },
+        {
+            "name": "Additive and Subtractive Noise"
+
+        },
+        {
+            "name": "Additive, Subtractive, and Representation Noise"
+
+        }
+    ],
+
+    "methodsToTest": [
+        {
+            "name": "Spin Image",
+            "supportAngle": 180,
+            "distanceFunction": "Pearson Correlation"
+        }, {
+            "name": "RICI",
+            "distanceFunction": "RICI Distance"
+        }, {
+            "name": "QUICCI",
+            "distanceFunction": "Weighted Hamming"
+        }, {
+            "name": "3DSC",
+            "distanceFunction": "Euclidean Distance"
+        }, {
+            "name": "FPFH",
+            "distanceFunction": "Euclidean Distance"
+        }
+    ]
+}
