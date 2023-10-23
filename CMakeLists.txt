@@ -19,7 +19,7 @@ find_package(OpenMP REQUIRED)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set (CMAKE_VERBOSE_MAKEFILE 0) # 1 should be used for debugging
 set (CMAKE_SUPPRESS_REGENERATION TRUE) # Suppresses ZERO_CHECK
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-Xcompiler -fopenmp")
+
 
 # Method specific settings
 add_definitions(-DspinImageWidthPixels=64)
@@ -61,3 +61,4 @@ file (GLOB_RECURSE PROJECT_SOURCES
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
 target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX)
+target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>)
