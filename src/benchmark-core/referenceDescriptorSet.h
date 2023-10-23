@@ -47,7 +47,7 @@ namespace Shapebench {
 
             ShapeDescriptor::cpu::array<DescriptorType> radiusDescriptors(indicesToProcess);
 
-            uint32_t currentMeshIndex = verticesToRender.at(0).meshID;
+            uint32_t currentMeshIndex = verticesToRender.at(startIndex).meshID;
             std::vector<ShapeDescriptor::OrientedPoint> vertexOrigins;
             std::vector<uint32_t> vertexIndices;
 
