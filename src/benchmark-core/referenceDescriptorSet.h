@@ -21,7 +21,7 @@ namespace Shapebench {
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
-    std::vector<ShapeDescriptor::gpu::array<DescriptorType>> computeReferenceDescriptors(
+    std::vector<ShapeDescriptor::cpu::array<DescriptorType>> computeReferenceDescriptors(
             const std::vector<VertexInDataset> &verticesToRender,
             const std::vector<ShapeDescriptor::cpu::Mesh>& meshes,
             const nlohmann::json &config,
@@ -31,9 +31,9 @@ namespace Shapebench {
             uint32_t endIndex = 0xFFFFFFFF) {
 
 
-        std::vector<ShapeDescriptor::gpu::array<DescriptorType>> outputDescriptors(supportRadii.size());
+        std::vector<ShapeDescriptor::cpu::array<DescriptorType>> outputDescriptors(supportRadii.size());
         if(verticesToRender.empty()) {
-            ShapeDescriptor::gpu::array<DescriptorType> emptyArray = {0, nullptr};
+            ShapeDescriptor::cpu::array<DescriptorType> emptyArray = {0, nullptr};
             std::fill(outputDescriptors.begin(), outputDescriptors.end(), emptyArray);
             return outputDescriptors;
         }
@@ -45,7 +45,7 @@ namespace Shapebench {
         #pragma omp parallel for default(none) shared(supportRadii, verticesToRender, startIndex, endIndex, meshes, config, std::cout, randomSeed, outputDescriptors, indicesToProcess, descriptorCountToCompute, computedDescriptorCount)
         for(uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
 
-            ShapeDescriptor::gpu::array<DescriptorType> radiusDescriptors(indicesToProcess);
+            ShapeDescriptor::cpu::array<DescriptorType> radiusDescriptors(indicesToProcess);
 
             uint32_t currentMeshIndex = verticesToRender.at(0).meshID;
             std::vector<ShapeDescriptor::OrientedPoint> vertexOrigins;
@@ -57,7 +57,7 @@ namespace Shapebench {
                 if(i == endIndex || currentMeshIndex != verticesToRender.at(i).meshID) {
                     // Should not trigger out of bounds exception as the first iteration should not trigger the above if statement
                     const ShapeDescriptor::cpu::Mesh& currentMesh = meshes.at(i - startIndex - 1);
-                    ShapeDescriptor::gpu::Mesh currentMeshGPU = ShapeDescriptor::copyToGPU(currentMesh);
+                    //ShapeDescriptor::gpu::Mesh currentMeshGPU = ShapeDescriptor::copyToGPU(currentMesh);
 
                     for(uint32_t index = 0; index < vertexIndices.size(); index++) {
                         uint32_t vertexIndex = vertexIndices.at(index);
@@ -65,27 +65,28 @@ namespace Shapebench {
                     }
 
                     ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> convertedOriginArray = {vertexOrigins.size(), vertexOrigins.data()};
-                    ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(convertedOriginArray);
+                    //ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(convertedOriginArray);
 
-                    ShapeDescriptor::gpu::array<DescriptorType> descriptors;
+                    ShapeDescriptor::cpu::array<DescriptorType> descriptors;
                     if(DescriptorMethod::usesPointCloudInput()) {
                         double totalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(currentMesh);
                         double sampleDensity = config.at("pointSampleDensity");
                         uint32_t sampleCount = uint32_t(totalMeshArea * sampleDensity);
                         std::cout << "Sampling with point density: " << sampleCount << std::endl;
-                        ShapeDescriptor::gpu::PointCloud cloud = ShapeDescriptor::sampleMesh(currentMeshGPU, sampleCount, randomSeed);
-                        descriptors = DescriptorMethod::computeDescriptors(cloud, gpuOrigins, config, supportRadii.at(radiusIndex));
+                        ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::sampleMesh(currentMesh, sampleCount, randomSeed);
+                        descriptors = DescriptorMethod::computeDescriptors(cloud, convertedOriginArray, config, supportRadii.at(radiusIndex));
                         ShapeDescriptor::free(cloud);
                     } else {
-                        descriptors = DescriptorMethod::computeDescriptors(currentMeshGPU, gpuOrigins, config, supportRadii.at(radiusIndex));
+                        descriptors = DescriptorMethod::computeDescriptors(currentMesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
                     }
 
                     uint32_t targetStartIndex = i - vertexIndices.size();
-                    cudaMemcpy(radiusDescriptors.content + targetStartIndex, descriptors.content, descriptors.length * sizeof(DescriptorType), cudaMemcpyDeviceToDevice);
+                    //cudaMemcpy(radiusDescriptors.content + targetStartIndex, descriptors.content, descriptors.length * sizeof(DescriptorType), cudaMemcpyDeviceToDevice);
+                    std::copy(descriptors.content, descriptors.content + descriptors.length, radiusDescriptors.content + startIndex);
 
                     ShapeDescriptor::free(descriptors);
-                    ShapeDescriptor::free(gpuOrigins);
-                    ShapeDescriptor::free(currentMeshGPU);
+                    //ShapeDescriptor::free(gpuOrigins);
+                    //ShapeDescriptor::free(currentMeshGPU);
 
                     vertexIndices.clear();
                     vertexOrigins.clear();

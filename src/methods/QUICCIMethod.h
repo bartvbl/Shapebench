@@ -2,13 +2,15 @@
 
 #include "Method.h"
 #include <shapeDescriptor/shapeDescriptor.h>
+#include <bitset>
 
 namespace Shapebench {
     struct QUICCIMethod : public Shapebench::Method<ShapeDescriptor::QUICCIDescriptor> {
-        __device__ static __inline__ float computeDescriptorDistance(
+        __host__ __device__ static __inline__ float computeDescriptorDistance(
                 const ShapeDescriptor::QUICCIDescriptor& descriptor,
                 const ShapeDescriptor::QUICCIDescriptor& otherDescriptor) {
 
+            #ifdef __CUDA_ARCH__
             const uint32_t totalBitsInDescriptor = spinImageWidthPixels * spinImageWidthPixels;
             const uint32_t chunkCount32Bit = totalBitsInDescriptor / 32;
 
@@ -34,17 +36,48 @@ namespace Shapebench {
                 return float(combinedHaystackSetBitCount);
             }
 
-            uint32_t combinedSetPixelCount = ShapeDescriptor::warpAllReduceSum(totalNeedleSetBitCount);
-            uint32_t combinedUnsetPixelCount = totalBitsInDescriptor - combinedSetPixelCount;
+            uint32_t combinedNeedleUnsetPixelCount = totalBitsInDescriptor - combinedNeedleSetBitCount;
 
             uint32_t combinedMissingSetCount = ShapeDescriptor::warpAllReduceSum(totalMissingSetPixelCount);
             uint32_t combinedMissingUnsetCount = ShapeDescriptor::warpAllReduceSum(totalMissingUnsetPixelCount);
 
-            float missingSetBitPenalty = float(totalBitsInDescriptor) / float(max(combinedSetPixelCount, 1));
-            float missingUnsetBitPenalty = float(totalBitsInDescriptor) / float(max(combinedUnsetPixelCount, 1));
+            float missingSetBitPenalty = float(totalBitsInDescriptor) / float(max(combinedNeedleSetBitCount, 1));
+            float missingUnsetBitPenalty = float(totalBitsInDescriptor) / float(max(combinedNeedleUnsetPixelCount, 1));
 
             return float(combinedMissingSetCount) * missingSetBitPenalty +
                    float(combinedMissingUnsetCount) * missingUnsetBitPenalty;
+            #else
+
+            const uint32_t totalBitsInDescriptor = spinImageWidthPixels * spinImageWidthPixels;
+            const uint32_t chunkCount32Bit = totalBitsInDescriptor / 32;
+
+            uint32_t combinedNeedleSetPixelCount = 0;
+            uint32_t combinedHaystackSetBitCount = 0;
+            uint32_t combinedMissingSetCount = 0;
+            uint32_t combinedMissingUnsetCount = 0;
+            for(unsigned int i = 0; i < chunkCount32Bit; i++) {
+                uint32_t needleChunk = descriptor.contents[i];
+                uint32_t haystackChunk = otherDescriptor.contents[i];
+
+                combinedNeedleSetPixelCount += std::bitset<32>(needleChunk).count();
+                combinedHaystackSetBitCount += std::bitset<32>(haystackChunk).count();
+                combinedMissingSetCount += std::bitset<32>((needleChunk ^ haystackChunk) & needleChunk).count();
+                combinedMissingUnsetCount += std::bitset<32>((~needleChunk ^ ~haystackChunk) & ~needleChunk).count();
+            }
+
+            // Needle image is black, fall back to Hamming distance
+            if(combinedNeedleSetPixelCount == 0) {
+                return float(combinedHaystackSetBitCount);
+            }
+
+            uint32_t combinedUnsetPixelCount = totalBitsInDescriptor - combinedNeedleSetPixelCount;
+
+            float missingSetBitPenalty = float(totalBitsInDescriptor) / float(std::max<uint32_t>(combinedNeedleSetPixelCount, 1));
+            float missingUnsetBitPenalty = float(totalBitsInDescriptor) / float(std::max<uint32_t>(combinedUnsetPixelCount, 1));
+
+            return float(combinedMissingSetCount) * missingSetBitPenalty +
+                   float(combinedMissingUnsetCount) * missingUnsetBitPenalty;
+            #endif
         }
 
         static bool usesMeshInput() {

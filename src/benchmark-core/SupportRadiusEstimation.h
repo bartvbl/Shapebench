@@ -42,6 +42,13 @@ namespace Shapebench {
         }
     }
 
+    template<typename DescriptorType>
+    void freeDescriptorVector(std::vector<ShapeDescriptor::cpu::array<DescriptorType>>& descriptorList) {
+        for(ShapeDescriptor::cpu::array<DescriptorType>& descriptorArray : descriptorList) {
+            ShapeDescriptor::free(descriptorArray);
+        }
+    }
+
     void printDistancesTable(const std::vector<DescriptorDistance> &distances,
                              uint32_t numberOfSampleDescriptors,
                              float supportRadiusStart,
@@ -97,8 +104,8 @@ namespace Shapebench {
                 ? uint32_t(config.at("limits").at("sampleSetBatchSizeLimit"))
                 : sampleDescriptorSetSize;
 
-        std::vector<ShapeDescriptor::gpu::array<DescriptorType>> sampleDescriptors;
-        std::vector<ShapeDescriptor::gpu::array<DescriptorType>> referenceDescriptors;
+        std::vector<ShapeDescriptor::cpu::array<DescriptorType>> sampleDescriptors;
+        std::vector<ShapeDescriptor::cpu::array<DescriptorType>> referenceDescriptors;
 
         std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize);
         std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize);

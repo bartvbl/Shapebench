@@ -54,6 +54,40 @@ __global__ void referenceSetDistanceKernel(
 };
 
 template<typename DescriptorMethod, typename DescriptorType>
+void referenceSetDistanceKernelCPU(
+        ShapeDescriptor::cpu::array<DescriptorType> sampleDescriptors,
+        ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors,
+        ShapeDescriptor::cpu::array<DescriptorDistance> distances) {
+    #pragma omp parallel for default(none) shared(sampleDescriptors, referenceDescriptors, distances)
+    for(uint32_t sampleDescriptorIndex = 0; sampleDescriptorIndex < sampleDescriptors.length; sampleDescriptorIndex++) {
+        uint32_t runningCount = 0;
+        float runningMean = 0;
+        float runningSumOfSquaredDifferences = 0;
+
+        for(uint32_t referenceDescriptorIndex = 0; referenceDescriptorIndex < referenceDescriptors.length; referenceDescriptorIndex++) {
+            float similarity = DescriptorMethod::computeDescriptorDistance(sampleDescriptors[sampleDescriptorIndex],
+                                                                           referenceDescriptors[referenceDescriptorIndex]);
+            // Using Welford's algorithm for computing the mean and variance
+            // Updating the running mean and standard deviation values
+            runningCount++;
+            float delta = similarity - runningMean;
+            runningMean += delta / float(runningCount);
+            float delta2 = similarity - runningMean;
+            runningSumOfSquaredDifferences += delta * delta2;
+        }
+
+        // Computing the variance
+        DescriptorDistance distance;
+        distance.mean = runningMean;
+        // Note: will be NaN if runningCount <= 1
+        distance.variance = runningSumOfSquaredDifferences / float(runningCount - 1);
+
+        distances.content[sampleDescriptorIndex] = distance;
+
+    }
+}
+
+template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorDistance> computeReferenceSetDistance(
         ShapeDescriptor::gpu::array<DescriptorType> sampleDescriptors,
         ShapeDescriptor::gpu::array<DescriptorType> referenceDescriptors) {
@@ -65,6 +99,18 @@ ShapeDescriptor::cpu::array<DescriptorDistance> computeReferenceSetDistance(
 
     ShapeDescriptor::cpu::array<DescriptorDistance> descriptorDistances = device_descriptorDistances.copyToCPU();
     ShapeDescriptor::free(device_descriptorDistances);
+
+    return descriptorDistances;
+}
+
+template<typename DescriptorMethod, typename DescriptorType>
+ShapeDescriptor::cpu::array<DescriptorDistance> computeReferenceSetDistance(
+        ShapeDescriptor::cpu::array<DescriptorType> sampleDescriptors,
+        ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors) {
+
+    ShapeDescriptor::cpu::array<DescriptorDistance> descriptorDistances(sampleDescriptors.length);
+
+    referenceSetDistanceKernelCPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, descriptorDistances);
 
     return descriptorDistances;
 }
