@@ -42,7 +42,7 @@ namespace Shapebench {
         const uint32_t descriptorCountToCompute = supportRadii.size() * indicesToProcess;
         uint64_t computedDescriptorCount = 0;
 
-        #pragma omp parallel for default(none) shared(supportRadii, verticesToRender, startIndex, endIndex, meshes, config, std::cout, randomSeed, outputDescriptors, indicesToProcess, descriptorCountToCompute, computedDescriptorCount)
+        #pragma omp parallel for schedule(dynamic) default(none) shared(supportRadii, verticesToRender, startIndex, endIndex, meshes, config, std::cout, randomSeed, outputDescriptors, indicesToProcess, descriptorCountToCompute, computedDescriptorCount)
         for(uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
 
             ShapeDescriptor::cpu::array<DescriptorType> radiusDescriptors(indicesToProcess);

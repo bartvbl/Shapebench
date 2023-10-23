@@ -20,7 +20,7 @@ namespace Shapebench {
         // If this assumption changes later we'll have to create a second vector containing an index buffer
         // which mesh in a condensed vector to use
         std::vector<ShapeDescriptor::cpu::Mesh> meshes(meshCount);
-        #pragma omp parallel for default(none) shared(meshCount, dataset, startIndex, meshes, config, vertices)
+        #pragma omp parallel for schedule(dynamic) default(none) shared(meshCount, dataset, startIndex, meshes, config, vertices)
         for(uint32_t i = 0; i < meshCount; i++) {
             const DatasetEntry& entry = dataset.at(vertices.at(startIndex + i).meshID);
             meshes.at(i) = readDatasetMesh(config, entry.meshFile, entry.computedObjectRadius);
