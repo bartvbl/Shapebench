@@ -93,8 +93,8 @@ namespace Shapebench {
                 ? uint32_t(config.at("limits").at("representativeSetBatchSizeLimit"))
                 : representativeSetSize;
         uint32_t sampleBatchSizeLimit =
-                config.contains("limits") && config.at("limits").contains("sampleBatchSizeLimit")
-                ? uint32_t(config.at("limits").at("sampleBatchSizeLimit"))
+                config.contains("limits") && config.at("limits").contains("sampleSetBatchSizeLimit")
+                ? uint32_t(config.at("limits").at("sampleSetBatchSizeLimit"))
                 : sampleDescriptorSetSize;
 
         std::vector<ShapeDescriptor::gpu::array<DescriptorType>> sampleDescriptors;
@@ -125,10 +125,13 @@ namespace Shapebench {
             for(uint32_t sampleStartIndex = 0; sampleStartIndex < sampleDescriptorSetSize; sampleStartIndex += sampleBatchSizeLimit) {
                 uint32_t sampleEndIndex = std::min<uint32_t>(sampleStartIndex + sampleBatchSizeLimit, sampleDescriptorSetSize);
                 std::cout << "        Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
+                std::cout << "    Loading meshes.." << std::endl;
                 std::vector<ShapeDescriptor::cpu::Mesh> sampleSetMeshes = loadMeshRange(config, dataset,sampleVerticesSet,sampleStartIndex, sampleEndIndex);
+                std::cout << "    Computing reference descriptors.." << std::endl;
                 sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
                         sampleVerticesSet, sampleSetMeshes, config, supportRadiiToTry, randomEngine(), sampleStartIndex, sampleEndIndex);
 
+                std::cout << "    Computing distances.." << std::endl;
                 for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
                     ShapeDescriptor::cpu::array<DescriptorDistance> distances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleDescriptors.at(i), referenceDescriptors.at(i));
 

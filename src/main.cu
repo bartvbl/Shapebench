@@ -30,7 +30,7 @@ int main(int argc, const char** argv) {
     const auto& configurationFile = parser.add<std::string>(
             "configuration-file", "Location of the file from which to read the experimental configuration", '\0', arrrgh::Optional, "../cfg/config.json");
     const auto& forceGPU = parser.add<int>(
-            "force-gpu", "Use the GPU with the given ID (as shown in nvidia-smi)", '\0', arrrgh::Optional, -1);
+            "force-gpu", "Use the GPU with the given ID (as shown in nvidia-smi)", '\0', arrrgh::Optional, 0);
 
     try
     {
@@ -49,14 +49,11 @@ int main(int argc, const char** argv) {
         return 0;
     }
 
-    if(forceGPU.value() != -1) {
-        std::cout << "Forcing GPU " << forceGPU.value() << std::endl;
-        ShapeDescriptor::createCUDAContext(forceGPU.value());
-    }
-
     if(!ShapeDescriptor::isCUDASupportAvailable()) {
         throw std::runtime_error("This benchmark requires CUDA support to operate.");
     }
+
+    ShapeDescriptor::createCUDAContext(forceGPU.value());
 
     // ---------------------------------------------------------
 

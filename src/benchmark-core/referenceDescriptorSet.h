@@ -25,7 +25,7 @@ namespace Shapebench {
             const std::vector<VertexInDataset> &verticesToRender,
             const std::vector<ShapeDescriptor::cpu::Mesh>& meshes,
             const nlohmann::json &config,
-            std::vector<float> supportRadii,
+            const std::vector<float>& supportRadii,
             uint64_t randomSeed,
             uint32_t startIndex = 0,
             uint32_t endIndex = 0xFFFFFFFF) {
@@ -38,9 +38,13 @@ namespace Shapebench {
             return outputDescriptors;
         }
 
-        #pragma omp parallel for
+        const uint32_t indicesToProcess = std::min<uint32_t>(endIndex, verticesToRender.size()) - startIndex;
+        const uint32_t descriptorCountToCompute = supportRadii.size() * indicesToProcess;
+        uint64_t computedDescriptorCount = 0;
+
+        #pragma omp parallel for default(none) shared(supportRadii, verticesToRender, startIndex, endIndex, meshes, config, std::cout, randomSeed, outputDescriptors, indicesToProcess, descriptorCountToCompute, computedDescriptorCount)
         for(uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-            uint32_t indicesToProcess = std::min<uint32_t>(endIndex, verticesToRender.size()) - startIndex;
+
             ShapeDescriptor::gpu::array<DescriptorType> radiusDescriptors(indicesToProcess);
 
             uint32_t currentMeshIndex = verticesToRender.at(0).meshID;
@@ -51,7 +55,8 @@ namespace Shapebench {
             for(uint32_t i = startIndex; i <= endIndex; i++) {
                 // We have moved on to a new mesh. Load the new one. Also includes a case for the final iteration
                 if(i == endIndex || currentMeshIndex != verticesToRender.at(i).meshID) {
-                    const ShapeDescriptor::cpu::Mesh& currentMesh = meshes.at(std::min(i - startIndex, endIndex - 1));
+                    // Should not trigger out of bounds exception as the first iteration should not trigger the above if statement
+                    const ShapeDescriptor::cpu::Mesh& currentMesh = meshes.at(i - startIndex - 1);
                     ShapeDescriptor::gpu::Mesh currentMeshGPU = ShapeDescriptor::copyToGPU(currentMesh);
 
                     for(uint32_t index = 0; index < vertexIndices.size(); index++) {
@@ -84,6 +89,14 @@ namespace Shapebench {
 
                     vertexIndices.clear();
                     vertexOrigins.clear();
+
+                    #pragma omp critical
+                    {
+                        computedDescriptorCount++;
+                        if(computedDescriptorCount % 100 == 0) {
+                            std::cout << "\r        Completed " << computedDescriptorCount << "/" << descriptorCountToCompute << "    " << std::flush;
+                        }
+                    };
                 }
 
                 if(i < endIndex) {
