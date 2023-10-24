@@ -103,7 +103,7 @@ namespace Shapebench {
                 config.contains("limits") && config.at("limits").contains("sampleSetBatchSizeLimit")
                 ? uint32_t(config.at("limits").at("sampleSetBatchSizeLimit"))
                 : sampleDescriptorSetSize;
-        std::cout << "    Batch sizes: representative -> " << referenceBatchSizeLimit << ", sample -> " << sampleBatchSizeLimit;
+        std::cout << "    Batch sizes: representative -> " << referenceBatchSizeLimit << ", sample -> " << sampleBatchSizeLimit << std::endl;
 
         std::vector<ShapeDescriptor::cpu::array<DescriptorType>> sampleDescriptors;
         std::vector<ShapeDescriptor::cpu::array<DescriptorType>> referenceDescriptors;
