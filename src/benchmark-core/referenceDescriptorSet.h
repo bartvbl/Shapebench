@@ -80,9 +80,11 @@ namespace Shapebench {
                         descriptors = DescriptorMethod::computeDescriptors(currentMesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
                     }
 
-                    uint32_t targetStartIndex = i - vertexIndices.size();
+                    uint32_t targetStartIndex = i - vertexIndices.size() - startIndex;
                     //cudaMemcpy(radiusDescriptors.content + targetStartIndex, descriptors.content, descriptors.length * sizeof(DescriptorType), cudaMemcpyDeviceToDevice);
-                    std::copy(descriptors.content, descriptors.content + descriptors.length, radiusDescriptors.content + startIndex);
+                    // Final written index is within bounds
+                    assert(targetStartIndex + descriptors.length - 1 < radiusDescriptors.length);
+                    std::copy(descriptors.content, descriptors.content + descriptors.length, radiusDescriptors.content + targetStartIndex);
 
                     ShapeDescriptor::free(descriptors);
                     //ShapeDescriptor::free(gpuOrigins);
@@ -94,8 +96,8 @@ namespace Shapebench {
                     #pragma omp critical
                     {
                         computedDescriptorCount++;
-                        if(computedDescriptorCount % 100 == 0) {
-                            std::cout << "\r        Completed " << computedDescriptorCount << "/" << descriptorCountToCompute << "    " << std::flush;
+                        if(computedDescriptorCount % 100 == 99) {
+                            std::cout << "\r        Completed " << (computedDescriptorCount+1) << "/" << descriptorCountToCompute << "    " << std::flush;
                         }
                     };
                 }
@@ -107,6 +109,7 @@ namespace Shapebench {
             }
             outputDescriptors.at(radiusIndex) = radiusDescriptors;
         }
+        std::cout << std::endl;
 
         return outputDescriptors;
     }

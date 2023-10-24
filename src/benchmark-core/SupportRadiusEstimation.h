@@ -132,7 +132,7 @@ namespace Shapebench {
 
             for(uint32_t sampleStartIndex = 0; sampleStartIndex < sampleDescriptorSetSize; sampleStartIndex += sampleBatchSizeLimit) {
                 uint32_t sampleEndIndex = std::min<uint32_t>(sampleStartIndex + sampleBatchSizeLimit, sampleDescriptorSetSize);
-                std::cout << "        Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
+                std::cout << "    Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
                 std::cout << "    Loading meshes.." << std::endl;
                 std::vector<ShapeDescriptor::cpu::Mesh> sampleSetMeshes = loadMeshRange(config, dataset,sampleVerticesSet,sampleStartIndex, sampleEndIndex);
                 std::cout << "    Computing reference descriptors.." << std::endl;
@@ -165,6 +165,9 @@ namespace Shapebench {
 
         std::chrono::time_point end = std::chrono::steady_clock::now();
         std::cout << std::endl << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;
+
+        // TODO: use descriptorDistances to determine a support radius
+
 
         return 0;
     }
