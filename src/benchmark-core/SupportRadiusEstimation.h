@@ -55,16 +55,18 @@ namespace Shapebench {
                              float supportRadiusStep,
                              uint32_t supportRadiusCount) {
         std::stringstream outputBuffer;
+        outputBuffer << "Min mean, Mean, Max mean, Variance min, Mean variance, max variance" << std::endl;
+        std::vector<uint32_t> voteHistogram(supportRadiusCount);
         for(uint32_t radius = 0; radius < supportRadiusCount; radius++) {
             outputBuffer << radius << ", "
                          << (float(radius) * supportRadiusStep + supportRadiusStart) << ", ";
             float meanOfMeans = 0;
             float meanOfVariance = 0;
-            float minMeans = distances.at(0).mean;
-            float maxMeans = distances.at(0).mean;
-            float minVariance = distances.at(0).variance;
-            float maxVariance = distances.at(0).variance;
             uint32_t distancesStartIndex = radius * numberOfSampleDescriptors;
+            float minMeans = distances.at(distancesStartIndex).mean;
+            float maxMeans = distances.at(distancesStartIndex).mean;
+            float minVariance = distances.at(distancesStartIndex).variance;
+            float maxVariance = distances.at(distancesStartIndex).variance;
             for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
                 meanOfMeans += (distances.at(distancesStartIndex + i).mean - meanOfMeans) / float(i + 1);
                 meanOfVariance += (distances.at(distancesStartIndex + i).variance - meanOfVariance) / float(i + 1);
@@ -73,13 +75,35 @@ namespace Shapebench {
                 minVariance = std::min(minVariance, distances.at(distancesStartIndex + i).variance);
                 maxVariance = std::max(maxVariance, distances.at(distancesStartIndex + i).variance);
             }
-            outputBuffer << "means: " << minMeans << ", " << meanOfMeans << ", " << maxMeans << ", variances: " << minVariance << ", " << meanOfVariance << ", " << maxVariance << std::endl;
+            outputBuffer << minMeans << ", " << meanOfMeans << ", " << maxMeans << ", " << minVariance << ", " << meanOfVariance << ", " << maxVariance << std::endl;
         }
 
-        std::ofstream outputFile("support_radii.txt");
-        outputFile << outputBuffer.str();
+        for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
+            uint32_t bestRadiusIndex = 0;
+            float bestRadiusDistance = distances.at(0 * numberOfSampleDescriptors + i).mean;
+            for(uint32_t radius = 0; radius < supportRadiusCount; radius++) {
+                uint32_t distanceIndex = radius * numberOfSampleDescriptors + i;
+                float currentDistance = distances.at(distanceIndex).mean;
+                if(currentDistance > bestRadiusDistance) {
+                    bestRadiusIndex = radius;
+                    bestRadiusDistance = currentDistance;
+                }
+            }
+            voteHistogram.at(bestRadiusIndex)++;
+        }
+        std::stringstream histogramBuffer;
+        histogramBuffer << "Radius Index, Radius, Vote count" << std::endl;
+        for(uint32_t radius = 0; radius < supportRadiusCount; radius++) {
+            histogramBuffer << radius << ", " << (float(radius) * supportRadiusStep + supportRadiusStart) << ", " << voteHistogram.at(radius) << std::endl;
+        }
 
-        std::cout << outputBuffer.str() << std::endl;
+        std::string unique = ShapeDescriptor::generateUniqueFilenameString();
+        std::ofstream outputFile("support_radii_meanvariance_" + unique + ".txt");
+        outputFile << outputBuffer.str();
+        std::ofstream histogramFile("support_radii_votes_" + unique + ".txt");
+        histogramFile << histogramBuffer.str();
+
+        std::cout << outputBuffer.str() << std::endl << std::endl << histogramBuffer.str() << std::endl;
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
@@ -157,7 +181,7 @@ namespace Shapebench {
             freeMeshRange(representativeSetMeshes);
 
             printDistancesTable(descriptorDistances,
-                                sampleDescriptorSetSize,
+                                referenceEndIndex,
                                 supportRadiusStart,
                                 supportRadiusStep,
                                 numberOfSupportRadiiToTry);
