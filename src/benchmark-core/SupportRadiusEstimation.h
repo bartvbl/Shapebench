@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <random>
+#include <malloc.h>
 #include "Dataset.h"
 #include "json.hpp"
 #include "Batch.h"
@@ -175,10 +176,16 @@ namespace Shapebench {
                 }
                 freeDescriptorVector<DescriptorType>(sampleDescriptors);
                 freeMeshRange(sampleSetMeshes);
+
+                // Force LibC to clean up
+                malloc_trim(0);
             }
 
             freeDescriptorVector<DescriptorType>(referenceDescriptors);
             freeMeshRange(representativeSetMeshes);
+
+            // Force LibC to clean up
+            malloc_trim(0);
 
             printDistancesTable(descriptorDistances,
                                 sampleDescriptorSetSize,
