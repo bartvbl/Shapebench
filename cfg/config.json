@@ -13,9 +13,9 @@
     "parameterSelection": {
         "supportRadius": {
             "sampleDescriptorSetSize": 10000,
-            "radiusDeviationStep": 0.02,
+            "radiusSearchStart": 0.01,
             "radiusSearchStep": 0.01,
-            "numberOfSupportRadiiToTry": 100
+            "numberOfSupportRadiiToTry": 150
         }
     },
 

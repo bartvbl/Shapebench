@@ -55,7 +55,7 @@ namespace Shapebench {
                              float supportRadiusStep,
                              uint32_t supportRadiusCount) {
         std::stringstream outputBuffer;
-        outputBuffer << "Min mean, Mean, Max mean, Variance min, Mean variance, max variance" << std::endl;
+        outputBuffer << "Radius index, radius, Min mean, Mean, Max mean, Variance min, Mean variance, max variance" << std::endl;
         std::vector<uint32_t> voteHistogram(supportRadiusCount);
         for(uint32_t radius = 0; radius < supportRadiusCount; radius++) {
             outputBuffer << radius << ", "
@@ -115,7 +115,7 @@ namespace Shapebench {
 
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
         uint32_t sampleDescriptorSetSize = supportRadiusConfig.at("sampleDescriptorSetSize");
-        float supportRadiusStart = supportRadiusConfig.at("radiusDeviationStep");
+        float supportRadiusStart = supportRadiusConfig.at("radiusSearchStart");
         float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");
         uint32_t numberOfSupportRadiiToTry = supportRadiusConfig.at("numberOfSupportRadiiToTry");
 
@@ -159,7 +159,7 @@ namespace Shapebench {
                 std::cout << "    Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
                 std::cout << "    Loading meshes.." << std::endl;
                 std::vector<ShapeDescriptor::cpu::Mesh> sampleSetMeshes = loadMeshRange(config, dataset,sampleVerticesSet,sampleStartIndex, sampleEndIndex);
-                std::cout << "    Computing reference descriptors.." << std::endl;
+                std::cout << "    Computing sample descriptors.." << std::endl;
                 sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
                         sampleVerticesSet, sampleSetMeshes, config, supportRadiiToTry, randomEngine(), sampleStartIndex, sampleEndIndex);
 
@@ -181,7 +181,7 @@ namespace Shapebench {
             freeMeshRange(representativeSetMeshes);
 
             printDistancesTable(descriptorDistances,
-                                referenceEndIndex,
+                                sampleDescriptorSetSize,
                                 supportRadiusStart,
                                 supportRadiusStep,
                                 numberOfSupportRadiiToTry);
