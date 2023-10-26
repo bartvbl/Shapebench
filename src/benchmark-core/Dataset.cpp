@@ -40,7 +40,7 @@ std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32
     std::vector<VertexInDataset> sampledEntries(count);
 
     std::mt19937_64 engine(randomSeed);
-    std::uniform_int_distribution<uint32_t> distribution(0, entries.size()-1);
+    std::uniform_int_distribution<uint32_t> distribution(0, entries.size() - 1);
 
     for(uint32_t i = 0; i < count; i++) {
         uint32_t chosenMeshIndex = distribution(engine);
@@ -50,7 +50,7 @@ std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32
     for(uint32_t i = 0; i < entries.size(); i++) {
         for(uint32_t j = 0; j < sampleHistogram.at(i); j++) {
             sampledEntries.at(nextIndex).meshID = i;
-            std::uniform_int_distribution<uint32_t> vertexIndexDistribution(0, entries.at(i).vertexCount);
+            std::uniform_int_distribution<uint32_t> vertexIndexDistribution(0, entries.at(i).vertexCount - 1);
             sampledEntries.at(nextIndex).vertexIndex = vertexIndexDistribution(engine);
             nextIndex++;
         }

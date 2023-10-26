@@ -61,6 +61,7 @@ namespace Shapebench {
 
                     for(uint32_t index = 0; index < vertexIndices.size(); index++) {
                         uint32_t vertexIndex = vertexIndices.at(index);
+                        assert(vertexIndex < currentMesh.vertexCount);
                         vertexOrigins.push_back({currentMesh.vertices[vertexIndex], currentMesh.normals[vertexIndex]});
                     }
 
