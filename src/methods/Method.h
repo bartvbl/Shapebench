@@ -3,6 +3,16 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 
 namespace Shapebench {
+    template<typename Type>
+    inline Type readDescriptorConfigValue(const nlohmann::json& config, std::string methodName, std::string configEntryName) {
+        for(const nlohmann::json& entry : config.at("methodsToTest")) {
+            if(entry.at("name") == methodName) {
+                return Type(entry.at(configEntryName));
+            }
+        }
+        throw std::runtime_error("Config entry \"" + configEntryName + "\" for method " + methodName + " not found in config file");
+    }
+
     template<typename DescriptorType>
     struct Method {
     private:
