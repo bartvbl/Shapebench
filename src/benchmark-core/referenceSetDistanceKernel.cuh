@@ -58,7 +58,7 @@ void referenceSetDistanceKernelCPU(
         ShapeDescriptor::cpu::array<DescriptorType> sampleDescriptors,
         ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors,
         ShapeDescriptor::cpu::array<DescriptorDistance> distances) {
-    #pragma omp parallel for schedule(dynamic) default(none) shared(sampleDescriptors, referenceDescriptors, distances)
+    #pragma omp parallel for schedule(dynamic) default(none) shared(sampleDescriptors, referenceDescriptors, distances, std::cout)
     for(uint32_t sampleDescriptorIndex = 0; sampleDescriptorIndex < sampleDescriptors.length; sampleDescriptorIndex++) {
         uint32_t runningCount = 0;
         float runningMean = 0;
@@ -69,6 +69,10 @@ void referenceSetDistanceKernelCPU(
                                                                            referenceDescriptors[referenceDescriptorIndex]);
             // Using Welford's algorithm for computing the mean and variance
             // Updating the running mean and standard deviation values
+            if(std::isnan(similarity)) {
+                std::cout << "x";
+                similarity = -1;
+            }
             runningCount++;
             float delta = similarity - runningMean;
             runningMean += delta / float(runningCount);

@@ -10,6 +10,7 @@
 #include "methods/Method.h"
 #include "referenceDescriptorSet.h"
 #include "referenceSetDistanceKernel.cuh"
+#include "PointCloudSampler.h"
 
 namespace Shapebench {
     inline std::vector<ShapeDescriptor::cpu::Mesh> loadMeshRange(const nlohmann::json& config, const Dataset& dataset, const std::vector<VertexInDataset>& vertices, uint32_t startIndex, uint32_t endIndex) {
@@ -33,6 +34,12 @@ namespace Shapebench {
     inline void freeMeshRange(std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
         for(ShapeDescriptor::cpu::Mesh& mesh : meshes) {
             ShapeDescriptor::free(mesh);
+        }
+    }
+
+    inline void freePointCloudRange(std::vector<ShapeDescriptor::cpu::PointCloud>& clouds) {
+        for(ShapeDescriptor::cpu::PointCloud& cloud : clouds) {
+            ShapeDescriptor::free(cloud);
         }
     }
 
@@ -150,19 +157,29 @@ namespace Shapebench {
             std::cout << "    Processing reference batch " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
             std::cout << "    Loading meshes.." << std::endl;
             std::vector<ShapeDescriptor::cpu::Mesh> representativeSetMeshes = loadMeshRange(config, dataset,representativeSet,referenceStartIndex, referenceEndIndex);
+            std::vector<ShapeDescriptor::cpu::PointCloud> representativeSetPointClouds;
+            if(DescriptorMethod::usesPointCloudInput()) {
+                std::cout << "    Sampling point clouds.." << std::endl;
+                computePointClouds(representativeSetMeshes, representativeSetPointClouds, config, randomEngine());
+            }
 
             std::cout << "    Computing reference descriptors.." << std::endl;
             referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
-                    representativeSet, representativeSetMeshes, config, supportRadiiToTry, randomEngine(), referenceStartIndex, referenceEndIndex);
+                    representativeSet, representativeSetMeshes, representativeSetPointClouds, config, randomSeed, supportRadiiToTry, referenceStartIndex, referenceEndIndex);
 
             for(uint32_t sampleStartIndex = 0; sampleStartIndex < sampleDescriptorSetSize; sampleStartIndex += sampleBatchSizeLimit) {
                 uint32_t sampleEndIndex = std::min<uint32_t>(sampleStartIndex + sampleBatchSizeLimit, sampleDescriptorSetSize);
                 std::cout << "    Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
                 std::cout << "    Loading meshes.." << std::endl;
                 std::vector<ShapeDescriptor::cpu::Mesh> sampleSetMeshes = loadMeshRange(config, dataset,sampleVerticesSet,sampleStartIndex, sampleEndIndex);
+                std::vector<ShapeDescriptor::cpu::PointCloud> sampleSetPointClouds;
+                if(DescriptorMethod::usesPointCloudInput()) {
+                    std::cout << "    Sampling point clouds.." << std::endl;
+                    //computePointClouds(sampleSetMeshes, sampleSetPointClouds, config, randomEngine());
+                }
                 std::cout << "    Computing sample descriptors.." << std::endl;
                 sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
-                        sampleVerticesSet, sampleSetMeshes, config, supportRadiiToTry, randomEngine(), sampleStartIndex, sampleEndIndex);
+                        sampleVerticesSet, sampleSetMeshes, sampleSetPointClouds, config, randomSeed,supportRadiiToTry, sampleStartIndex, sampleEndIndex);
 
                 std::cout << "    Computing distances.." << std::endl;
                 for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
@@ -175,6 +192,7 @@ namespace Shapebench {
                     ShapeDescriptor::free(distances);
                 }
                 freeDescriptorVector<DescriptorType>(sampleDescriptors);
+                freePointCloudRange(sampleSetPointClouds);
                 freeMeshRange(sampleSetMeshes);
 
                 // Force LibC to clean up
@@ -183,6 +201,7 @@ namespace Shapebench {
 
             freeDescriptorVector<DescriptorType>(referenceDescriptors);
             freeMeshRange(representativeSetMeshes);
+            freePointCloudRange(representativeSetPointClouds);
 
             // Force LibC to clean up
             malloc_trim(0);

@@ -7,16 +7,12 @@
 
 namespace Shapebench {
     struct SIMethod : public Shapebench::Method<ShapeDescriptor::SpinImageDescriptor> {
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
+        __host__ __device__ static __inline__ float computePearsonCorrelation(
                 const ShapeDescriptor::SpinImageDescriptor& descriptor,
                 const ShapeDescriptor::SpinImageDescriptor& otherDescriptor) {
-
 #ifdef __CUDA_ARCH__
             float threadSumX = 0;
             float threadSumY = 0;
-            float threadSquaredSumX = 0;
-            float threadSquaredSumY = 0;
-            float threadMultiplicativeSum = 0;
 
             // Move input values closer to 0 for better numerical stability
             const float numericalStabilityFactor = 1000.0f;
@@ -29,28 +25,49 @@ namespace Shapebench {
 
                 threadSumX += pixelValueX;
                 threadSumY += pixelValueY;
-                threadSquaredSumX += pixelValueX * pixelValueX;
-                threadSquaredSumY += pixelValueY * pixelValueY;
-                threadMultiplicativeSum += pixelValueX * pixelValueY;
             }
+
+            float threadMultiplicativeSum = 0;
+            float threadDeviationSquaredSumX = 0;
+            float threadDeviationSquaredSumY = 0;
 
             float sumX = ShapeDescriptor::warpAllReduceSum(threadSumX);
             float sumY = ShapeDescriptor::warpAllReduceSum(threadSumY);
-            float squaredSumX = ShapeDescriptor::warpAllReduceSum(threadSquaredSumX);
-            float squaredSumY = ShapeDescriptor::warpAllReduceSum(threadSquaredSumY);
+
+            if(sumX == 0 && sumY == 0) {
+                return -1;
+            }
+
+            float averageX = sumX / float(count);
+            float averageY = sumY / float(count);
+
+            for (int index = threadIdx.x; index < count; index += warpSize) {
+                spinImagePixelType pixelValueX = descriptor.contents[index] / numericalStabilityFactor;
+                spinImagePixelType pixelValueY = otherDescriptor.contents[index] / numericalStabilityFactor;
+
+                float deviationX = pixelValueX - averageX;
+                float deviationY = pixelValueY - averageY;
+
+                threadDeviationSquaredSumX += deviationX * deviationX;
+                threadDeviationSquaredSumY += deviationY * deviationY;
+                threadMultiplicativeSum += deviationX * deviationY;
+            }
+
+            float deviationSquaredSumX = ShapeDescriptor::warpAllReduceSum(threadDeviationSquaredSumX);
+            float deviationSquaredSumY = ShapeDescriptor::warpAllReduceSum(threadDeviationSquaredSumY);
             float multiplicativeSum = ShapeDescriptor::warpAllReduceSum(threadMultiplicativeSum);
 
-            float correlation = ((float(count) * multiplicativeSum) + (sumX * sumY))
-                              / (sqrt((float(count) * squaredSumX) - (sumX * sumX)) * sqrt((float(count) * squaredSumY) - (sumY * sumY)));
+            float correlation = multiplicativeSum / (sqrt(deviationSquaredSumX) * sqrt(deviationSquaredSumY));
+
+            if(isnan(correlation)) {
+                return 0;
+            }
 
             return correlation;
 #else
 
             float sumX = 0;
             float sumY = 0;
-            float squaredSumX = 0;
-            float squaredSumY = 0;
-            float multiplicativeSum = 0;
 
             // Move input values closer to 0 for better numerical stability
             const float numericalStabilityFactor = 1000.0f;
@@ -63,16 +80,47 @@ namespace Shapebench {
 
                 sumX += pixelValueX;
                 sumY += pixelValueY;
-                squaredSumX += pixelValueX * pixelValueX;
-                squaredSumY += pixelValueY * pixelValueY;
-                multiplicativeSum += pixelValueX * pixelValueY;
             }
 
-            float correlation = ((float(count) * multiplicativeSum) + (sumX * sumY))
-                                / (sqrt((float(count) * squaredSumX) - (sumX * sumX)) * sqrt((float(count) * squaredSumY) - (sumY * sumY)));
+            float multiplicativeSum = 0;
+            float deviationSquaredSumX = 0;
+            float deviationSquaredSumY = 0;
+
+            float averageX = sumX / float(count);
+            float averageY = sumY / float(count);
+
+            for (int index = 0; index < count; index++) {
+                spinImagePixelType pixelValueX = descriptor.contents[index] / numericalStabilityFactor;
+                spinImagePixelType pixelValueY = otherDescriptor.contents[index] / numericalStabilityFactor;
+
+                float deviationX = pixelValueX - averageX;
+                float deviationY = pixelValueY - averageY;
+
+                deviationSquaredSumX += deviationX * deviationX;
+                deviationSquaredSumY += deviationY * deviationY;
+                multiplicativeSum += deviationX * deviationY;
+            }
+
+            float correlation = multiplicativeSum / (sqrt(deviationSquaredSumX) * sqrt(deviationSquaredSumY));
+
+            if(std::isnan(correlation)) {
+                correlation = 0;
+            }
 
             return correlation;
 #endif
+        }
+
+        __host__ __device__ static __inline__ float computeDescriptorDistance(
+                const ShapeDescriptor::SpinImageDescriptor& descriptor,
+                const ShapeDescriptor::SpinImageDescriptor& otherDescriptor) {
+            // Adapter such that the distance function satisfies the "higher distance is worse" criterion
+            float correlation = computePearsonCorrelation(descriptor, otherDescriptor);
+
+            // Pearson correlation varies between -1 and 1
+            // This makes it such that 0 = best and 2 = worst
+            float adjustedCorrelation = 1 - correlation;
+            return adjustedCorrelation;
         }
 
         static bool usesMeshInput() {

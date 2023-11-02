@@ -5,6 +5,8 @@
 #include "Dataset.h"
 #include "json.hpp"
 #include "Batch.h"
+#include "SupportRadiusEstimation.h"
+#include "PointCloudSampler.h"
 
 namespace Shapebench {
     inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json& config, const std::filesystem::path& pathInDataset, float computedBoundingSphereRadius) {
@@ -24,15 +26,15 @@ namespace Shapebench {
     std::vector<ShapeDescriptor::cpu::array<DescriptorType>> computeReferenceDescriptors(
             const std::vector<VertexInDataset> &verticesToRender,
             const std::vector<ShapeDescriptor::cpu::Mesh>& meshes,
+            const std::vector<ShapeDescriptor::cpu::PointCloud>& pointClouds,
             const nlohmann::json &config,
+            uint32_t randomSeed,
             const std::vector<float>& supportRadii,
-            uint64_t randomSeed,
             uint32_t startIndex = 0,
             uint32_t endIndex = 0xFFFFFFFF) {
-
-
         std::vector<ShapeDescriptor::cpu::array<DescriptorType>> outputDescriptors(supportRadii.size());
-        if(verticesToRender.empty()) {
+
+        if (verticesToRender.empty()) {
             ShapeDescriptor::cpu::array<DescriptorType> emptyArray = {0, nullptr};
             std::fill(outputDescriptors.begin(), outputDescriptors.end(), emptyArray);
             return outputDescriptors;
@@ -42,75 +44,58 @@ namespace Shapebench {
         const uint32_t descriptorCountToCompute = supportRadii.size() * indicesToProcess;
         uint64_t computedDescriptorCount = 0;
 
-        #pragma omp parallel for schedule(dynamic) default(none) shared(supportRadii, verticesToRender, startIndex, endIndex, meshes, config, std::cout, randomSeed, outputDescriptors, indicesToProcess, descriptorCountToCompute, computedDescriptorCount)
-        for(uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
+        for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
+            outputDescriptors.at(radiusIndex) = ShapeDescriptor::cpu::array<DescriptorType>(descriptorCountToCompute);
+        }
 
-            ShapeDescriptor::cpu::array<DescriptorType> radiusDescriptors(indicesToProcess);
+        endIndex = std::min<uint32_t>(endIndex, verticesToRender.size());
+        #pragma omp parallel for schedule(dynamic) default(none) shared(supportRadii, verticesToRender, randomSeed, startIndex, endIndex, meshes, config, std::cout, pointClouds, outputDescriptors, indicesToProcess, descriptorCountToCompute, computedDescriptorCount)
+        for (uint32_t i = startIndex; i < endIndex; i++) {
+            ShapeDescriptor::cpu::PointCloud cloud;
+            uint32_t meshIndex = i - startIndex;
+            const ShapeDescriptor::cpu::Mesh &currentMesh = meshes.at(meshIndex);
 
-            uint32_t currentMeshIndex = verticesToRender.at(startIndex).meshID;
-            std::vector<ShapeDescriptor::OrientedPoint> vertexOrigins;
-            std::vector<uint32_t> vertexIndices;
+            if (pointClouds.empty()) {
+                cloud = Shapebench::computePointCloud(currentMesh, config, randomSeed);
+            } else {
+                cloud = pointClouds.at(meshIndex);
+            }
 
-            endIndex = std::min<uint32_t>(endIndex, verticesToRender.size());
-            for(uint32_t i = startIndex; i <= endIndex; i++) {
-                // We have moved on to a new mesh. Load the new one. Also includes a case for the final iteration
-                if(i == endIndex || currentMeshIndex != verticesToRender.at(i).meshID) {
-                    // Should not trigger out of bounds exception as the first iteration should not trigger the above if statement
-                    const ShapeDescriptor::cpu::Mesh& currentMesh = meshes.at(i - startIndex - 1);
-                    //ShapeDescriptor::gpu::Mesh currentMeshGPU = ShapeDescriptor::copyToGPU(currentMesh);
+            for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
+                uint32_t vertexIndex = verticesToRender.at(meshIndex).vertexIndex;
+                ShapeDescriptor::OrientedPoint originPoint = {currentMesh.vertices[vertexIndex], currentMesh.normals[vertexIndex]};
 
-                    for(uint32_t index = 0; index < vertexIndices.size(); index++) {
-                        uint32_t vertexIndex = vertexIndices.at(index);
-                        assert(vertexIndex < currentMesh.vertexCount);
-                        vertexOrigins.push_back({currentMesh.vertices[vertexIndex], currentMesh.normals[vertexIndex]});
-                    }
+                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> convertedOriginArray = {1, &originPoint};
 
-                    ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> convertedOriginArray = {vertexOrigins.size(), vertexOrigins.data()};
-                    //ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(convertedOriginArray);
-
-                    ShapeDescriptor::cpu::array<DescriptorType> descriptors;
-                    if(DescriptorMethod::usesPointCloudInput()) {
-                        double totalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(currentMesh);
-                        double sampleDensity = config.at("pointSampleDensity");
-                        uint32_t sampleCount = uint32_t(totalMeshArea * sampleDensity);
-                        std::cout << "Sampling with point density: " << sampleCount << std::endl;
-                        ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::sampleMesh(currentMesh, sampleCount, randomSeed);
-                        descriptors = DescriptorMethod::computeDescriptors(cloud, convertedOriginArray, config, supportRadii.at(radiusIndex));
-                        ShapeDescriptor::free(cloud);
-                    } else {
-                        descriptors = DescriptorMethod::computeDescriptors(currentMesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
-                    }
-
-                    uint32_t targetStartIndex = i - vertexIndices.size() - startIndex;
-                    //cudaMemcpy(radiusDescriptors.content + targetStartIndex, descriptors.content, descriptors.length * sizeof(DescriptorType), cudaMemcpyDeviceToDevice);
-                    // Final written index is within bounds
-                    assert(targetStartIndex + descriptors.length - 1 < radiusDescriptors.length);
-                    std::copy(descriptors.content, descriptors.content + descriptors.length, radiusDescriptors.content + targetStartIndex);
-
-                    ShapeDescriptor::free(descriptors);
-                    //ShapeDescriptor::free(gpuOrigins);
-                    //ShapeDescriptor::free(currentMeshGPU);
-
-                    vertexIndices.clear();
-                    vertexOrigins.clear();
-
-                    #pragma omp critical
-                    {
-                        computedDescriptorCount++;
-                        if(computedDescriptorCount % 100 == 99) {
-                            std::cout << "\r        Completed " << (computedDescriptorCount+1) << "/" << descriptorCountToCompute << "    " << std::flush;
-                        }
-                    };
+                ShapeDescriptor::cpu::array<DescriptorType> descriptors;
+                if (DescriptorMethod::usesPointCloudInput()) {
+                    descriptors = DescriptorMethod::computeDescriptors(cloud, convertedOriginArray, config, supportRadii.at(radiusIndex));
+                } else {
+                    descriptors = DescriptorMethod::computeDescriptors(currentMesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
                 }
 
-                if(i < endIndex) {
-                    currentMeshIndex = verticesToRender.at(i).meshID;
-                    vertexIndices.push_back(verticesToRender.at(i).vertexIndex);
+                outputDescriptors.at(radiusIndex)[i] = descriptors.content[0];
+
+                ShapeDescriptor::free(descriptors);
+
+                #pragma omp critical
+                {
+                    computedDescriptorCount++;
+                    if (computedDescriptorCount % 100 == 99) {
+                        std::cout << "\r        Completed " << (computedDescriptorCount + 1) << "/"
+                                  << descriptorCountToCompute << "    " << std::flush;
+                    }
+                };
+
+                if (DescriptorMethod::usesPointCloudInput() && pointClouds.empty()) {
+                    ShapeDescriptor::free(cloud);
                 }
             }
-            outputDescriptors.at(radiusIndex) = radiusDescriptors;
         }
-        std::cout << std::endl;
+
+        for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
+            //ShapeDescriptor::writeDescriptorImages(outputDescriptors.at(radiusIndex), "out_radiusindex" + std::to_string(radiusIndex) + "_" + ShapeDescriptor::generateUniqueFilenameString() + ".png", 50);
+        }
 
         return outputDescriptors;
     }

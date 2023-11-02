@@ -9,6 +9,7 @@
 #include "benchmark-core/Dataset.h"
 #include "benchmark-core/SupportRadiusEstimation.h"
 #include "methods/QUICCIMethod.h"
+#include "methods/SIMethod.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <random>
@@ -21,7 +22,6 @@ void testMethod(const nlohmann::json& configuration, const Dataset& dataset, uin
     std::cout << "    Chosen support radius: " << supportRadius << std::endl;
 
 }
-
 
 int main(int argc, const char** argv) {
     arrrgh::parser parser("shapebench", "Benchmark tool for 3D local shape descriptors");
@@ -95,7 +95,8 @@ int main(int argc, const char** argv) {
 
 
     uint64_t randomSeed = configuration.at("randomSeed");
-    testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, dataset, randomSeed);
+    //testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, dataset, randomSeed);
+    testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, dataset, randomSeed);
 
 
 }
