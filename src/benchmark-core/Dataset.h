@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <vector>
+#include <shapeDescriptor/shapeDescriptor.h>
 
 struct VertexInDataset {
     uint32_t meshID = 0;
@@ -13,6 +14,7 @@ struct DatasetEntry {
     uint32_t vertexCount = 0;
     uint32_t id = 0xFFFFFFFF;
     float computedObjectRadius = 0;
+    ShapeDescriptor::cpu::float3 computedObjectCentre = {0, 0, 0};
 
     bool operator<(DatasetEntry& other);
 };

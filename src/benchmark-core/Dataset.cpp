@@ -24,6 +24,7 @@ void Dataset::load(const std::filesystem::path &cacheFile) {
             entry.vertexCount = jsonEntry.at("vertexCount");
             entry.id = jsonEntry.at("id");
             entry.computedObjectRadius = jsonEntry.at("boundingSphereRadius");
+            entry.computedObjectCentre = {jsonEntry.at("boundingSphereCentre")[0], jsonEntry.at("boundingSphereCentre")[1], jsonEntry.at("boundingSphereCentre")[2]};
             entry.meshFile = std::string(jsonEntry.at("filePath"));
             entries.push_back(entry);
         } else {
