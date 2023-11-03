@@ -69,10 +69,6 @@ void referenceSetDistanceKernelCPU(
                                                                            referenceDescriptors[referenceDescriptorIndex]);
             // Using Welford's algorithm for computing the mean and variance
             // Updating the running mean and standard deviation values
-            if(std::isnan(similarity)) {
-                std::cout << "x";
-                similarity = -1;
-            }
             runningCount++;
             float delta = similarity - runningMean;
             runningMean += delta / float(runningCount);

@@ -45,7 +45,7 @@ namespace Shapebench {
         uint64_t computedDescriptorCount = 0;
 
         for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-            outputDescriptors.at(radiusIndex) = ShapeDescriptor::cpu::array<DescriptorType>(descriptorCountToCompute);
+            outputDescriptors.at(radiusIndex) = ShapeDescriptor::cpu::array<DescriptorType>(indicesToProcess);
         }
 
         endIndex = std::min<uint32_t>(endIndex, verticesToRender.size());
@@ -74,7 +74,7 @@ namespace Shapebench {
                     descriptors = DescriptorMethod::computeDescriptors(currentMesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
                 }
 
-                outputDescriptors.at(radiusIndex)[i] = descriptors.content[0];
+                outputDescriptors.at(radiusIndex)[meshIndex] = descriptors.content[0];
 
                 ShapeDescriptor::free(descriptors);
 
@@ -86,15 +86,15 @@ namespace Shapebench {
                                   << descriptorCountToCompute << "    " << std::flush;
                     }
                 };
+            }
 
-                if (DescriptorMethod::usesPointCloudInput() && pointClouds.empty()) {
-                    ShapeDescriptor::free(cloud);
-                }
+            if (DescriptorMethod::usesPointCloudInput() && pointClouds.empty()) {
+                ShapeDescriptor::free(cloud);
             }
         }
 
         for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-            //ShapeDescriptor::writeDescriptorImages(outputDescriptors.at(radiusIndex), "out_radiusindex" + std::to_string(radiusIndex) + "_" + ShapeDescriptor::generateUniqueFilenameString() + ".png", 50);
+            ShapeDescriptor::writeDescriptorImages(outputDescriptors.at(radiusIndex), "out_radiusindex" + std::to_string(radiusIndex) + "_" + ShapeDescriptor::generateUniqueFilenameString() + ".png", 50);
         }
 
         return outputDescriptors;
