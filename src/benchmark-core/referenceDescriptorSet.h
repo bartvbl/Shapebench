@@ -14,6 +14,7 @@ namespace Shapebench {
         std::filesystem::path currentMeshPath = datasetBasePath / pathInDataset;
         currentMeshPath = currentMeshPath.replace_extension(".cm");
         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(currentMeshPath);
+
         // Scale mesh down to a unit sphere
         float scaleFactor = 1.0f / float(computedBoundingSphereRadius);
         for(uint32_t i = 0; i < mesh.vertexCount; i++) {
@@ -93,9 +94,9 @@ namespace Shapebench {
             }
         }
 
-        for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
+        /*for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
             ShapeDescriptor::writeDescriptorImages(outputDescriptors.at(radiusIndex), "out_radiusindex" + std::to_string(radiusIndex) + "_" + ShapeDescriptor::generateUniqueFilenameString() + ".png", 50);
-        }
+        }*/
 
         return outputDescriptors;
     }

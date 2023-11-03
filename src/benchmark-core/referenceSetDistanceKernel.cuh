@@ -95,7 +95,6 @@ void referenceSetDistanceKernelGPU(
     ShapeDescriptor::gpu::array<DescriptorType> device_referenceDescriptors = referenceDescriptors.copyToGPU();
     ShapeDescriptor::gpu::array<DescriptorDistance> device_distances = distances.copyToGPU();
 
-    std::cout << "Length: " << distances.length << ", " << sampleDescriptors.length << ", " << referenceDescriptors.length << std::endl;
     referenceSetDistanceKernel<DescriptorMethod, DescriptorType><<<sampleDescriptors.length, 32>>>(device_sampleDescriptors, device_referenceDescriptors, device_distances);
     checkCudaErrors(cudaDeviceSynchronize());
 

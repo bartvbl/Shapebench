@@ -25,6 +25,7 @@ namespace Shapebench {
         #pragma omp parallel for schedule(dynamic) default(none) shared(meshCount, dataset, startIndex, meshes, config, vertices)
         for(uint32_t i = 0; i < meshCount; i++) {
             const DatasetEntry& entry = dataset.at(vertices.at(startIndex + i).meshID);
+            //std::cout << "Mesh: " << entry.meshFile.string() << ": " << entry.computedObjectCentre << " - " << entry.computedObjectRadius << std::endl;
             meshes.at(i) = readDatasetMesh(config, entry.meshFile, entry.computedObjectRadius);
         }
 
@@ -173,18 +174,13 @@ namespace Shapebench {
                 std::cout << "    Loading meshes.." << std::endl;
                 std::vector<ShapeDescriptor::cpu::Mesh> sampleSetMeshes = loadMeshRange(config, dataset,sampleVerticesSet,sampleStartIndex, sampleEndIndex);
                 std::vector<ShapeDescriptor::cpu::PointCloud> sampleSetPointClouds;
-                if(DescriptorMethod::usesPointCloudInput()) {
-                    std::cout << "    Sampling point clouds.." << std::endl;
-                    //computePointClouds(sampleSetMeshes, sampleSetPointClouds, config, randomEngine());
-                }
+
                 std::cout << "    Computing sample descriptors.." << std::endl;
                 sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
                         sampleVerticesSet, sampleSetMeshes, sampleSetPointClouds, config, randomSeed,supportRadiiToTry, sampleStartIndex, sampleEndIndex);
 
                 std::cout << "    Computing distances.." << std::endl;
                 for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
-                    // TODO: run this on GPU
-                    std::cout << "\r        Completed " << (i+1) << "/" << supportRadiiToTry.size() << std::endl;
                     ShapeDescriptor::cpu::array<DescriptorDistance> distances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleDescriptors.at(i), referenceDescriptors.at(i));
 
                     uint32_t distancesStartIndex = i * sampleDescriptorSetSize + sampleStartIndex;
