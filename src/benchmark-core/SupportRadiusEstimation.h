@@ -184,6 +184,7 @@ namespace Shapebench {
                 std::cout << "    Computing distances.." << std::endl;
                 for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
                     // TODO: run this on GPU
+                    std::cout << "\r        Completed " << (i+1) << "/" << supportRadiiToTry.size() << std::endl;
                     ShapeDescriptor::cpu::array<DescriptorDistance> distances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleDescriptors.at(i), referenceDescriptors.at(i));
 
                     uint32_t distancesStartIndex = i * sampleDescriptorSetSize + sampleStartIndex;
