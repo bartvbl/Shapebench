@@ -83,8 +83,27 @@ void referenceSetDistanceKernelCPU(
         distance.variance = runningSumOfSquaredDifferences / float(runningCount - 1);
 
         distances.content[sampleDescriptorIndex] = distance;
-
     }
+}
+
+template<typename DescriptorMethod, typename DescriptorType>
+void referenceSetDistanceKernelGPU(
+        ShapeDescriptor::cpu::array<DescriptorType> sampleDescriptors,
+        ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors,
+        ShapeDescriptor::cpu::array<DescriptorDistance> distances) {
+    ShapeDescriptor::gpu::array<DescriptorType> device_sampleDescriptors = sampleDescriptors.copyToGPU();
+    ShapeDescriptor::gpu::array<DescriptorType> device_referenceDescriptors = referenceDescriptors.copyToGPU();
+    ShapeDescriptor::gpu::array<DescriptorDistance> device_distances = distances.copyToGPU();
+
+    std::cout << "Length: " << distances.length << ", " << sampleDescriptors.length << ", " << referenceDescriptors.length << std::endl;
+    referenceSetDistanceKernel<DescriptorMethod, DescriptorType><<<sampleDescriptors.length, 32>>>(device_sampleDescriptors, device_referenceDescriptors, device_distances);
+    checkCudaErrors(cudaDeviceSynchronize());
+
+    checkCudaErrors(cudaMemcpy(distances.content, device_distances.content, distances.length * sizeof(DescriptorDistance), cudaMemcpyDeviceToHost));
+
+    ShapeDescriptor::free(device_sampleDescriptors);
+    ShapeDescriptor::free(device_referenceDescriptors);
+    ShapeDescriptor::free(device_distances);
 }
 
 template<typename DescriptorMethod, typename DescriptorType>
@@ -110,7 +129,7 @@ ShapeDescriptor::cpu::array<DescriptorDistance> computeReferenceSetDistance(
 
     ShapeDescriptor::cpu::array<DescriptorDistance> descriptorDistances(sampleDescriptors.length);
 
-    referenceSetDistanceKernelCPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, descriptorDistances);
+    referenceSetDistanceKernelGPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, descriptorDistances);
 
     return descriptorDistances;
 }
