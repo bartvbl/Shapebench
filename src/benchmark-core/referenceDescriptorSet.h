@@ -94,6 +94,8 @@ namespace Shapebench {
             }
         }
 
+        std::cout << std::endl;
+
         /*for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
             ShapeDescriptor::writeDescriptorImages(outputDescriptors.at(radiusIndex), "out_radiusindex" + std::to_string(radiusIndex) + "_" + ShapeDescriptor::generateUniqueFilenameString() + ".png", 50);
         }*/
