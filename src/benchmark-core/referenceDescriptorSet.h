@@ -63,7 +63,7 @@ namespace Shapebench {
             }
 
             for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-                uint32_t vertexIndex = verticesToRender.at(meshIndex).vertexIndex;
+                uint32_t vertexIndex = verticesToRender.at(i).vertexIndex;
                 ShapeDescriptor::OrientedPoint originPoint = {currentMesh.vertices[vertexIndex], currentMesh.normals[vertexIndex]};
 
                 ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> convertedOriginArray = {1, &originPoint};

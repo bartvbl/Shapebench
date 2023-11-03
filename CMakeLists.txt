@@ -60,6 +60,6 @@ file (GLOB_RECURSE PROJECT_SOURCES
         src/main.cu)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX) #lsan
-target_compile_options(shapebench PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-fopenmp>")
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX) # lsan
+target_compile_options(shapebench PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-fopenmp>") #-Xcompiler=-fsanitize=leak
 #target_compile_options(shapebench PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-fsanitize=leak>")
