@@ -122,13 +122,13 @@ ShapeDescriptor::cpu::array<DescriptorDistance> computeReferenceSetDistance(
 }
 
 template<typename DescriptorMethod, typename DescriptorType>
-ShapeDescriptor::cpu::array<DescriptorDistance> computeReferenceSetDistance(
+std::vector<DescriptorDistance> computeReferenceSetDistance(
         ShapeDescriptor::cpu::array<DescriptorType> sampleDescriptors,
         ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors) {
 
-    ShapeDescriptor::cpu::array<DescriptorDistance> descriptorDistances(sampleDescriptors.length);
+    std::vector<DescriptorDistance> descriptorDistances(sampleDescriptors.length);
 
-    referenceSetDistanceKernelGPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, descriptorDistances);
+    referenceSetDistanceKernelGPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, {sampleDescriptors.length, descriptorDistances.data()});
 
     return descriptorDistances;
 }

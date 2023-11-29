@@ -13,23 +13,13 @@
 #include "PointCloudSampler.h"
 
 namespace Shapebench {
-    inline std::vector<ShapeDescriptor::cpu::Mesh> loadMeshRange(const nlohmann::json& config, const Dataset& dataset, const std::vector<VertexInDataset>& vertices, uint32_t startIndex, uint32_t endIndex) {
-        // Load up to < endIndex, so this is correct
-        uint32_t meshCount = endIndex - startIndex;
-
+    inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const Dataset& dataset, VertexInDataset vertex) {
         // We load the mesh for each vertex. This assumes that most of these will be unique anyway
         // That is, there is only one vertex sampled per mesh.
         // If this assumption changes later we'll have to create a second vector containing an index buffer
         // which mesh in a condensed vector to use
-        std::vector<ShapeDescriptor::cpu::Mesh> meshes(meshCount);
-        #pragma omp parallel for schedule(dynamic) default(none) shared(meshCount, dataset, startIndex, meshes, config, vertices)
-        for(uint32_t i = 0; i < meshCount; i++) {
-            const DatasetEntry& entry = dataset.at(vertices.at(startIndex + i).meshID);
-            //std::cout << "Mesh: " << entry.meshFile.string() << ": " << entry.computedObjectCentre << " - " << entry.computedObjectRadius << std::endl;
-            meshes.at(i) = readDatasetMesh(config, entry.meshFile, entry.computedObjectRadius);
-        }
-
-        return meshes;
+        const DatasetEntry& entry = dataset.at(vertex.meshID);
+        return readDatasetMesh(config, entry.meshFile, entry.computedObjectRadius);;
     }
 
     inline void freeMeshRange(std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
@@ -58,33 +48,43 @@ namespace Shapebench {
         }
     }
 
+    struct DistanceStatistics {
+        float meanOfMeans = 0;
+        float meanOfVariance = 0;
+        float minMeans = 0;
+        float maxMeans = 0;
+        float minVariance = 0;
+        float maxVariance = 0;
+    };
+
+    template<typename DescriptorType>
+    DistanceStatistics computeDistances(std::vector<DescriptorDistance>& distances, uint32_t sampleDescriptorCount) {
+        DistanceStatistics stats;
+        stats.meanOfMeans = 0;
+        stats.meanOfVariance = 0;
+        stats.minMeans = distances.at(0).mean;
+        stats.maxMeans = distances.at(0).mean;
+        stats.minVariance = distances.at(0).variance;
+        stats.maxVariance = distances.at(0).variance;
+        for(uint32_t i = 0; i < sampleDescriptorCount; i++) {
+            stats.meanOfMeans += (distances.at(i).mean - stats.meanOfMeans) / float(i + 1);
+            stats.meanOfVariance += (distances.at(i).variance - stats.meanOfVariance) / float(i + 1);
+            stats.minMeans = std::min(stats.minMeans, distances.at(i).mean);
+            stats.maxMeans = std::max(stats.maxMeans, distances.at(i).mean);
+            stats.minVariance = std::min(stats.minVariance, distances.at(i).variance);
+            stats.maxVariance = std::max(stats.maxVariance, distances.at(i).variance);
+        }
+        return stats;
+    }
+
     void printDistancesTable(const std::vector<DescriptorDistance> &distances,
                              uint32_t numberOfSampleDescriptors,
                              float supportRadiusStart,
                              float supportRadiusStep,
                              uint32_t supportRadiusCount) {
-        std::stringstream outputBuffer;
-        outputBuffer << "Radius index, radius, Min mean, Mean, Max mean, Variance min, Mean variance, max variance" << std::endl;
-        std::vector<uint32_t> voteHistogram(supportRadiusCount);
-        for(uint32_t radius = 0; radius < supportRadiusCount; radius++) {
-            outputBuffer << radius << ", "
-                         << (float(radius) * supportRadiusStep + supportRadiusStart) << ", ";
-            float meanOfMeans = 0;
-            float meanOfVariance = 0;
-            uint32_t distancesStartIndex = radius * numberOfSampleDescriptors;
-            float minMeans = distances.at(distancesStartIndex).mean;
-            float maxMeans = distances.at(distancesStartIndex).mean;
-            float minVariance = distances.at(distancesStartIndex).variance;
-            float maxVariance = distances.at(distancesStartIndex).variance;
-            for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
-                meanOfMeans += (distances.at(distancesStartIndex + i).mean - meanOfMeans) / float(i + 1);
-                meanOfVariance += (distances.at(distancesStartIndex + i).variance - meanOfVariance) / float(i + 1);
-                minMeans = std::min(minMeans, distances.at(distancesStartIndex + i).mean);
-                maxMeans = std::max(maxMeans, distances.at(distancesStartIndex + i).mean);
-                minVariance = std::min(minVariance, distances.at(distancesStartIndex + i).variance);
-                maxVariance = std::max(maxVariance, distances.at(distancesStartIndex + i).variance);
-            }
-            outputBuffer << minMeans << ", " << meanOfMeans << ", " << maxMeans << ", " << minVariance << ", " << meanOfVariance << ", " << maxVariance << std::endl;
+
+     /*   for(uint32_t radius = 0; radius < supportRadiusCount; radius++) {
+
         }
 
         for(uint32_t i = 0; i < numberOfSampleDescriptors; i++) {
@@ -112,7 +112,7 @@ namespace Shapebench {
         std::ofstream histogramFile("support_radii_votes_" + unique + ".txt");
         histogramFile << histogramBuffer.str();
 
-        std::cout << outputBuffer.str() << std::endl << std::endl << histogramBuffer.str() << std::endl;
+        std::cout << outputBuffer.str() << std::endl << std::endl << histogramBuffer.str() << std::endl;*/
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
@@ -138,13 +138,11 @@ namespace Shapebench {
                 : sampleDescriptorSetSize;
         std::cout << "    Batch sizes: representative -> " << referenceBatchSizeLimit << ", sample -> " << sampleBatchSizeLimit << std::endl;
 
-        std::vector<ShapeDescriptor::cpu::array<DescriptorType>> sampleDescriptors;
-        std::vector<ShapeDescriptor::cpu::array<DescriptorType>> referenceDescriptors;
+        std::vector<DescriptorType> sampleDescriptors(representativeSetSize * numberOfSupportRadiiToTry);
+        std::vector<DescriptorType> referenceDescriptors(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
 
         std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize);
         std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize);
-
-        std::vector<DescriptorDistance> descriptorDistances(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
 
         std::vector<float> supportRadiiToTry(numberOfSupportRadiiToTry);
         for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {
@@ -153,62 +151,100 @@ namespace Shapebench {
 
         std::chrono::time_point start = std::chrono::steady_clock::now();
 
-        for(uint32_t referenceStartIndex = 0; referenceStartIndex < representativeSetSize; referenceStartIndex += referenceBatchSizeLimit) {
-            uint32_t referenceEndIndex = std::min<uint32_t>(referenceStartIndex + referenceBatchSizeLimit, representativeSetSize);
-            std::cout << "    Processing reference batch " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
-            std::cout << "    Loading meshes.." << std::endl;
-            std::vector<ShapeDescriptor::cpu::Mesh> representativeSetMeshes = loadMeshRange(config, dataset,representativeSet,referenceStartIndex, referenceEndIndex);
-            std::vector<ShapeDescriptor::cpu::PointCloud> representativeSetPointClouds;
+
+        std::cout << "    Computing reference descriptors.." << std::endl;
+        uint64_t referencePointCloudSamplingSeed = randomEngine();
+        uint64_t referenceDescriptorGenerationSeed = randomEngine();
+        std::vector<DescriptorType> generatedDescriptors(supportRadiiToTry.size());
+        int referenceCountProcessed = 0;
+        #pragma omp parallel for default(none) shared(representativeSetSize, representativeSet, dataset, std::cout, config, referenceCountProcessed, referencePointCloudSamplingSeed, supportRadiiToTry, referenceDescriptorGenerationSeed, numberOfSupportRadiiToTry, referenceDescriptors, sampleDescriptorSetSize, sampleVerticesSet) firstprivate(generatedDescriptors) schedule(dynamic)
+        for(uint32_t referenceIndex = 0; referenceIndex < representativeSetSize; referenceIndex++) {
+            #pragma omp atomic
+            referenceCountProcessed++;
+            std::cout << "\r        Processing " + std::to_string(referenceCountProcessed) + "/" + std::to_string(representativeSetSize) << std::flush;
+            VertexInDataset referenceVertex = representativeSet.at(referenceIndex);
+            ShapeDescriptor::cpu::Mesh representativeSetMesh = loadMesh(config, dataset,referenceVertex);
+            ShapeDescriptor::cpu::PointCloud representativeSetPointCloud;
+            if (DescriptorMethod::usesPointCloudInput()) {
+                representativeSetPointCloud = computePointCloud(representativeSetMesh, config, referencePointCloudSamplingSeed);
+            }
+
+            Shapebench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
+                    referenceVertex, representativeSetMesh, representativeSetPointCloud, config, referenceDescriptorGenerationSeed,
+                    supportRadiiToTry, generatedDescriptors);
+            for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
+                referenceDescriptors.at(representativeSetSize * i + referenceIndex) = generatedDescriptors.at(i);
+            }
+
             if(DescriptorMethod::usesPointCloudInput()) {
-                std::cout << "    Sampling point clouds.." << std::endl;
-                computePointClouds(representativeSetMeshes, representativeSetPointClouds, config, randomEngine());
+                ShapeDescriptor::free(representativeSetPointCloud);
             }
-
-            std::cout << "    Computing reference descriptors.." << std::endl;
-            referenceDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
-                    representativeSet, representativeSetMeshes, representativeSetPointClouds, config, randomSeed, supportRadiiToTry, referenceStartIndex, referenceEndIndex);
-
-            for(uint32_t sampleStartIndex = 0; sampleStartIndex < sampleDescriptorSetSize; sampleStartIndex += sampleBatchSizeLimit) {
-                uint32_t sampleEndIndex = std::min<uint32_t>(sampleStartIndex + sampleBatchSizeLimit, sampleDescriptorSetSize);
-                std::cout << "    Computing ranks for sample " << (sampleStartIndex + 1) << "-" << sampleEndIndex << "/" << sampleDescriptorSetSize << " in representative vertex " << (referenceStartIndex + 1) << "-" << referenceEndIndex << "/" << representativeSetSize << std::endl;
-                std::cout << "    Loading meshes.." << std::endl;
-                std::vector<ShapeDescriptor::cpu::Mesh> sampleSetMeshes = loadMeshRange(config, dataset,sampleVerticesSet,sampleStartIndex, sampleEndIndex);
-                std::vector<ShapeDescriptor::cpu::PointCloud> sampleSetPointClouds;
-
-                std::cout << "    Computing sample descriptors.." << std::endl;
-                sampleDescriptors = Shapebench::computeReferenceDescriptors<DescriptorMethod, DescriptorType>(
-                        sampleVerticesSet, sampleSetMeshes, sampleSetPointClouds, config, randomSeed,supportRadiiToTry, sampleStartIndex, sampleEndIndex);
-
-                std::cout << "    Computing distances.." << std::endl;
-                for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
-                    ShapeDescriptor::cpu::array<DescriptorDistance> distances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleDescriptors.at(i), referenceDescriptors.at(i));
-
-                    uint32_t distancesStartIndex = i * sampleDescriptorSetSize + sampleStartIndex;
-                    std::copy(distances.content, distances.content + distances.length, descriptorDistances.data() + distancesStartIndex);
-
-                    ShapeDescriptor::free(distances);
-                }
-                freeDescriptorVector<DescriptorType>(sampleDescriptors);
-                freePointCloudRange(sampleSetPointClouds);
-                freeMeshRange(sampleSetMeshes);
-
-                // Force LibC to clean up
-                malloc_trim(0);
-            }
-
-            freeDescriptorVector<DescriptorType>(referenceDescriptors);
-            freeMeshRange(representativeSetMeshes);
-            freePointCloudRange(representativeSetPointClouds);
-
-            // Force LibC to clean up
-            malloc_trim(0);
-
-            printDistancesTable(descriptorDistances,
-                                sampleDescriptorSetSize,
-                                supportRadiusStart,
-                                supportRadiusStep,
-                                numberOfSupportRadiiToTry);
+            ShapeDescriptor::free(representativeSetMesh);
         }
+        std::cout << std::endl;
+
+        // Force LibC to clean up
+        malloc_trim(0);
+
+        std::cout << "    Computing sample descriptors.." << std::endl;
+        uint64_t samplePointCloudSamplingSeed = randomEngine();
+        uint64_t sampleDescriptorGenerationSeed = randomEngine();
+        int sampleCountProcessed = 0;
+        #pragma omp parallel for default(none) shared(sampleDescriptorSetSize, sampleVerticesSet, sampleCountProcessed, std::cout, dataset, config, samplePointCloudSamplingSeed, sampleDescriptorGenerationSeed, supportRadiiToTry, numberOfSupportRadiiToTry, sampleDescriptors) firstprivate(generatedDescriptors) schedule(dynamic)
+        for(uint32_t sampleIndex = 0; sampleIndex < sampleDescriptorSetSize; sampleIndex++) {
+            #pragma omp atomic
+            sampleCountProcessed++;
+            std::cout << "\r        Processing " + std::to_string(sampleCountProcessed) + "/" + std::to_string(sampleDescriptorSetSize) << std::flush;
+            VertexInDataset sampleVertex = sampleVerticesSet.at(sampleIndex);
+            ShapeDescriptor::cpu::Mesh sampleSetMesh = loadMesh(config, dataset,sampleVertex);
+            ShapeDescriptor::cpu::PointCloud sampleSetPointCloud;
+            if (DescriptorMethod::usesPointCloudInput()) {
+                sampleSetPointCloud = computePointCloud(sampleSetMesh, config, samplePointCloudSamplingSeed);
+            }
+
+            Shapebench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
+                    sampleVertex, sampleSetMesh, sampleSetPointCloud, config, sampleDescriptorGenerationSeed,
+                    supportRadiiToTry, generatedDescriptors);
+            for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
+                sampleDescriptors.at(sampleDescriptorSetSize * i + sampleIndex) = generatedDescriptors.at(i);
+            }
+
+            if(DescriptorMethod::usesPointCloudInput()) {
+                ShapeDescriptor::free(sampleSetPointCloud);
+            }
+            ShapeDescriptor::free(sampleSetMesh);
+        }
+        std::cout << std::endl;
+
+        // Force LibC to clean up
+        malloc_trim(0);
+
+        std::cout << "    Computing distances.." << std::endl;
+
+        std::stringstream outputBuffer;
+        outputBuffer << "Radius index, radius, Min mean, Mean, Max mean, Variance min, Mean variance, max variance" << std::endl;
+        std::vector<uint32_t> voteHistogram(numberOfSupportRadiiToTry);
+
+        for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
+            std::cout << "\r        Processing " << (i+1) << "/" << supportRadiiToTry.size() << std::flush;
+            ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
+            ShapeDescriptor::cpu::array<DescriptorType> sampleArray = {sampleDescriptorSetSize, sampleDescriptors.data() + i * sampleDescriptorSetSize};
+            std::vector<DescriptorDistance> supportRadiusDistances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleArray, referenceArray);
+            DistanceStatistics stats = computeDistances<DescriptorType>(supportRadiusDistances, sampleDescriptorSetSize);
+
+            outputBuffer << i << ", " << (float(i) * supportRadiusStep + supportRadiusStart) << ", ";
+            outputBuffer << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
+                         << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
+        }
+        std::string unique = ShapeDescriptor::generateUniqueFilenameString();
+        std::ofstream outputFile("support_radii_meanvariance_" + unique + ".txt");
+        outputFile << outputBuffer.str();
+
+        std::cout << outputBuffer.str() << std::endl;
+
+        // Force LibC to clean up
+        malloc_trim(0);
+
 
         std::chrono::time_point end = std::chrono::steady_clock::now();
         std::cout << std::endl << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;

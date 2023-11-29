@@ -24,82 +24,32 @@ namespace Shapebench {
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
-    std::vector<ShapeDescriptor::cpu::array<DescriptorType>> computeReferenceDescriptors(
-            const std::vector<VertexInDataset> &verticesToRender,
-            const std::vector<ShapeDescriptor::cpu::Mesh>& meshes,
-            const std::vector<ShapeDescriptor::cpu::PointCloud>& pointClouds,
+    void computeDescriptorsForEachSupportRadii(
+            VertexInDataset vertexToRender,
+            const ShapeDescriptor::cpu::Mesh& mesh,
+            const ShapeDescriptor::cpu::PointCloud& pointCloud,
             const nlohmann::json &config,
             uint32_t randomSeed,
             const std::vector<float>& supportRadii,
-            uint32_t startIndex = 0,
-            uint32_t endIndex = 0xFFFFFFFF) {
-        std::vector<ShapeDescriptor::cpu::array<DescriptorType>> outputDescriptors(supportRadii.size());
-
-        if (verticesToRender.empty()) {
-            ShapeDescriptor::cpu::array<DescriptorType> emptyArray = {0, nullptr};
-            std::fill(outputDescriptors.begin(), outputDescriptors.end(), emptyArray);
-            return outputDescriptors;
-        }
-
-        const uint32_t indicesToProcess = std::min<uint32_t>(endIndex, verticesToRender.size()) - startIndex;
-        const uint32_t descriptorCountToCompute = supportRadii.size() * indicesToProcess;
-        uint64_t computedDescriptorCount = 0;
+            std::vector<DescriptorType>& outputDescriptors) {
+        assert(supportRadii.size() == outputDescriptors.size());
 
         for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-            outputDescriptors.at(radiusIndex) = ShapeDescriptor::cpu::array<DescriptorType>(indicesToProcess);
-        }
+            uint32_t vertexIndex = vertexToRender.vertexIndex;
+            ShapeDescriptor::OrientedPoint originPoint = {mesh.vertices[vertexIndex], mesh.normals[vertexIndex]};
 
-        endIndex = std::min<uint32_t>(endIndex, verticesToRender.size());
-        #pragma omp parallel for schedule(dynamic) default(none) shared(supportRadii, verticesToRender, randomSeed, startIndex, endIndex, meshes, config, std::cout, pointClouds, outputDescriptors, indicesToProcess, descriptorCountToCompute, computedDescriptorCount)
-        for (uint32_t i = startIndex; i < endIndex; i++) {
-            ShapeDescriptor::cpu::PointCloud cloud;
-            uint32_t meshIndex = i - startIndex;
-            const ShapeDescriptor::cpu::Mesh &currentMesh = meshes.at(meshIndex);
+            ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> convertedOriginArray = {1, &originPoint};
 
-            if (pointClouds.empty()) {
-                cloud = Shapebench::computePointCloud(currentMesh, config, randomSeed);
+            ShapeDescriptor::cpu::array<DescriptorType> descriptors;
+            if (DescriptorMethod::usesPointCloudInput()) {
+                descriptors = DescriptorMethod::computeDescriptors(pointCloud, convertedOriginArray, config, supportRadii.at(radiusIndex));
             } else {
-                cloud = pointClouds.at(meshIndex);
+                descriptors = DescriptorMethod::computeDescriptors(mesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
             }
 
-            for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-                uint32_t vertexIndex = verticesToRender.at(i).vertexIndex;
-                ShapeDescriptor::OrientedPoint originPoint = {currentMesh.vertices[vertexIndex], currentMesh.normals[vertexIndex]};
+            outputDescriptors.at(radiusIndex) = descriptors.content[0];
 
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> convertedOriginArray = {1, &originPoint};
-
-                ShapeDescriptor::cpu::array<DescriptorType> descriptors;
-                if (DescriptorMethod::usesPointCloudInput()) {
-                    descriptors = DescriptorMethod::computeDescriptors(cloud, convertedOriginArray, config, supportRadii.at(radiusIndex));
-                } else {
-                    descriptors = DescriptorMethod::computeDescriptors(currentMesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
-                }
-
-                outputDescriptors.at(radiusIndex)[meshIndex] = descriptors.content[0];
-
-                ShapeDescriptor::free(descriptors);
-
-                #pragma omp critical
-                {
-                    computedDescriptorCount++;
-                    if (computedDescriptorCount % 100 == 99) {
-                        std::cout << "\r        Completed " << (computedDescriptorCount + 1) << "/"
-                                  << descriptorCountToCompute << "    " << std::flush;
-                    }
-                };
-            }
-
-            if (DescriptorMethod::usesPointCloudInput() && pointClouds.empty()) {
-                ShapeDescriptor::free(cloud);
-            }
+            ShapeDescriptor::free(descriptors);
         }
-
-        std::cout << std::endl;
-
-        /*for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-            ShapeDescriptor::writeDescriptorImages(outputDescriptors.at(radiusIndex), "out_radiusindex" + std::to_string(radiusIndex) + "_" + ShapeDescriptor::generateUniqueFilenameString() + ".png", 50);
-        }*/
-
-        return outputDescriptors;
     }
 }
