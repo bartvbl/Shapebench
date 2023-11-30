@@ -225,22 +225,24 @@ namespace Shapebench {
         outputBuffer << "Radius index, radius, Min mean, Mean, Max mean, Variance min, Mean variance, max variance" << std::endl;
         std::vector<uint32_t> voteHistogram(numberOfSupportRadiiToTry);
 
+        std::vector<DistanceStatistics> distanceStats(supportRadiiToTry.size());
         for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
             std::cout << "\r        Processing " << (i+1) << "/" << supportRadiiToTry.size() << std::flush;
             ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
             ShapeDescriptor::cpu::array<DescriptorType> sampleArray = {sampleDescriptorSetSize, sampleDescriptors.data() + i * sampleDescriptorSetSize};
             std::vector<DescriptorDistance> supportRadiusDistances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleArray, referenceArray);
             DistanceStatistics stats = computeDistances<DescriptorType>(supportRadiusDistances, sampleDescriptorSetSize);
+            distanceStats.at(i) = stats;
 
             outputBuffer << i << ", " << (float(i) * supportRadiusStep + supportRadiusStart) << ", ";
             outputBuffer << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
                          << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
         }
         std::string unique = ShapeDescriptor::generateUniqueFilenameString();
-        std::ofstream outputFile("support_radii_meanvariance_" + unique + ".txt");
+        std::ofstream outputFile("support_radii_meanvariance_" + DescriptorMethod::getName() + "_" + unique + ".txt");
         outputFile << outputBuffer.str();
 
-        std::cout << outputBuffer.str() << std::endl;
+        std::cout << std::endl << outputBuffer.str() << std::endl;
 
         // Force LibC to clean up
         malloc_trim(0);
@@ -249,10 +251,18 @@ namespace Shapebench {
         std::chrono::time_point end = std::chrono::steady_clock::now();
         std::cout << std::endl << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;
 
-        // TODO: use descriptorDistances to determine a support radius
+        float highestMean = 0;
+        float highestMeanSupportRadius = 0;
 
+        for(int i = 0; i < distanceStats.size(); i++) {
+            DistanceStatistics stats = distanceStats.at(i);
+            if(stats.meanOfMeans > highestMean) {
+                highestMean = stats.meanOfMeans;
+                highestMeanSupportRadius = supportRadiiToTry.at(i);
+            }
+        }
 
-        return 0;
+        return highestMeanSupportRadius;
     }
 
 
