@@ -18,9 +18,10 @@
 template<typename DescriptorMethod, typename DescriptorType>
 void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
     std::mt19937_64 engine(randomSeed);
-
-    std::filesystem::path computedConfigFilePath = configuration.at("computedConfigFile");
-    ComputedConfig computedConfig(configFileLocation);
+    std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
+    std::cout << "Main config file: " << configFileLocation.string() << std::endl;
+    std::cout << "Computed values config file: " << computedConfigFilePath.string() << std::endl;
+    ComputedConfig computedConfig(computedConfigFilePath);
     const std::string methodName = DescriptorMethod::getName();
 
     // Getting a support radius

@@ -57,6 +57,9 @@ file (GLOB_RECURSE PROJECT_SOURCES
         src/methods/*.cpp
         src/methods/*.cxx
         src/methods/*.cu
+        src/experiment-clutter/*.cpp
+        src/experiment-clutter/*.cxx
+        src/experiment-clutter/*.cu
         src/main.cu)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})

@@ -5,10 +5,10 @@ void ComputedConfig::save() {
     // Create backup of previous version of file (or include it?)
     if(std::filesystem::exists(configFilePath)) {
         int backupVersion = 1;
-        std::filesystem::path chosenPath;
+        std::filesystem::path chosenPath = configFilePath;
 
         while(true) {
-            std::filesystem::path numberedPath = configFilePath.replace_extension(".bak" + std::to_string(backupVersion));
+            std::filesystem::path numberedPath = chosenPath.replace_extension(".bak" + std::to_string(backupVersion));
             if(!std::filesystem::exists(numberedPath)) {
                 chosenPath = numberedPath;
                 break;
@@ -24,6 +24,13 @@ void ComputedConfig::save() {
 }
 
 ComputedConfig::ComputedConfig(const std::filesystem::path &configFileLocation) : configFilePath{configFileLocation} {
+    if(!std::filesystem::exists(configFileLocation)) {
+        // Create empty config file
+        std::ofstream emptyConfigFileStream{configFileLocation};
+        emptyConfigFileStream << "{" << std::endl <<
+                                 "    \"version\": 1.0" << std::endl <<
+                                 "}";
+    }
     std::ifstream inStream{configFileLocation};
     configValues = nlohmann::json::parse(inStream);
 }
