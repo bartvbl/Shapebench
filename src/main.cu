@@ -10,16 +10,33 @@
 #include "benchmark-core/SupportRadiusEstimation.h"
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
+#include "benchmark-core/ComputedConfig.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <random>
 
 template<typename DescriptorMethod, typename DescriptorType>
-void testMethod(const nlohmann::json& configuration, const Dataset& dataset, uint64_t randomSeed) {
+void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
     std::mt19937_64 engine(randomSeed);
-    std::cout << "Performing support radius estimation.." << std::endl;
-    float supportRadius = Shapebench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
-    std::cout << "    Chosen support radius: " << supportRadius << std::endl;
+
+    std::filesystem::path computedConfigFilePath = configuration.at("computedConfigFile");
+    ComputedConfig computedConfig(configFileLocation);
+    const std::string methodName = DescriptorMethod::getName();
+
+    // Getting a support radius
+
+    float supportRadius = 0;
+    if(!computedConfig.containsKey(methodName, "supportRadius")) {
+        std::cout << "No support radius has been computed yet for this method." << std::endl;
+        std::cout << "Performing support radius estimation.." << std::endl;
+        supportRadius = Shapebench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
+        std::cout << "    Chosen support radius: " << supportRadius << std::endl;
+        computedConfig.setFloatAndSave(methodName, "supportRadius", supportRadius);
+    } else {
+        supportRadius = computedConfig.getFloat(methodName, "supportRadius");
+    }
+
+    //
 
 }
 
@@ -95,8 +112,8 @@ int main(int argc, const char** argv) {
 
 
     uint64_t randomSeed = configuration.at("randomSeed");
-    //testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, dataset, randomSeed);
-    testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, dataset, randomSeed);
+    testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    //testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, dataset, randomSeed);
 
 
 }
