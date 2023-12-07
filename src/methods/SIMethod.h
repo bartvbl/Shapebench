@@ -165,7 +165,7 @@ namespace Shapebench {
             return ShapeDescriptor::generateSpinImages(cloud, descriptorOrigins, supportRadius, supportAngleDegrees);
         }
         static std::string getName() {
-            return "QUICCI";
+            return "SI";
         }
 
         static ShapeDescriptor::cpu::array<uint32_t> computeDescriptorRanks(

@@ -25,6 +25,10 @@ set (CMAKE_SUPPRESS_REGENERATION TRUE) # Suppresses ZERO_CHECK
 add_definitions(-DspinImageWidthPixels=32)
 add_subdirectory(../libShapeDescriptor libShapeDescriptor)
 
+# Makes Jolt about 8% slower but makes simulation completely deterministic no matter where the code is run
+set(CROSS_PLATFORM_DETERMINISTIC ON)
+add_subdirectory(lib/JoltPhysics/Build joltPhysics)
+
 #
 # Set include paths
 #
@@ -37,6 +41,7 @@ include_directories (
         lib/tinygltf
         lib/json/include
         lib/miniball/cpp/main
+        lib/JoltPhysics
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )

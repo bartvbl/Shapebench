@@ -11,6 +11,7 @@
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
 #include "benchmark-core/ComputedConfig.h"
+#include "experiment-clutter/ClutterExperiment.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <random>
@@ -37,7 +38,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         supportRadius = computedConfig.getFloat(methodName, "supportRadius");
     }
 
-    //
+    uint64_t clutterExperimentRandomSeed = engine();
+    runClutterExperiment<DescriptorMethod, DescriptorType>(configuration, computedConfig, clutterExperimentRandomSeed);
 
 }
 
@@ -113,8 +115,8 @@ int main(int argc, const char** argv) {
 
 
     uint64_t randomSeed = configuration.at("randomSeed");
-    testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
-    //testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, dataset, randomSeed);
+    //testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
 
 
 }

@@ -5,7 +5,8 @@
     "experimentsToRun": [
         {
             "addedObjectCount": 10,
-            "name": "Additive Noise"
+            "name": "Additive Noise",
+            "enabled": true
         },
         {
             "name": "Subtractive Noise",
@@ -68,11 +69,11 @@
             "numberOfSupportRadiiToTry": 150,
             "radiusSearchStart": 0.01,
             "radiusSearchStep": 0.01,
-            "sampleDescriptorSetSize": 10
+            "sampleDescriptorSetSize": 10000
         }
     },
     "pointSampleDensity": 1000000,
     "randomSeed": 523948794,
-    "representativeSetObjectCount": 10,
+    "representativeSetObjectCount": 10000,
     "version": 1.0
 }
