@@ -13,3 +13,6 @@
 [submodule "lib/miniball"]
 	path = lib/miniball
 	url = https://github.com/hbf/miniball
+[submodule "lib/JoltPhysics"]
+	path = lib/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics
