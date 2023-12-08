@@ -3,6 +3,7 @@
 #include "json.hpp"
 #include "benchmark-core/ComputedConfig.h"
 
+
 #include <cstdio>
 #include <stdarg.h>
 
@@ -18,6 +19,8 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Core/Color.h>
+#include <Jolt/Physics/Collision/PhysicsMaterialSimple.h>
 
 using namespace JPH::literals;
 
@@ -192,8 +195,28 @@ public:
     }
 };
 
+inline JPH::TriangleList convertMeshToTriangleList(const ShapeDescriptor::cpu::Mesh& mesh) {
+    JPH::TriangleList list;
+    list.reserve(mesh.vertexCount);
+    for(uint32_t i = 0; i < mesh.vertexCount; i += 3) {
+        const uint32_t materialIndex = 0;
+        ShapeDescriptor::cpu::float3 meshVertex0 = mesh.vertices[i + 0];
+        ShapeDescriptor::cpu::float3 meshVertex1 = mesh.vertices[i + 1];
+        ShapeDescriptor::cpu::float3 meshVertex2 = mesh.vertices[i + 2];
+        JPH::Float3 vertex0 {meshVertex0.x, meshVertex0.y, meshVertex0.z};
+        JPH::Float3 vertex1 {meshVertex1.x, meshVertex1.y, meshVertex1.z};
+        JPH::Float3 vertex2 {meshVertex2.x, meshVertex2.y, meshVertex2.z};
+        JPH::Triangle triangle {vertex0, vertex1, vertex2, materialIndex};
+        list.push_back(triangle);
+    }
+    return list;
+}
+
 template<typename DescriptorMethod, typename DescriptorType>
-void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& computedConfig, uint64_t randomSeed) {
+void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& computedConfig, const Dataset& dataset, uint64_t randomSeed) {
+    uint32_t clutterObjectCount = config.at("")
+
+
     // Register allocation hook
     JPH::RegisterDefaultAllocator();
 
@@ -298,6 +321,9 @@ void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& co
 
     // We simulate the physics world in discrete time steps. 60 Hz is a good rate to update the physics system.
     const float cDeltaTime = 1.0f / 165.0f;
+
+    JPH::PhysicsMaterialList materials;
+    materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(0)));
 
     // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
     // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
