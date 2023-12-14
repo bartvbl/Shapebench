@@ -11,6 +11,8 @@
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
 #include "benchmark-core/ComputedConfig.h"
+//#include "experiment-clutter/ClutterExperiment.h"
+#include "experiment-clutter/PhysicsSimulator.h"
 #include "experiment-clutter/ClutterExperiment.h"
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -44,6 +46,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 }
 
 int main(int argc, const char** argv) {
+    initPhysics();
+
+
     arrrgh::parser parser("shapebench", "Benchmark tool for 3D local shape descriptors");
     const auto& showHelp = parser.add<bool>(
             "help", "Show this help message", 'h', arrrgh::Optional, false);

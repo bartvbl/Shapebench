@@ -4,8 +4,6 @@
 #include "benchmark-core/ComputedConfig.h"
 
 
-#include <cstdio>
-#include <stdarg.h>
 
 #include <Jolt/Jolt.h>
 
@@ -21,21 +19,11 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Core/Color.h>
 #include <Jolt/Physics/Collision/PhysicsMaterialSimple.h>
+#include "Jolt/Physics/Collision/Shape/MeshShape.h"
+#include "Jolt/Physics/Body/MotionType.h"
 
 using namespace JPH::literals;
 
-static void TraceImpl(const char *inFMT, ...)
-{
-    // Format the message
-    va_list list;
-    va_start(list, inFMT);
-    char buffer[1024];
-    vsnprintf(buffer, sizeof(buffer), inFMT, list);
-    va_end(list);
-
-    // Print to the TTY
-    std::cout << buffer << std::endl;
-}
 
 // Layer that objects can be in, determines which other objects it can collide with
 // Typically you at least want to have 1 layer for moving bodies and 1 layer for static bodies, but you can have more
@@ -52,7 +40,7 @@ namespace Layers
 class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
 {
 public:
-    virtual bool					ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
+    virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
     {
         switch (inObject1)
         {
@@ -91,38 +79,40 @@ public:
         mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
     }
 
-    virtual uint					GetNumBroadPhaseLayers() const override
+    virtual uint GetNumBroadPhaseLayers() const override
     {
         return BroadPhaseLayers::NUM_LAYERS;
     }
 
-    virtual JPH::BroadPhaseLayer			GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
+    virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
     {
         JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
         return mObjectToBroadPhase[inLayer];
     }
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char *			GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
+    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
 	{
 		switch ((JPH::BroadPhaseLayer::Type)inLayer)
 		{
-		case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
-		case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:		return "MOVING";
-		default:													JPH_ASSERT(false); return "INVALID";
+		case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:
+            return "NON_MOVING";
+		case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:
+            return "MOVING";
+		default: JPH_ASSERT(false); return "INVALID";
 		}
 	}
 #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
 private:
-    JPH::BroadPhaseLayer					mObjectToBroadPhase[Layers::NUM_LAYERS];
+    JPH::BroadPhaseLayer mObjectToBroadPhase[Layers::NUM_LAYERS];
 };
 
 /// Class that determines if an object layer can collide with a broadphase layer
 class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
 {
 public:
-    virtual bool				ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
+    virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
     {
         switch (inLayer1)
         {
@@ -150,46 +140,34 @@ public:
         return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
     }
 
-    virtual void			OnContactAdded(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override
+    virtual void OnContactAdded(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override
     {
         std::cout << "A contact was added" << std::endl;
     }
 
-    virtual void			OnContactPersisted(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override
+    virtual void OnContactPersisted(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override
     {
         std::cout << "A contact was persisted" << std::endl;
     }
 
-    virtual void			OnContactRemoved(const JPH::SubShapeIDPair &inSubShapePair) override
+    virtual void OnContactRemoved(const JPH::SubShapeIDPair &inSubShapePair) override
     {
         std::cout << "A contact was removed" << std::endl;
     }
 };
 
-#ifdef JPH_ENABLE_ASSERTS
 
-// Callback for asserts, connect this to your own assert handler if you have one
-static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine)
-{
-	// Print to the TTY
-	std::cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr? inMessage : "") << std::endl;
-
-	// Breakpoint
-	return true;
-};
-
-#endif // JPH_ENABLE_ASSERTS
 
 // An example activation listener
 class MyBodyActivationListener : public JPH::BodyActivationListener
 {
 public:
-    virtual void		OnBodyActivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
+    virtual void OnBodyActivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
     {
         std::cout << "A body got activated" << std::endl;
     }
 
-    virtual void		OnBodyDeactivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
+    virtual void OnBodyDeactivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
     {
         std::cout << "A body went to sleep" << std::endl;
     }
@@ -197,7 +175,6 @@ public:
 
 inline JPH::TriangleList convertMeshToTriangleList(const ShapeDescriptor::cpu::Mesh& mesh) {
     JPH::TriangleList list;
-    list.reserve(mesh.vertexCount);
     for(uint32_t i = 0; i < mesh.vertexCount; i += 3) {
         const uint32_t materialIndex = 0;
         ShapeDescriptor::cpu::float3 meshVertex0 = mesh.vertices[i + 0];
@@ -206,29 +183,38 @@ inline JPH::TriangleList convertMeshToTriangleList(const ShapeDescriptor::cpu::M
         JPH::Float3 vertex0 {meshVertex0.x, meshVertex0.y, meshVertex0.z};
         JPH::Float3 vertex1 {meshVertex1.x, meshVertex1.y, meshVertex1.z};
         JPH::Float3 vertex2 {meshVertex2.x, meshVertex2.y, meshVertex2.z};
-        JPH::Triangle triangle {vertex0, vertex1, vertex2, materialIndex};
-        list.push_back(triangle);
+        list.push_back(JPH::Triangle {vertex0, vertex1, vertex2, materialIndex});
     }
     return list;
 }
 
+void moveMeshToOriginAndUnitSphere(ShapeDescriptor::cpu::Mesh &mesh, ShapeDescriptor::cpu::float3 sphereCentre, float sphereRadius) {
+    float oneOverSphereRadius = 1.0f/sphereRadius;
+    for(uint32_t i = 0; i < mesh.vertexCount; i++) {
+        ShapeDescriptor::cpu::float3 vertex = mesh.vertices[i];
+        vertex.x = (vertex.x - sphereCentre.x) * oneOverSphereRadius;
+        vertex.y = (vertex.y - sphereCentre.y) * oneOverSphereRadius;
+        vertex.z = (vertex.z - sphereCentre.z) * oneOverSphereRadius;
+        mesh.vertices[i] = vertex;
+    }
+}
+
+bool anyBodyActive(JPH::BodyInterface *bodyInterface, const std::vector<JPH::BodyID>& simulatedBodies) {
+    for(const JPH::BodyID& body : simulatedBodies) {
+        if(bodyInterface->IsActive(body)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 template<typename DescriptorMethod, typename DescriptorType>
 void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& computedConfig, const Dataset& dataset, uint64_t randomSeed) {
-    uint32_t clutterObjectCount = config.at("")
+    bool enabled = config.at("experiments").at("additiveNoise").at("enabled");
+    if(!enabled) {
+        std::cout << "    Experiment disabled. Skipping." << std::endl;
+    }
 
-
-    // Register allocation hook
-    JPH::RegisterDefaultAllocator();
-
-    // Install callbacks
-    JPH::Trace = TraceImpl;
-    JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = AssertFailedImpl;)
-
-    // Create a factory
-    JPH::Factory::sInstance = new JPH::Factory();
-
-    // Register all Jolt physics types
-    JPH::RegisterTypes();
 
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
@@ -241,6 +227,24 @@ void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& co
     // you would implement the JobSystem interface yourself and let Jolt Physics run on top
     // of your own job scheduler. JobSystemThreadPool is an example implementation.
     JPH::JobSystemThreadPool job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
+
+
+
+    uint32_t clutterObjectCount = config.at("experiments").at("additiveNoise").at("addedObjectCount");
+    std::filesystem::path datasetRootDir = config.at("compressedDatasetRootDir");
+    std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount + 1);
+    std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size());
+    std::vector<JPH::TriangleList> joltMeshes(chosenVertices.size());
+    for(uint32_t i = 0; i < meshes.size(); i++) {
+        DatasetEntry entry = dataset.at(chosenVertices.at(i).meshID);
+        std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
+        meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
+        moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
+        joltMeshes.at(i) = convertMeshToTriangleList(meshes.at(i));
+    }
+
+
+
 
     // This is the max amount of rigid bodies that you can add to the physics system. If you try to add more you'll get an error.
     // Note: This value is low because this is a simple test. For a real project use something in the order of 65536.
@@ -312,18 +316,20 @@ void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& co
 
     // Now create a dynamic body to bounce on the floor
     // Note that this uses the shorthand version of creating and adding a body to the world
-    JPH::BodyCreationSettings sphere_settings(new JPH::SphereShape(0.5f), JPH::RVec3(0.0_r, 2.0_r, 0.0_r), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING);
-    JPH::BodyID sphere_id = body_interface.CreateAndAddBody(sphere_settings, JPH::EActivation::Activate);
-
-    // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
-    // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
-    body_interface.SetLinearVelocity(sphere_id, JPH::Vec3(0.0f, -5.0f, 0.0f));
+    std::vector<JPH::BodyID> simulatedBodies(meshes.size());
+    for(uint32_t i = 0; i < meshes.size(); i++) {
+        JPH::PhysicsMaterialList materials;
+        materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
+        JPH::BodyCreationSettings meshSettings(new JPH::MeshShapeSettings(joltMeshes.at(i), std::move(materials)), JPH::RVec3(0, 1.5f * float(i+1), 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING);
+        JPH::Body& meshBody = *body_interface.CreateBody(meshSettings);
+        body_interface.AddBody(meshBody.GetID(), JPH::EActivation::Activate);
+        simulatedBodies.at(i) = meshBody.GetID();
+    }
 
     // We simulate the physics world in discrete time steps. 60 Hz is a good rate to update the physics system.
     const float cDeltaTime = 1.0f / 165.0f;
 
-    JPH::PhysicsMaterialList materials;
-    materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(0)));
+
 
     // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
     // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
@@ -332,14 +338,14 @@ void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& co
 
     // Now we're ready to simulate the body, keep simulating until it goes to sleep
     uint step = 0;
-    while (body_interface.IsActive(sphere_id))
+    while (anyBodyActive(&body_interface, simulatedBodies))
     {
         // Next step
         ++step;
 
         // Output current position and velocity of the sphere
-        JPH::RVec3 position = body_interface.GetCenterOfMassPosition(sphere_id);
-        JPH::Vec3 velocity = body_interface.GetLinearVelocity(sphere_id);
+        JPH::RVec3 position = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
+        JPH::Vec3 velocity = body_interface.GetLinearVelocity(simulatedBodies.at(0));
         std::cout << "Step " << step << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
 
         // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
@@ -350,10 +356,11 @@ void runClutterExperiment(const nlohmann::json& config, const ComputedConfig& co
     }
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
-    body_interface.RemoveBody(sphere_id);
+    for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
+        body_interface.RemoveBody(simulatedBodies.at(i));
+        body_interface.DestroyBody(simulatedBodies.at(i));
+    }
 
-    // Destroy the sphere. After this the sphere ID is no longer valid.
-    body_interface.DestroyBody(sphere_id);
 
     // Remove and destroy the floor
     body_interface.RemoveBody(floor->GetID());
