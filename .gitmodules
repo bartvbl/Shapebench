@@ -16,3 +16,6 @@
 [submodule "lib/JoltPhysics"]
 	path = lib/JoltPhysics
 	url = https://github.com/jrouwe/JoltPhysics
+[submodule "lib/v-hacd"]
+	path = lib/v-hacd
+	url = https://github.com/kmammou/v-hacd

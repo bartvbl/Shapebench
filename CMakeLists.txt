@@ -42,6 +42,7 @@ include_directories (
     lib/json/include
     lib/miniball/cpp/main
     lib/JoltPhysics
+    lib/v-hacd/include
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
