@@ -24,6 +24,8 @@
 #include "Jolt/Physics/Collision/Shape/MeshShape.h"
 #include "Jolt/Physics/Body/MotionType.h"
 #include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
+#include "Jolt/Physics/Collision/Shape/CompoundShape.h"
+#include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
 
 #define ENABLE_VHACD_IMPLEMENTATION 1
 #define VHACD_DISABLE_THREADING 0
@@ -207,7 +209,7 @@ public:
     }
 };
 
-inline std::vector<JPH::ConvexHullShapeSettings> convertMeshToConvexHulls(const ShapeDescriptor::cpu::Mesh& mesh) {
+inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDescriptor::cpu::Mesh& mesh) {
     std::cout << "Computing hulls for mesh with " << mesh.vertexCount << " vertices" << std::endl;
     VHACD::IVHACD *subdivider = VHACD::CreateVHACD_ASYNC();
 
@@ -225,24 +227,43 @@ inline std::vector<JPH::ConvexHullShapeSettings> convertMeshToConvexHulls(const 
 
     //TODO: read these from a config file
     VHACD::IVHACD::Parameters parameters;
-    parameters.m_maxConvexHulls = 1000;
-    parameters.m_resolution = 10000000; // max allowed by the library
+    parameters.m_maxConvexHulls = 100;
+    parameters.m_resolution = 10000;
     parameters.m_maxRecursionDepth = 64; // max allowed by the library
     parameters.m_maxNumVerticesPerCH = 256; // Jolt physics limitation
 
     bool started = subdivider->Compute(meshVertices.data(), mesh.vertexCount, indices.data(), mesh.vertexCount / 3, parameters);
 
+
+
     while ( !subdivider->IsReady() )
     {
         std::this_thread::sleep_for(std::chrono::nanoseconds(10000)); // s
-        std::cout << "\r        Completed: " << std::flush;
     }
-    std::cout << std::endl;
 
     assert(started);
     assert(subdivider->GetNConvexHulls() > 0);
 
     std::cout << "    Subdivided into " << subdivider->GetNConvexHulls() << " hulls" << std::endl;
+
+    JPH::StaticCompoundShapeSettings* convexHullContainer = new JPH::StaticCompoundShapeSettings();
+    std::vector<JPH::Vec3> hullVertices;
+
+    for(uint32_t i = 0; i < subdivider->GetNConvexHulls(); i++) {
+        hullVertices.clear();
+        VHACD::IVHACD::ConvexHull hull;
+        subdivider->GetConvexHull(i, hull);
+        hullVertices.reserve(hull.m_points.size());
+        for(uint32_t j = 0; j < hull.m_points.size(); j++) {
+            VHACD::Vertex vertex = hull.m_points.at(j);
+            JPH::Vec3 converted(vertex.mX, vertex.mY, vertex.mZ);
+            hullVertices.push_back(converted);
+        }
+        JPH::ConvexHullShapeSettings* convexShape = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
+        convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexShape, 0);
+    }
+
+
 
     /*for (uint32_t i = 0; i < subdivider->GetNConvexHulls(); i++)
     {
@@ -265,7 +286,7 @@ inline std::vector<JPH::ConvexHullShapeSettings> convertMeshToConvexHulls(const 
 
     subdivider->Release();
 
-    return {};
+    return convexHullContainer;
 }
 
 void moveMeshToOriginAndUnitSphere(ShapeDescriptor::cpu::Mesh &mesh, ShapeDescriptor::cpu::float3 sphereCentre, float sphereRadius) {
@@ -330,12 +351,15 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount + 1);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size());
     std::vector<JPH::TriangleList> joltMeshes(chosenVertices.size());
+    std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
+
+    #pragma omp parallel for
     for(uint32_t i = 0; i < meshes.size(); i++) {
         DatasetEntry entry = dataset.at(chosenVertices.at(i).meshID);
         std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
         meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
         moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
-        convertMeshToConvexHulls(meshes.at(i));
+        meshHullReplacements.at(i) = convertMeshToConvexHulls(meshes.at(i));
     }
 
 
@@ -415,7 +439,8 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     for(uint32_t i = 0; i < meshes.size(); i++) {
         JPH::PhysicsMaterialList materials;
         materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
-        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(new JPH::MeshShapeSettings(joltMeshes.at(i), std::move(materials)), JPH::RVec3(0, 1.5f * float(i+1), 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
+        JPH::StaticCompoundShapeSettings* compoundSettings = meshHullReplacements.at(i);
+        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, 1.5f * float(i+1), 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
         simulatedBodies.at(i) = meshBodyID;
     }
 
@@ -431,6 +456,7 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
 
     // Now we're ready to simulate the body, keep simulating until it goes to sleep
     uint step = 0;
+
     while (anyBodyActive(&body_interface, simulatedBodies))
     {
         // Next step
@@ -447,6 +473,7 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
         // Step the world
         physics_system.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
     }
+
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
