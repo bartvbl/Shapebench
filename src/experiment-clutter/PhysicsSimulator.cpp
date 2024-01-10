@@ -16,16 +16,17 @@
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
-#include <Jolt/Core/Color.h>
 #include <Jolt/Physics/Collision/PhysicsMaterialSimple.h>
 #include "Jolt/Physics/Collision/Shape/MeshShape.h"
-#include "Jolt/Physics/Body/MotionType.h"
 #include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
 #include "Jolt/Physics/Collision/Shape/CompoundShape.h"
 #include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #define ENABLE_VHACD_IMPLEMENTATION 1
 #define VHACD_DISABLE_THREADING 0
@@ -33,33 +34,24 @@
 
 static void TraceImpl(const char *inFMT, ...)
 {
-    // Format the message
     va_list list;
     va_start(list, inFMT);
     char buffer[1024];
     vsnprintf(buffer, sizeof(buffer), inFMT, list);
     va_end(list);
-
-    // Print to the TTY
     std::cout << buffer << std::endl;
 }
 
 #ifdef JPH_ENABLE_ASSERTS
-
 // Callback for asserts, connect this to your own assert handler if you have one
 static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine)
 {
-    // Print to the TTY
     std::cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr? inMessage : "") << std::endl;
-
-    // Breakpoint
     return true;
 };
-
 #endif // JPH_ENABLE_ASSERTS
 
 using namespace JPH::literals;
-
 
 // Layer that objects can be in, determines which other objects it can collide with
 // Typically you at least want to have 1 layer for moving bodies and 1 layer for static bodies, but you can have more
@@ -170,43 +162,21 @@ public:
     // See: ContactListener
     virtual JPH::ValidateResult	OnContactValidate(const JPH::Body &inBody1, const JPH::Body &inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult &inCollisionResult) override
     {
-        std::cout << "Contact validate callback" << std::endl;
-
         // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
         return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
     }
 
-    virtual void OnContactAdded(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override
-    {
-        std::cout << "A contact was added" << std::endl;
-    }
-
-    virtual void OnContactPersisted(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override
-    {
-        std::cout << "A contact was persisted" << std::endl;
-    }
-
-    virtual void OnContactRemoved(const JPH::SubShapeIDPair &inSubShapePair) override
-    {
-        std::cout << "A contact was removed" << std::endl;
-    }
+    virtual void OnContactAdded(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override {}
+    virtual void OnContactPersisted(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override {}
+    virtual void OnContactRemoved(const JPH::SubShapeIDPair &inSubShapePair) override {}
 };
-
-
 
 // An example activation listener
 class MyBodyActivationListener : public JPH::BodyActivationListener
 {
 public:
-    virtual void OnBodyActivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
-    {
-        std::cout << "A body got activated" << std::endl;
-    }
-
-    virtual void OnBodyDeactivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
-    {
-        std::cout << "A body went to sleep" << std::endl;
-    }
+    virtual void OnBodyActivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override {}
+    virtual void OnBodyDeactivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override {}
 };
 
 inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDescriptor::cpu::Mesh& mesh) {
@@ -445,7 +415,8 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     }
 
     // We simulate the physics world in discrete time steps. 60 Hz is a good rate to update the physics system.
-    const float cDeltaTime = 1.0f / 165.0f;
+    const uint32_t simulationFrameRate = 165;
+    const float cDeltaTime = 1.0f / float(simulationFrameRate);
 
 
 
@@ -454,19 +425,9 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
     physics_system.OptimizeBroadPhase();
 
-    // Now we're ready to simulate the body, keep simulating until it goes to sleep
-    uint step = 0;
-
+    std::cout << "Running physics simulation.." << std::endl;
     while (anyBodyActive(&body_interface, simulatedBodies))
     {
-        // Next step
-        ++step;
-
-        // Output current position and velocity of the sphere
-        JPH::RVec3 position = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
-        JPH::Vec3 velocity = body_interface.GetLinearVelocity(simulatedBodies.at(0));
-        std::cout << "Step " << step << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
-
         // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
         const int cCollisionSteps = 1;
 
@@ -474,13 +435,39 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
         physics_system.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
     }
 
+    uint32_t totalVertexCount = 0;
+    for(int i = 0; i < meshes.size(); i++) {
+        totalVertexCount += meshes.at(i).vertexCount;
+    }
+
+    ShapeDescriptor::cpu::Mesh outputMesh(totalVertexCount);
+    uint32_t nextVertexIndex = 0;
+
+    for(int i = 0; i < meshes.size(); i++) {
+        JPH::RVec3 outputPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
+        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(outputPosition.GetX(), outputPosition.GetY(), outputPosition.GetZ()));
+        JPH::Quat rotation = body_interface.GetRotation(simulatedBodies.at(i));
+        glm::mat4 rotationMatrix = glm::toMat4(glm::qua(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ()));
+        glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
+        JPH::RVec3 centerOfMass = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
+
+        const ShapeDescriptor::cpu::Mesh& mesh = meshes.at(i);
+        for(uint32_t vertexIndex = 0; vertexIndex < mesh.vertexCount; vertexIndex++) {
+            ShapeDescriptor::cpu::float3 vertex = mesh.vertices[vertexIndex];
+            glm::vec4 transformedVertexGLM = transformationMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0);
+            outputMesh.vertices[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedVertexGLM.x, transformedVertexGLM.y, transformedVertexGLM.z);
+            outputMesh.normals[nextVertexIndex + vertexIndex] = mesh.normals[vertexIndex]; // TODO: transform
+        }
+        nextVertexIndex += mesh.vertexCount;
+    }
+
+    ShapeDescriptor::writeOBJ(outputMesh, "debug_output.obj");
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
         body_interface.RemoveBody(simulatedBodies.at(i));
         body_interface.DestroyBody(simulatedBodies.at(i));
     }
-
 
     // Remove and destroy the floor
     body_interface.RemoveBody(floor->GetID());

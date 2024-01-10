@@ -43,6 +43,7 @@ include_directories (
     lib/miniball/cpp/main
     lib/JoltPhysics
     lib/v-hacd/include
+    ../libShapeDescriptor/lib/glm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
