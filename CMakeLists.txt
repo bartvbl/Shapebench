@@ -32,6 +32,10 @@ set(OVERRIDE_CXX_FLAGS OFF)
 add_definitions(-DJPH_ENABLE_ASSERTS)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
+add_subdirectory(lib/glfw)
+
+
+
 #
 # Set include paths
 #
@@ -43,6 +47,7 @@ include_directories (
     lib/miniball/cpp/main
     lib/JoltPhysics
     lib/v-hacd/include
+    lib/glad/include
     ../libShapeDescriptor/lib/glm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
@@ -66,10 +71,11 @@ file (GLOB_RECURSE PROJECT_SOURCES
         src/experiment-clutter/*.cpp
         src/experiment-clutter/*.cxx
         src/experiment-clutter/*.cu
-        src/main.cu)
+        src/main.cu
+        lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt) # lsan
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw) # lsan
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand

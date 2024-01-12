@@ -23,10 +23,12 @@
 #include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
 #include "Jolt/Physics/Collision/Shape/CompoundShape.h"
 #include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
+#include "OpenGLDebugRenderer.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #define ENABLE_VHACD_IMPLEMENTATION 1
 #define VHACD_DISABLE_THREADING 0
@@ -318,7 +320,7 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
 
     uint32_t clutterObjectCount = config.at("experiments").at("additiveNoise").at("addedObjectCount");
     std::filesystem::path datasetRootDir = config.at("compressedDatasetRootDir");
-    std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount + 1);
+    std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed + 1, clutterObjectCount + 1);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size());
     std::vector<JPH::TriangleList> joltMeshes(chosenVertices.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
@@ -410,13 +412,18 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
         JPH::PhysicsMaterialList materials;
         materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
         JPH::StaticCompoundShapeSettings* compoundSettings = meshHullReplacements.at(i);
-        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, 1.5f * float(i+1), 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
+        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, 3.0f * float(i+1), 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
         simulatedBodies.at(i) = meshBodyID;
     }
 
     // We simulate the physics world in discrete time steps. 60 Hz is a good rate to update the physics system.
     const uint32_t simulationFrameRate = 165;
     const float cDeltaTime = 1.0f / float(simulationFrameRate);
+
+    const uint32_t attractionForceDurationSeconds = 100;
+    const uint32_t attractionForceStepCount = attractionForceDurationSeconds * simulationFrameRate;
+
+    OpenGLDebugRenderer renderer;
 
 
 
@@ -425,15 +432,35 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
     physics_system.OptimizeBroadPhase();
 
+    uint32_t steps = 0;
+
     std::cout << "Running physics simulation.." << std::endl;
     while (anyBodyActive(&body_interface, simulatedBodies))
     {
+        steps++;
+        if(steps < attractionForceStepCount) {
+            JPH::RVec3 referenceObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
+            for(int i = 1; i < meshes.size(); i++) {
+                JPH::RVec3 sampleObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
+                JPH::RVec3 deltaVector = referenceObjectPosition - sampleObjectPosition;
+                deltaVector /= deltaVector.Length();
+                JPH::RVec3 forceDirection = 1500 * deltaVector;
+                body_interface.AddForce(simulatedBodies.at(i), forceDirection);
+            }
+        }
+
         // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
         const int cCollisionSteps = 1;
 
         // Step the world
         physics_system.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
+
+        JPH::BodyManager::DrawSettings settings;
+        settings.mDrawShape = true;
+        physics_system.DrawBodies(settings, &renderer);
+        renderer.nextFrame();
     }
+    std::cout << "    Simulation completed in " << steps << " steps." << std::endl;
 
     uint32_t totalVertexCount = 0;
     for(int i = 0; i < meshes.size(); i++) {
@@ -449,14 +476,17 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
         JPH::Quat rotation = body_interface.GetRotation(simulatedBodies.at(i));
         glm::mat4 rotationMatrix = glm::toMat4(glm::qua(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ()));
         glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
+        glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
         JPH::RVec3 centerOfMass = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
 
         const ShapeDescriptor::cpu::Mesh& mesh = meshes.at(i);
         for(uint32_t vertexIndex = 0; vertexIndex < mesh.vertexCount; vertexIndex++) {
             ShapeDescriptor::cpu::float3 vertex = mesh.vertices[vertexIndex];
+            ShapeDescriptor::cpu::float3 normal = mesh.normals[vertexIndex];
             glm::vec4 transformedVertexGLM = transformationMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0);
             outputMesh.vertices[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedVertexGLM.x, transformedVertexGLM.y, transformedVertexGLM.z);
-            outputMesh.normals[nextVertexIndex + vertexIndex] = mesh.normals[vertexIndex]; // TODO: transform
+            glm::vec3 transformedNormalGLM = glm::normalize(glm::vec3(normalMatrix * glm::vec4(normal.x, normal.y, normal.z, 1)));
+            outputMesh.normals[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedNormalGLM.x, transformedNormalGLM.y, transformedNormalGLM.z);
         }
         nextVertexIndex += mesh.vertexCount;
     }
