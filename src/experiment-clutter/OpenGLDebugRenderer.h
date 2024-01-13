@@ -2,8 +2,13 @@
 
 #include <Jolt/Jolt.h>
 #include "Jolt/Renderer/DebugRenderer.h"
+#include "Shader.h"
+#include "GLFW/glfw3.h"
 
 class OpenGLDebugRenderer : public JPH::DebugRenderer {
+    Shader shader;
+    GLFWwindow* window;
+
 public:
     OpenGLDebugRenderer();
 
