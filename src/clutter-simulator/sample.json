@@ -1,0 +1,82 @@
+{
+	"version": 1.0,
+	"outputFile": "/mnt/VOID/projects/shapeBench/Results-Clutter-Experiment/2023-12-06-354563_48597230459.blend",
+	"randomSeed": 48597230459,
+	"groundPlaneSize": 25,
+	"collissionMargin": 0.01,
+	"objFileDir": "/home/bart/git/Shapebench/src/clutter-simulator/res",
+	"inputFiles": [
+		{
+            "boundingSphereCentre": [
+                -9.15774677997114e-07,
+                4.476166501386369e-07,
+                0.7844780087736072
+            ],
+            "boundingSphereRadius": 1.041739047038142,
+            "filePath": "001570.obj",
+            "id": 19,
+            "isPointCloud": false,
+            "vertexCount": 2496
+        },
+        {
+            "boundingSphereCentre": [
+                -4.2732166714532353e-10,
+                4.095703552043306e-06,
+                6.176741607572122e-10
+            ],
+            "boundingSphereRadius": 0.300008032605463,
+            "filePath": "018772.obj",
+            "id": 21,
+            "isPointCloud": false,
+            "vertexCount": 2172
+        },
+        {
+            "boundingSphereCentre": [
+                -0.06409034370193765,
+                0.3996768020533643,
+                -0.014602668583392894
+            ],
+            "boundingSphereRadius": 0.5222314362515197,
+            "filePath": "036546.obj",
+            "id": 20,
+            "isPointCloud": false,
+            "vertexCount": 54390
+        },
+        {
+            "boundingSphereCentre": [
+                0.14756798744201682,
+                -0.3269641399383518,
+                11.24950885772705
+            ],
+            "boundingSphereRadius": 3,
+            "filePath": "chrystal.obj",
+            "id": 0,
+            "isPointCloud": false,
+            "vertexCount": 31206
+        },
+        {
+            "boundingSphereCentre": [
+                47.288562974496834,
+                4.107580959796887,
+                8.79158680833433
+            ],
+            "boundingSphereRadius": 10,
+            "filePath": "hanging_lamp.obj",
+            "id": 27,
+            "isPointCloud": false,
+            "vertexCount": 5076
+        },
+        {
+            "boundingSphereCentre": [
+                5.273559366969494e-16,
+                0.0015374600188808873,
+                0.12430799752473828
+            ],
+            "boundingSphereRadius": 100,
+            "filePath": "teapot.obj",
+            "id": 23,
+            "isPointCloud": false,
+            "vertexCount": 35847
+        }
+	]
+}
