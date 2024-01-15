@@ -62,16 +62,9 @@ file (GLOB_RECURSE PROJECT_HEADERS
         src/*.h
         src/*.cuh)
 file (GLOB_RECURSE PROJECT_SOURCES
-        src/benchmark-core/*.cpp
-        src/benchmark-core/*.cxx
-        src/benchmark-core/*.cu
-        src/methods/*.cpp
-        src/methods/*.cxx
-        src/methods/*.cu
-        src/experiment-clutter/*.cpp
-        src/experiment-clutter/*.cxx
-        src/experiment-clutter/*.cu
-        src/main.cu
+        src/*.cpp
+        src/*.cxx
+        src/*.cu
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})

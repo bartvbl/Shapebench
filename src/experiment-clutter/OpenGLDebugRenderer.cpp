@@ -1,7 +1,7 @@
 
 #include "OpenGLDebugRenderer.h"
-#include "GeometryBuffer.h"
-#include "ShaderLoader.h"
+#include "utils/gl/GeometryBuffer.h"
+#include "utils/gl/ShaderLoader.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <shapeDescriptor/types/float3.h>
