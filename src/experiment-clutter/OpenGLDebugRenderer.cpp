@@ -2,6 +2,7 @@
 #include "OpenGLDebugRenderer.h"
 #include "utils/gl/GeometryBuffer.h"
 #include "utils/gl/ShaderLoader.h"
+#include "utils/gl/GLUtils.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <shapeDescriptor/types/float3.h>
@@ -46,17 +47,7 @@ GeometryBuffer generateGeometryBuffer(const JPH::DebugRenderer::Vertex* vertices
 
 
 OpenGLDebugRenderer::OpenGLDebugRenderer() {
-    window = glfwCreateWindow(1920, 1080, "Physics Simulation", NULL, NULL);
-    glfwMakeContextCurrent(window);
-
-    int version = gladLoadGL(glfwGetProcAddress);
-    if (version == 0) {
-        printf("Failed to initialize OpenGL context\n");
-        return;
-    }
-
-    // Successfully loaded OpenGL
-    printf("Loaded OpenGL %d.%d\n", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
+    window = GLinitialise();
 
     shader = loadShader("res/shaders", "phong");
     shader.use();
