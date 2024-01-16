@@ -48,6 +48,7 @@ include_directories (
     lib/JoltPhysics
     lib/v-hacd/include
     lib/glad/include
+    lib/pmp-library/src
     ../libShapeDescriptor/lib/glm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}

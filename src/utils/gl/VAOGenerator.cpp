@@ -2,15 +2,15 @@
 #include <vector>
 #include "VAOGenerator.h"
 
-BufferObject generateVertexArray(
+GeometryBuffer generateVertexArray(
         ShapeDescriptor::cpu::float3 *vertices,
         ShapeDescriptor::cpu::float3 *normals,
         ShapeDescriptor::cpu::float3* colours,
         unsigned int vertexCount) {
-    BufferObject buffer;
+    GeometryBuffer buffer;
 
-    glGenVertexArrays(1, &buffer.VAOID);
-    glBindVertexArray(buffer.VAOID);
+    glGenVertexArrays(1, &buffer.vaoID);
+    glBindVertexArray(buffer.vaoID);
 
     glGenBuffers(1, &buffer.vertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, buffer.vertexBufferID);

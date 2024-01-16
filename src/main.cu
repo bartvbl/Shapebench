@@ -11,10 +11,8 @@
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
 #include "benchmark-core/ComputedConfig.h"
-#include "experiment-clutter/PhysicsSimulator.h"
-#include "experiment-clutter/ClutterExperiment.h"
-#include <memory>
-#include <nlohmann/json.hpp>
+#include "experiments/additive-noise/PhysicsSimulator.h"
+#include "experiments/additive-noise/ClutterExperiment.h"
 #include <random>
 
 template<typename DescriptorMethod, typename DescriptorType>
