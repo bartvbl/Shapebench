@@ -1,11 +1,11 @@
 
+#include "glad/gl.h"
 #include "OpenGLDebugRenderer.h"
 #include "utils/gl/GeometryBuffer.h"
 #include "utils/gl/ShaderLoader.h"
 #include "utils/gl/GLUtils.h"
-#include <glad/gl.h>
-#include <GLFW/glfw3.h>
-#include <shapeDescriptor/types/float3.h>
+#include "GLFW/glfw3.h"
+#include <shapeDescriptor/shapeDescriptor.h>
 
 class OpenGLBatchImplementation : public JPH::RefTargetVirtual
 {

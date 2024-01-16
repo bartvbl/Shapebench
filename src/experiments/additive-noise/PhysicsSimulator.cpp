@@ -7,18 +7,18 @@
 #include "json.hpp"
 #include "benchmark-core/ComputedConfig.h"
 
-#include <Jolt/Jolt.h>
+#include "Jolt/Jolt.h"
 
-#include <Jolt/RegisterTypes.h>
-#include <Jolt/Core/Factory.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-#include <Jolt/Physics/PhysicsSettings.h>
-#include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Body/BodyActivationListener.h>
-#include <Jolt/Physics/Collision/PhysicsMaterialSimple.h>
+#include "Jolt/RegisterTypes.h"
+#include "Jolt/Core/Factory.h"
+#include "Jolt/Core/TempAllocator.h"
+#include "Jolt/Core/JobSystemThreadPool.h"
+#include "Jolt/Physics/PhysicsSettings.h"
+#include "Jolt/Physics/PhysicsSystem.h"
+#include "Jolt/Physics/Collision/Shape/BoxShape.h"
+#include "Jolt/Physics/Body/BodyCreationSettings.h"
+#include "Jolt/Physics/Body/BodyActivationListener.h"
+#include "Jolt/Physics/Collision/PhysicsMaterialSimple.h"
 #include "Jolt/Physics/Collision/Shape/MeshShape.h"
 #include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
 #include "Jolt/Physics/Collision/Shape/CompoundShape.h"
@@ -26,13 +26,13 @@
 #include "OpenGLDebugRenderer.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
+#include "glm/glm.hpp"
+#include "glm/gtx/quaternion.hpp"
+#include "glm/gtc/matrix_inverse.hpp"
 
 #define ENABLE_VHACD_IMPLEMENTATION 1
 #define VHACD_DISABLE_THREADING 0
-#include <VHACD.h>
+#include "VHACD.h"
 
 static void TraceImpl(const char *inFMT, ...)
 {

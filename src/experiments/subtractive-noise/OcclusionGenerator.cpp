@@ -1,7 +1,16 @@
 #include "OcclusionGenerator.h"
+#include "glad/gl.h"
+#include "utils/gl/GLUtils.h"
+#include "utils/gl/VAOGenerator.h"
+#include "utils/gl/Shader.h"
+#include "utils/gl/ShaderLoader.h"
+#include "glm/gtc/type_ptr.hpp"
+#include "../../../lib/pmp-library/src/pmp/surface_mesh.h"
+#include "../../../lib/pmp-library/src/pmp/io/io.h"
+#include "../../../lib/pmp-library/src/pmp/algorithms/remeshing.h"
+#include "../../../lib/pmp-library/src/pmp/types.h"
 #include <iostream>
-#include <glad/gl.h>
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 #include <random>
 
 ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
@@ -33,10 +42,8 @@ ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
                                                                     {1, 1, 1}};
     BufferObject screenQuadVAO = generateVertexArray(screenQuadVertices.data(), screenQuadTexCoords.data(), screenQuadColours.data(), 6);
 
-    Shader objectIDShader;
-    objectIDShader.makeBasicShader("res/shaders/objectIDShader.vert", "res/shaders/objectIDShader.frag");
-    Shader fullscreenQuadShader;
-    fullscreenQuadShader.makeBasicShader("res/shaders/fullscreenquad.vert", "res/shaders/fullscreenquad.frag");
+    Shader objectIDShader = loadShader("res/shaders/", "objectIDShader");
+    Shader fullscreenQuadShader = loadShader("res/shaders/", "fullscreenquad");
 
     // Create offscreen renderer
 
@@ -66,7 +73,7 @@ ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
 
     std::cout << "Generating queries from objects in " << objectDirectory.value() << "..." << std::endl;
 
-    std::vector<std::experimental::filesystem::path> haystackFiles = ShapeDescriptor::utilities::listDirectory(objectDirectory.value());
+    std::vector<std::filesystem::path> haystackFiles = ShapeDescriptor::listDirectory(objectDirectory.value());
 
     for(unsigned int i = 0; i < haystackFiles.size(); i++) {
         std::cout << "Processing " << (i + 1) << "/" << haystackFiles.size() << ": " << haystackFiles.at(i) << std::endl;
@@ -80,7 +87,7 @@ ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
         int windowWidth, windowHeight;
         glfwGetWindowSize(window, &windowWidth, &windowHeight);
 
-        ShapeDescriptor::cpu::Mesh loadedMesh = ShapeDescriptor::utilities::loadMesh(haystackFiles.at(i), true);
+        ShapeDescriptor::cpu::Mesh loadedMesh = ShapeDescriptor::loadMesh(haystackFiles.at(i));
 
         ShapeDescriptor::cpu::float3 averageSum = {0, 0, 0};
         for(unsigned int vertex = 0; vertex < loadedMesh.vertexCount; vertex++) {
@@ -168,15 +175,16 @@ ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
 
         outMesh.vertexCount = visibleVertexCount;
 
-        std::string filename = std::experimental::filesystem::path(haystackFiles.at(i)).filename();
-        std::experimental::filesystem::path outputMeshFile = std::experimental::filesystem::path(targetDirectory.value()) / filename;
-        ShapeDescriptor::dump::mesh(outMesh, outputMeshFile);
+        std::string filename = std::filesystem::path(haystackFiles.at(i)).filename();
+        std::filesystem::path outputMeshFile = std::filesystem::path(targetDirectory.value()) / filename;
+        ShapeDescriptor::writeOBJ(outMesh, outputMeshFile);
 
         if(enableTriangleRedistribution.value()) {
             std::cout << "Remeshing.. " << outputMeshFile.string() << std::endl;
             pmp::SurfaceMesh mesh;
-            mesh.read(outputMeshFile.string());
-            pmp::SurfaceRemeshing remesher(mesh);
+            pmp::read(mesh, outputMeshFile.string());
+            // Mario Botsch and Leif Kobbelt. A remeshing approach to multiresolution modeling. In Proceedings of Eurographics Symposium on Geometry Processing, pages 189–96, 2004.
+
 
             // Using the same approach as PMP library's remeshing tool
             pmp::Scalar totalEdgeLength(0);
@@ -186,11 +194,11 @@ ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
             }
             pmp::Scalar averageEdgeLength = totalEdgeLength / (pmp::Scalar) mesh.n_edges();
 
-            remesher.uniform_remeshing(averageEdgeLength);
-            mesh.write(outputMeshFile.string());
+            pmp::uniform_remeshing(mesh, averageEdgeLength);
+            pmp::write(outputMeshFile.string());
         }
 
-        ShapeDescriptor::free::mesh(outMesh);
+        ShapeDescriptor::free(outMesh);
 
         // Draw visible version
 
@@ -199,7 +207,7 @@ ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
         glClearColor(0.5, 0.5, 0.5, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        fullscreenQuadShader.activate();
+        fullscreenQuadShader.use();
 
         glBindVertexArray(screenQuadVAO.VAOID);
         glDisable(GL_DEPTH_TEST);
@@ -211,15 +219,13 @@ ShapeDescriptor::cpu::Mesh computeOccludedMesh() {
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
-        ShapeDescriptor::free::mesh(loadedMesh);
+        ShapeDescriptor::free(loadedMesh);
 
         glDeleteBuffers(1, &buffers.vertexBufferID);
         glDeleteBuffers(1, &buffers.normalBufferID);
         glDeleteBuffers(1, &buffers.colourBufferID);
         glDeleteBuffers(1, &buffers.indexBufferID);
         glDeleteVertexArrays(1, &buffers.VAOID);
-
-        //std::this_thread::sleep_for(100ms);
     }
 
     glDeleteFramebuffers(1, &fbo);

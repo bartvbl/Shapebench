@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Jolt/Jolt.h>
+#include "Jolt/Jolt.h"
 #include "Jolt/Renderer/DebugRenderer.h"
 #include "utils/gl/Shader.h"
 #include "GLFW/glfw3.h"

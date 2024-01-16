@@ -1,7 +1,8 @@
 #include <cstdio>
 #include <cstdlib>
+#include "glad/gl.h"
 #include "GLUtils.h"
-#include <glad/gl.h>
+
 
 static void glfwErrorCallback(int error, const char *description)
 {

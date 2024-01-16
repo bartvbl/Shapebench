@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shapeDescriptor/containerTypes.h>
+#include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
 #include "benchmark-core/ComputedConfig.h"
 #include "benchmark-core/Dataset.h"
