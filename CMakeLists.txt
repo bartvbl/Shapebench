@@ -32,8 +32,8 @@ set(OVERRIDE_CXX_FLAGS OFF)
 add_definitions(-DJPH_ENABLE_ASSERTS)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
-add_subdirectory(lib/glfw)
 
+add_subdirectory(lib/pmp-library)
 
 
 #

@@ -26,3 +26,6 @@
 	path = lib/glad
 	url = https://github.com/Dav1dde/glad.git
 	branch = glad2
+[submodule "lib/pmp-library"]
+	path = lib/pmp-library
+	url = https://github.com/pmp-library/pmp-library
