@@ -9,12 +9,31 @@
 
 namespace Shapebench {
     template<typename DescriptorMethod, typename DescriptorType>
+    DescriptorType computeSingleDescriptor(const ShapeDescriptor::cpu::Mesh& mesh,
+                                 const ShapeDescriptor::cpu::PointCloud& pointCloud,
+                                 ShapeDescriptor::OrientedPoint descriptorOrigin,
+                                 const nlohmann::json &config,
+                                 float supportRadius) {
+        ShapeDescriptor::cpu::array<DescriptorType> descriptors;
+        if (DescriptorMethod::usesPointCloudInput()) {
+            descriptors = DescriptorMethod::computeDescriptors(pointCloud, {1, &descriptorOrigin}, config, supportRadius);
+        } else {
+            descriptors = DescriptorMethod::computeDescriptors(mesh, {1, &descriptorOrigin}, config, supportRadius);
+        }
+
+        DescriptorType descriptor = descriptors.content[0];
+
+        ShapeDescriptor::free(descriptors);
+
+        return descriptor;
+    }
+
+    template<typename DescriptorMethod, typename DescriptorType>
     void computeDescriptorsForEachSupportRadii(
             VertexInDataset vertexToRender,
             const ShapeDescriptor::cpu::Mesh& mesh,
             const ShapeDescriptor::cpu::PointCloud& pointCloud,
             const nlohmann::json &config,
-            uint32_t randomSeed,
             const std::vector<float>& supportRadii,
             std::vector<DescriptorType>& outputDescriptors) {
         assert(supportRadii.size() == outputDescriptors.size());
@@ -22,19 +41,7 @@ namespace Shapebench {
         for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
             uint32_t vertexIndex = vertexToRender.vertexIndex;
             ShapeDescriptor::OrientedPoint originPoint = {mesh.vertices[vertexIndex], mesh.normals[vertexIndex]};
-
-            ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> convertedOriginArray = {1, &originPoint};
-
-            ShapeDescriptor::cpu::array<DescriptorType> descriptors;
-            if (DescriptorMethod::usesPointCloudInput()) {
-                descriptors = DescriptorMethod::computeDescriptors(pointCloud, convertedOriginArray, config, supportRadii.at(radiusIndex));
-            } else {
-                descriptors = DescriptorMethod::computeDescriptors(mesh, convertedOriginArray, config, supportRadii.at(radiusIndex));
-            }
-
-            outputDescriptors.at(radiusIndex) = descriptors.content[0];
-
-            ShapeDescriptor::free(descriptors);
+            outputDescriptors.at(radiusIndex) = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, originPoint, config, supportRadii.at(radiusIndex));
         }
     }
 }
