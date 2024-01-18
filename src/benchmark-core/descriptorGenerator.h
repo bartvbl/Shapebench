@@ -1,7 +1,6 @@
 #pragma once
 
 #include "shapeDescriptor/shapeDescriptor.h"
-#include "DescriptorGenerator.h"
 #include "Dataset.h"
 #include "json.hpp"
 #include "Batch.h"
