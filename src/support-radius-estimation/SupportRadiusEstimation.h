@@ -8,10 +8,10 @@
 #include "json.hpp"
 #include "benchmark-core/Batch.h"
 #include "methods/Method.h"
-#include "benchmark-core/descriptorGenerator.h"
+#include "benchmark-core/common-procedures/descriptorGenerator.h"
 #include "benchmark-core/referenceSetDistanceKernel.cuh"
-#include "benchmark-core/PointCloudSampler.h"
-#include "utils/meshLoader.h"
+#include "benchmark-core/common-procedures/pointCloudSampler.h"
+#include "benchmark-core/common-procedures/meshLoader.h"
 
 namespace Shapebench {
     inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const Dataset& dataset, VertexInDataset vertex) {

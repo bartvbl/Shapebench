@@ -1,6 +1,6 @@
 #pragma once
 #include <shapeDescriptor/shapeDescriptor.h>
-#include <json.hpp>
+#include "json.hpp"
 
 namespace Shapebench {
     inline ShapeDescriptor::cpu::PointCloud computePointCloud(const ShapeDescriptor::cpu::Mesh& mesh, const nlohmann::json& config, uint32_t randomSeed) {

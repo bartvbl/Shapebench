@@ -30,6 +30,17 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     }
 
     // Computing reference descriptors and their distance to the representative set
+    uint32_t representativeSetSize = configuration.at("experiments").at("sharedSettings").at("representativeSetSize");
+    uint32_t sampleSetSize = configuration.at("experiments").at("sharedSettings").at("sampleSetSize");
+
+    uint64_t representativeSetRandomSeed = engine();
+    uint64_t sampleSetRandomSeed = engine();
+
+    std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(representativeSetRandomSeed, representativeSetSize);
+    std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(sampleSetRandomSeed, sampleSetSize);
+
+    std::vector<DescriptorType> sampleDescriptors(representativeSetSize);
+    std::vector<DescriptorType> referenceDescriptors(sampleSetSize);
 
 
 

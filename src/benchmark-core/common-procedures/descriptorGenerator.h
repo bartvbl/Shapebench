@@ -1,11 +1,11 @@
 #pragma once
 
 #include "shapeDescriptor/shapeDescriptor.h"
-#include "Dataset.h"
+#include "benchmark-core/Dataset.h"
 #include "json.hpp"
-#include "Batch.h"
+#include "benchmark-core/Batch.h"
 #include "support-radius-estimation/SupportRadiusEstimation.h"
-#include "PointCloudSampler.h"
+#include "pointCloudSampler.h"
 
 namespace Shapebench {
     template<typename DescriptorMethod, typename DescriptorType>
