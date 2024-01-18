@@ -22,7 +22,7 @@ class OccludedSceneGenerator {
     uint32_t offscreenTextureHeight = 0;
 
 public:
-    OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig);
+    explicit OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig);
     ~OccludedSceneGenerator();
     ShapeDescriptor::cpu::Mesh computeOccludedMesh(ShapeDescriptor::cpu::Mesh mesh, uint64_t seed);
     void init();

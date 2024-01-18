@@ -8,7 +8,7 @@
 #include "json.hpp"
 #include "benchmark-core/Batch.h"
 #include "methods/Method.h"
-#include "benchmark-core/referenceDescriptorSet.h"
+#include "benchmark-core/descriptorGenerator.h"
 #include "benchmark-core/referenceSetDistanceKernel.cuh"
 #include "benchmark-core/PointCloudSampler.h"
 #include "utils/meshLoader.h"
@@ -120,10 +120,11 @@ namespace Shapebench {
     float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed) {
         static_assert(std::is_base_of<Shapebench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
 
-        uint32_t representativeSetSize = config.at("representativeSetObjectCount");
+
         std::mt19937_64 randomEngine(randomSeed);
 
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
+        uint32_t representativeSetSize = supportRadiusConfig.at("representativeSetObjectCount");
         uint32_t sampleDescriptorSetSize = supportRadiusConfig.at("sampleDescriptorSetSize");
         float supportRadiusStart = supportRadiusConfig.at("radiusSearchStart");
         float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");

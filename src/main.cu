@@ -13,39 +13,12 @@
 #include "benchmark-core/ComputedConfig.h"
 #include "experiments/additive-noise/PhysicsSimulator.h"
 #include "experiments/additive-noise/ClutterExperiment.h"
+#include "benchmark-core/experimentRunner.h"
 #include <random>
 
-template<typename DescriptorMethod, typename DescriptorType>
-void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
-    std::mt19937_64 engine(randomSeed);
-    std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
-    std::cout << "Main config file: " << configFileLocation.string() << std::endl;
-    std::cout << "Computed values config file: " << computedConfigFilePath.string() << std::endl;
-    ComputedConfig computedConfig(computedConfigFilePath);
-    const std::string methodName = DescriptorMethod::getName();
 
-    // Getting a support radius
-
-    float supportRadius = 0;
-    if(!computedConfig.containsKey(methodName, "supportRadius")) {
-        std::cout << "No support radius has been computed yet for this method." << std::endl;
-        std::cout << "Performing support radius estimation.." << std::endl;
-        supportRadius = Shapebench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
-        std::cout << "    Chosen support radius: " << supportRadius << std::endl;
-        computedConfig.setFloatAndSave(methodName, "supportRadius", supportRadius);
-    } else {
-        supportRadius = computedConfig.getFloat(methodName, "supportRadius");
-    }
-
-    uint64_t clutterExperimentRandomSeed = engine();
-    runClutterExperiment<DescriptorMethod, DescriptorType>(configuration, computedConfig, dataset, clutterExperimentRandomSeed);
-
-}
 
 int main(int argc, const char** argv) {
-    initPhysics();
-
-
     arrrgh::parser parser("shapebench", "Benchmark tool for 3D local shape descriptors");
     const auto& showHelp = parser.add<bool>(
             "help", "Show this help message", 'h', arrrgh::Optional, false);
@@ -110,15 +83,13 @@ int main(int argc, const char** argv) {
         Shapebench::computeCompressedDataSet(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
     }
 
-
     std::cout << "Reading dataset cache.." << std::endl;
     Dataset dataset;
     dataset.load(datasetCacheFile);
 
+    initPhysics();
 
     uint64_t randomSeed = configuration.at("randomSeed");
     //testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
     testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
-
-
 }
