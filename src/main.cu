@@ -7,7 +7,7 @@
 #include <tiny_gltf.h>
 #include "benchmark-core/CompressedDatasetCreator.h"
 #include "benchmark-core/Dataset.h"
-#include "benchmark-core/SupportRadiusEstimation.h"
+#include "support-radius-estimation/SupportRadiusEstimation.h"
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
 #include "benchmark-core/ComputedConfig.h"

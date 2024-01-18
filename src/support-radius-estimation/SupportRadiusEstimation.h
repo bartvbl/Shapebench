@@ -4,13 +4,14 @@
 #include <iostream>
 #include <random>
 #include <malloc.h>
-#include "Dataset.h"
+#include "benchmark-core/Dataset.h"
 #include "json.hpp"
-#include "Batch.h"
+#include "benchmark-core/Batch.h"
 #include "methods/Method.h"
-#include "referenceDescriptorSet.h"
-#include "referenceSetDistanceKernel.cuh"
-#include "PointCloudSampler.h"
+#include "benchmark-core/referenceDescriptorSet.h"
+#include "benchmark-core/referenceSetDistanceKernel.cuh"
+#include "benchmark-core/PointCloudSampler.h"
+#include "utils/meshLoader.h"
 
 namespace Shapebench {
     inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const Dataset& dataset, VertexInDataset vertex) {
@@ -19,7 +20,7 @@ namespace Shapebench {
         // If this assumption changes later we'll have to create a second vector containing an index buffer
         // which mesh in a condensed vector to use
         const DatasetEntry& entry = dataset.at(vertex.meshID);
-        return readDatasetMesh(config, entry.meshFile, entry.computedObjectRadius);;
+        return readDatasetMesh(config, entry);
     }
 
     inline void freeMeshRange(std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {

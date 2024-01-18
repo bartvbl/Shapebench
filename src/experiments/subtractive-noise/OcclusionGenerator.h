@@ -18,11 +18,13 @@ class OccludedSceneGenerator {
     uint32_t renderTextureID = 0;
     std::vector<unsigned char> localFramebufferCopy;
     GeometryBuffer screenQuadVAO;
+    uint32_t offscreenTextureWidth = 0;
+    uint32_t offscreenTextureHeight = 0;
 
 public:
-    OccludedSceneGenerator();
+    OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig);
     ~OccludedSceneGenerator();
-    ShapeDescriptor::cpu::Mesh computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mesh, uint64_t seed);
+    ShapeDescriptor::cpu::Mesh computeOccludedMesh(ShapeDescriptor::cpu::Mesh mesh, uint64_t seed);
     void init();
     void destroy();
 };

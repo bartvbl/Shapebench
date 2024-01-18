@@ -5,24 +5,10 @@
 #include "Dataset.h"
 #include "json.hpp"
 #include "Batch.h"
-#include "SupportRadiusEstimation.h"
+#include "support-radius-estimation/SupportRadiusEstimation.h"
 #include "PointCloudSampler.h"
 
 namespace Shapebench {
-    inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json& config, const std::filesystem::path& pathInDataset, float computedBoundingSphereRadius) {
-        std::filesystem::path datasetBasePath = config.at("compressedDatasetRootDir");
-        std::filesystem::path currentMeshPath = datasetBasePath / pathInDataset;
-        currentMeshPath = currentMeshPath.replace_extension(".cm");
-        ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(currentMeshPath);
-
-        // Scale mesh down to a unit sphere
-        float scaleFactor = 1.0f / float(computedBoundingSphereRadius);
-        for(uint32_t i = 0; i < mesh.vertexCount; i++) {
-            mesh.vertices[i] = scaleFactor * mesh.vertices[i];
-        }
-        return mesh;
-    }
-
     template<typename DescriptorMethod, typename DescriptorType>
     void computeDescriptorsForEachSupportRadii(
             VertexInDataset vertexToRender,

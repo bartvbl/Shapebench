@@ -75,6 +75,10 @@ namespace Shapebench {
             throwUnimplementedException();
             return {};
         }
+        static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
+            throwUnimplementedException();
+            return false;
+        }
         static std::string getName() {
             return "METHOD NAME NOT SPECIFIED";
         }

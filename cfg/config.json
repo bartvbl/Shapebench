@@ -10,8 +10,8 @@
         },
         "subtractiveNoise": {
             "visibilityImageResolution": [
-                8126,
-                8126
+                25000,
+                25000
             ],
             "enabled": true
         },

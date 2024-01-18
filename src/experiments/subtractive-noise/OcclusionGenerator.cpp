@@ -1,5 +1,5 @@
-#include "OcclusionGenerator.h"
 #include "glad/gl.h"
+#include "OcclusionGenerator.h"
 #include "utils/gl/GLUtils.h"
 #include "utils/gl/VAOGenerator.h"
 #include "utils/gl/Shader.h"
@@ -9,7 +9,9 @@
 #include "GLFW/glfw3.h"
 #include <random>
 
-OccludedSceneGenerator::OccludedSceneGenerator() {
+OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig) {
+    offscreenTextureWidth = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(0);
+    offscreenTextureHeight = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(1);
     init();
 }
 
@@ -17,28 +19,15 @@ OccludedSceneGenerator::~OccludedSceneGenerator() {
     destroy();
 }
 
-ShapeDescriptor::cpu::Mesh
-OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mesh, uint64_t seed) {
+// Mesh is assumed to be fit inside unit sphere
+ShapeDescriptor::cpu::Mesh OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mesh, uint64_t seed) {
     // Handle other events
     glfwPollEvents();
 
+    std::mt19937_64 randomEngine(seed);
 
-
-    int windowWidth, windowHeight;
-    glfwGetWindowSize(window, &windowWidth, &windowHeight);
-
-    ShapeDescriptor::cpu::Mesh loadedMesh = ShapeDescriptor::loadMesh(haystackFiles.at(i));
-
-    ShapeDescriptor::cpu::float3 averageSum = {0, 0, 0};
-    for(unsigned int vertex = 0; vertex < loadedMesh.vertexCount; vertex++) {
-        averageSum += loadedMesh.vertices[vertex];
-    }
-    averageSum.x /= float(loadedMesh.vertexCount);
-    averageSum.y /= float(loadedMesh.vertexCount);
-    averageSum.z /= float(loadedMesh.vertexCount);
-
-    std::vector<ShapeDescriptor::cpu::float3> vertexColours(loadedMesh.vertexCount);
-    for(unsigned int triangle = 0; triangle < loadedMesh.vertexCount / 3; triangle++) {
+    std::vector<ShapeDescriptor::cpu::float3> vertexColours(mesh.vertexCount);
+    for(unsigned int triangle = 0; triangle < mesh.vertexCount / 3; triangle++) {
         float red = float((triangle & 0x00FF0000U) >> 16U) / 255.0f;
         float green = float((triangle & 0x0000FF00U) >> 8U) / 255.0f;
         float blue = float((triangle & 0x000000FFU) >> 0U) / 255.0f;
@@ -48,20 +37,20 @@ OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mes
         vertexColours.at(3 * triangle + 2) = {red, green, blue};
     }
 
-    GeometryBuffer buffers = generateVertexArray(loadedMesh.vertices, loadedMesh.normals, vertexColours.data(), loadedMesh.vertexCount);
+    GeometryBuffer buffers = generateVertexArray(mesh.vertices, mesh.normals, vertexColours.data(), mesh.vertexCount);
 
     objectIDShader.use();
 
-    float yaw = float(distribution(generator) * 2.0 * M_PI);
-    float pitch = float((distribution(generator) - 0.5) * M_PI);
-    float roll = float(distribution(generator) * 2.0 * M_PI);
+    std::uniform_real_distribution<float> distribution(0, 1);
+    float yaw = float(distribution(randomEngine) * 2.0 * M_PI);
+    float pitch = float((distribution(randomEngine) - 0.5) * M_PI);
+    float roll = float(distribution(randomEngine) * 2.0 * M_PI);
 
-    glm::mat4 objectProjection = glm::perspective(1.57f, (float) windowWidth / (float) windowHeight, 1.0f, 10000.0f);
+    glm::mat4 objectProjection = glm::perspective(1.57f, (float) offscreenTextureWidth / (float) offscreenTextureHeight, 1.0f, 10000.0f);
     glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -200.0f));
     positionTransformation *= glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1));
     positionTransformation *= glm::rotate(glm::mat4(1.0), yaw, glm::vec3(1, 0, 0));
     positionTransformation *= glm::rotate(glm::mat4(1.0), pitch, glm::vec3(0, 1, 0));
-    positionTransformation *= glm::translate(glm::mat4(1.0), -glm::vec3(averageSum.x, averageSum.y, averageSum.z));
     glm::mat4 objectTransformation = objectProjection * positionTransformation;
     glUniformMatrix4fv(16, 1, false, glm::value_ptr(objectTransformation));
 
@@ -70,9 +59,9 @@ OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mes
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBindVertexArray(buffers.VAOID);
+    glBindVertexArray(buffers.vaoID);
     glEnable(GL_DEPTH_TEST);
-    glDrawElements(GL_TRIANGLES, loadedMesh.vertexCount, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, mesh.vertexCount, GL_UNSIGNED_INT, nullptr);
 
     // Do visibility testing
 
@@ -80,7 +69,7 @@ OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mes
     glReadPixels(0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_RGB, GL_UNSIGNED_BYTE, localFramebufferCopy.data());
 
 
-    std::vector<bool> triangleAppearsInImage(loadedMesh.vertexCount / 3);
+    std::vector<bool> triangleAppearsInImage(mesh.vertexCount / 3);
 
     for(size_t pixel = 0; pixel < offscreenTextureWidth * offscreenTextureHeight; pixel++) {
         unsigned int triangleIndex =
@@ -96,26 +85,34 @@ OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mes
         triangleAppearsInImage.at(triangleIndex) = true;
     }
 
-    ShapeDescriptor::cpu::Mesh outMesh(loadedMesh.vertexCount);
-
     unsigned int visibleVertexCount = 0;
     for(unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
         if(triangleAppearsInImage.at(triangle)) {
-            outMesh.vertices[visibleVertexCount + 0] = loadedMesh.vertices[3 * triangle + 0];
-            outMesh.vertices[visibleVertexCount + 1] = loadedMesh.vertices[3 * triangle + 1];
-            outMesh.vertices[visibleVertexCount + 2] = loadedMesh.vertices[3 * triangle + 2];
-
-            outMesh.normals[visibleVertexCount + 0] = loadedMesh.normals[3 * triangle + 0];
-            outMesh.normals[visibleVertexCount + 1] = loadedMesh.normals[3 * triangle + 1];
-            outMesh.normals[visibleVertexCount + 2] = loadedMesh.normals[3 * triangle + 2];
-
             visibleVertexCount += 3;
         }
     }
 
-    outMesh.vertexCount = visibleVertexCount;
+    ShapeDescriptor::cpu::Mesh outMesh(visibleVertexCount);
+
+    uint32_t nextVisibleVertexIndex = 0;
+    for(unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
+        if(triangleAppearsInImage.at(triangle)) {
+            outMesh.vertices[nextVisibleVertexIndex + 0] = mesh.vertices[3 * triangle + 0];
+            outMesh.vertices[nextVisibleVertexIndex + 1] = mesh.vertices[3 * triangle + 1];
+            outMesh.vertices[nextVisibleVertexIndex + 2] = mesh.vertices[3 * triangle + 2];
+
+            outMesh.normals[nextVisibleVertexIndex + 0] = mesh.normals[3 * triangle + 0];
+            outMesh.normals[nextVisibleVertexIndex + 1] = mesh.normals[3 * triangle + 1];
+            outMesh.normals[nextVisibleVertexIndex + 2] = mesh.normals[3 * triangle + 2];
+
+            nextVisibleVertexIndex += 3;
+        }
+    }
 
     // Draw visible version
+
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(window, &windowWidth, &windowHeight);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, windowWidth, windowHeight);
@@ -138,14 +135,19 @@ OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mes
 
     // Flip buffers
     glfwSwapBuffers(window);
+    return outMesh;
 }
 
 void OccludedSceneGenerator::destroy() {
+    if(isDestroyed) {
+        return;
+    }
     screenQuadVAO.destroy();
     glDeleteFramebuffers(1, &frameBufferID);
     glDeleteRenderbuffers(1, &renderBufferID);
     glDeleteTextures(1, &renderTextureID);
     glfwDestroyWindow(window);
+    isDestroyed = true;
 }
 
 void OccludedSceneGenerator::init() {
@@ -174,13 +176,8 @@ void OccludedSceneGenerator::init() {
     screenQuadVAO = generateVertexArray(screenQuadVertices.data(), screenQuadTexCoords.data(), screenQuadColours.data(), 6);
 
     // Create offscreen renderer
-
-    const unsigned int offscreenTextureWidth = 4 * 7680;
-    const unsigned int offscreenTextureHeight = 4 * 4230;
-
     glGenFramebuffers(1, &frameBufferID);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-    glEnable(GL_DEPTH_TEST);
 
     glGenTextures(1, &renderTextureID);
     glBindTexture(GL_TEXTURE_2D, renderTextureID);
