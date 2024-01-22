@@ -29,6 +29,26 @@ namespace Shapebench {
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
+    DescriptorType computeSingleDescriptor(const ShapeDescriptor::cpu::Mesh& mesh,
+                                           ShapeDescriptor::OrientedPoint descriptorOrigin,
+                                           const nlohmann::json &config,
+                                           float supportRadius,
+                                           uint64_t pointCloudSamplingSeed) {
+        ShapeDescriptor::cpu::PointCloud pointCloud;
+        if (DescriptorMethod::usesPointCloudInput()) {
+            pointCloud = computePointCloud(mesh, config, pointCloudSamplingSeed);
+        }
+
+        DescriptorType descriptor = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, descriptorOrigin, config, supportRadius);
+
+        if(DescriptorMethod::usesPointCloudInput()) {
+            ShapeDescriptor::free(pointCloud);
+        }
+
+        return descriptor;
+    }
+
+    template<typename DescriptorMethod, typename DescriptorType>
     void computeDescriptorsForEachSupportRadii(
             VertexInDataset vertexToRender,
             const ShapeDescriptor::cpu::Mesh& mesh,

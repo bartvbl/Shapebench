@@ -198,7 +198,7 @@ namespace Shapebench {
             sampleCountProcessed++;
             std::cout << "\r        Processing " + std::to_string(sampleCountProcessed) + "/" + std::to_string(sampleDescriptorSetSize) << std::flush;
             VertexInDataset sampleVertex = sampleVerticesSet.at(sampleIndex);
-            ShapeDescriptor::cpu::Mesh sampleSetMesh = loadMesh(config, dataset,sampleVertex);
+            ShapeDescriptor::cpu::Mesh sampleSetMesh = loadMesh(config, dataset, sampleVertex);
             ShapeDescriptor::cpu::PointCloud sampleSetPointCloud;
             if (DescriptorMethod::usesPointCloudInput()) {
                 sampleSetPointCloud = computePointCloud(sampleSetMesh, config, samplePointCloudSamplingSeed);
@@ -207,6 +207,7 @@ namespace Shapebench {
             Shapebench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
                     sampleVertex, sampleSetMesh, sampleSetPointCloud, config,
                     supportRadiiToTry, generatedDescriptors);
+
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
                 sampleDescriptors.at(sampleDescriptorSetSize * i + sampleIndex) = generatedDescriptors.at(i);
             }
@@ -266,6 +267,4 @@ namespace Shapebench {
 
         return highestMeanSupportRadius;
     }
-
-
 }

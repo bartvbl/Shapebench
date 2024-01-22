@@ -90,6 +90,6 @@ int main(int argc, const char** argv) {
     initPhysics();
 
     uint64_t randomSeed = configuration.at("randomSeed");
-    //testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
     testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
 }

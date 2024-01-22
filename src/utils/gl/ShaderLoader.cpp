@@ -106,6 +106,7 @@ void validateProgram(unsigned int programID) {
 Shader createShader(ShaderSource* source) {
     unsigned int programID = glCreateProgram();
     Shader shader(programID);
+    uint32_t attachedCount = 0;
 
     if(!source->vertexShaderSource.empty()) {
         loadSingleShader(shader.get(), source->vertexShaderSource, ShaderType::VERTEX_SHADER);
@@ -140,6 +141,15 @@ std::string tryFileLoad(const std::filesystem::path& file) {
     }
 }
 
+bool allSourcesEmpty(ShaderSource &sources) {
+    return sources.computeShaderSource.empty()
+        && sources.fragmentShaderSource.empty()
+        && sources.geometryShaderSource.empty()
+        && sources.tesselationControlShaderSource.empty()
+        && sources.tesselationEvaluationShaderSource.empty()
+        && sources.vertexShaderSource.empty();
+}
+
 Shader loadShader(const std::filesystem::path& directory, const std::string& fileName) {
     ShaderSource sources;
     sources.vertexShaderSource = tryFileLoad(directory / (fileName + ".vert"));
@@ -148,14 +158,11 @@ Shader loadShader(const std::filesystem::path& directory, const std::string& fil
     sources.computeShaderSource = tryFileLoad(directory / (fileName + ".comp"));
     sources.tesselationControlShaderSource = tryFileLoad(directory / (fileName + ".tcs"));
     sources.tesselationEvaluationShaderSource = tryFileLoad(directory / (fileName + ".tes"));
+    if(allSourcesEmpty(sources)) {
+        throw std::runtime_error("No shader sources found for shader " + fileName + " in directory " + directory.string());
+    }
     return createShader(&sources);
 }
 
 
 
-
-
-
-/*void destroy() {
-   glDeleteProgram(mProgram);
-}*/
