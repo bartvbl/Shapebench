@@ -10,6 +10,7 @@
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<VertexInDataset>& representativeSet, const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed, float supportRadius) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::mt19937_64 randomEngine(randomSeed);
     std::vector<uint64_t> randomSeeds(representativeSet.size());
     for(uint32_t i = 0; i < representativeSet.size(); i++) {
@@ -38,6 +39,16 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
             std::cout << " " << completedCount << "/" << representativeSet.size() << std::flush;
         }
     }
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    uint32_t timeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+    uint32_t timeInHours = timeInSeconds / 3600;
+    timeInSeconds -= timeInHours * 3600;
+    uint32_t timeInMinutes = timeInSeconds / 60;
+    timeInSeconds -= timeInSeconds * 60;
+    std::cout << std::endl;
+    std::cout << "    Complete." << std::endl;
+    std::cout << "    Elapsed time: " << timeInHours << ":" << timeInMinutes << ":" << timeInSeconds << std::endl;
+
     return representativeDescriptors;
 }
 
