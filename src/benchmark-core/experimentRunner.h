@@ -70,11 +70,13 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     uint64_t representativeSetRandomSeed = engine();
     uint64_t sampleSetRandomSeed = engine();
 
-    std::cout << "Computing reference descriptors.." << std::endl;
+
     std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(representativeSetRandomSeed, representativeSetSize);
     const std::filesystem::path descriptorCacheFile = std::filesystem::path(std::string(configuration.at("cacheDirectory"))) / ("referenceDescriptors-" + DescriptorMethod::getName() + ".dat");
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors;
     if(!std::filesystem::exists(descriptorCacheFile)) {
+        std::cout << "No cached reference descriptors were found.." << std::endl;
+        std::cout << "Computing reference descriptors.." << std::endl;
         referenceDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, representativeSetRandomSeed, supportRadius);
         std::cout << "Reference descriptors computed. Writing archive file.." << std::endl;
         ShapeDescriptor::writeCompressedDescriptors<DescriptorType>(descriptorCacheFile, referenceDescriptors);
