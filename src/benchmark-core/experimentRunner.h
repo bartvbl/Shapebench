@@ -72,7 +72,13 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     std::cout << "Computing reference descriptors.." << std::endl;
     std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(representativeSetRandomSeed, representativeSetSize);
-    std::vector<DescriptorType> referenceDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, representativeSetRandomSeed, supportRadius);
+    const std::filesystem::path descriptorCacheFile = std::filesystem::path(configuration.at("cacheDirectory")) / "referenceDescriptors-" + DescriptorMethod::getName() + ".dat";
+    std::vector<DescriptorType> referenceDescriptors;
+    if(!std::filesystem::exists(descriptorCacheFile)) {
+        referenceDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, representativeSetRandomSeed, supportRadius);
+
+    }
+
 
 
     std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(sampleSetRandomSeed, sampleSetSize);
