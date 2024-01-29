@@ -91,6 +91,22 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         referenceDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, representativeSetRandomSeed, supportRadius);
         std::cout << "Reference descriptors computed. Writing archive file.." << std::endl;
         ShapeDescriptor::writeCompressedDescriptors<DescriptorType>(descriptorCacheFile, referenceDescriptors);
+
+        std::cout << "    Reading written file.." << std::endl;
+        ShapeDescriptor::cpu::array<DescriptorType> readDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile);
+        std::cout << "    Checking integrity of written data.." << std::endl;
+        assert(referenceDescriptors.length == readDescriptors.length);
+        for(uint32_t i = 0; i < referenceDescriptors.length; i++) {
+            char* basePointerA = reinterpret_cast<char*>(&referenceDescriptors.content[i]);
+            char* basePointerB = reinterpret_cast<char*>(&readDescriptors.content[i]);
+            for(uint32_t j = 0; j < sizeof(DescriptorType); j++) {
+                if(basePointerA != basePointerB) {
+                    throw std::runtime_error("Descriptors at index " + std::to_string(i) + " are not identical!");
+                }
+            }
+        }
+        std::cout << "    Check complete, no errors detected" << std::endl;
+        ShapeDescriptor::free(readDescriptors);
     } else {
         std::cout << "Loading cached reference descriptors.." << std::endl;
         referenceDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile);
