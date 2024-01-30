@@ -58,7 +58,7 @@ GeometryBuffer generateGeometryBuffer(const JPH::DebugRenderer::Vertex* vertices
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(JPH::DebugRenderer::Vertex), (void*)sizeof(JPH::Float3));
     glEnableVertexAttribArray(1);
 
-    
+
     glGenBuffers(1, &buffer.indexBufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.indexBufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(unsigned int), indices, GL_STATIC_DRAW);
@@ -196,7 +196,7 @@ void OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::
     shader.setUniform(32, glm::value_ptr(normalMatrix));
 
     shader.setUniform(50, lightPosition.x, lightPosition.y, lightPosition.z);
-    shader.setUniform(20, 0.4, 0.4, 0.4, 1.0);
+    shader.setUniform(20, 1, 1, 1, 1);
 
     glDrawElements(GL_TRIANGLES, buffer.indexCount, GL_UNSIGNED_INT, nullptr);
     printGLError();

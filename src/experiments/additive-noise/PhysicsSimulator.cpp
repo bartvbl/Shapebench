@@ -401,6 +401,7 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
 
     // Create the actual rigid body
     JPH::Body *floor = body_interface.CreateBody(floor_settings); // Note that if we run out of bodies this can return nullptr
+    floor->SetFriction(0.5);
 
     // Add it to the world
     body_interface.AddBody(floor->GetID(), JPH::EActivation::DontActivate);
