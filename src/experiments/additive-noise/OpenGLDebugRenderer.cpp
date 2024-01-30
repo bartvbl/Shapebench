@@ -35,12 +35,30 @@ GeometryBuffer generateGeometryBuffer(const JPH::DebugRenderer::Vertex* vertices
     glGenVertexArrays(1, &buffer.vaoID);
     glBindVertexArray(buffer.vaoID);
 
+
+    /*std::vector<ShapeDescriptor::cpu::float3> vertexList(indexCount);
+    std::vector<ShapeDescriptor::cpu::float3> normals(indexCount);
+    std::vector<uint32_t> newIndices(indexCount);
+
+    for(uint32_t i = 0; i < indexCount; i += 3) {
+        uint32_t index0 = indices[i + 0];
+        uint32_t index1 = indices[i + 1];
+        uint32_t index2 = indices[i + 2];
+
+        ShapeDescriptor::cpu::float3 vertex0 = vertices[index0].;
+    }*/
+
+
     glGenBuffers(1, &buffer.vertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, buffer.vertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, vertexCount * sizeof(ShapeDescriptor::cpu::float3), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    glBufferData(GL_ARRAY_BUFFER, vertexCount * sizeof(JPH::DebugRenderer::Vertex), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(JPH::DebugRenderer::Vertex), nullptr);
     glEnableVertexAttribArray(0);
 
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(JPH::DebugRenderer::Vertex), (void*)sizeof(JPH::Float3));
+    glEnableVertexAttribArray(1);
+
+    
     glGenBuffers(1, &buffer.indexBufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.indexBufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(unsigned int), indices, GL_STATIC_DRAW);
@@ -89,12 +107,15 @@ inline void printGLError() {
 
 OpenGLDebugRenderer::OpenGLDebugRenderer() {
     window = GLinitialise();
+    printGLError();
 
     shader = loadShader("../res/shaders", "phong");
+    printGLError();
     shader.use();
-    shader.setUniform(50, 0, 5, 0);
+    printGLError();
 
     Initialize();
+    printGLError();
 }
 
 void OpenGLDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) {
@@ -134,6 +155,7 @@ OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Triangle *inT
         vertices.at(3 * i + 2) = inTriangles[i].mV[2];
     }
     return CreateTriangleBatch(vertices.data(), vertices.size(), indices.data(), indices.size());
+    printGLError();
 }
 
 JPH::DebugRenderer::Batch
@@ -152,26 +174,32 @@ void OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::
                                        JPH::DebugRenderer::EDrawMode inDrawMode) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
+    shader.use();
     GeometryBuffer& buffer = reinterpret_cast<OpenGLBatchImplementation*>(inGeometry->mLODs.at(0).mTriangleBatch.GetPtr())->buffer;
     glBindVertexArray(buffer.vaoID);
+    printGLError();
 
     float aspectRatio = float(windowWidth) / float(windowHeight);
 
     glm::mat4 projectionMatrix = glm::perspective<float>(glm::radians(90.0), aspectRatio, 0.01, 100);
-    glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -5));
+    glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0, -4, -8));
     glm::mat4 modelMatrix = toGLMMatrix(inModelMatrix);
 
     glm::mat4 MV = viewMatrix * modelMatrix;
     glm::mat4 MVP = projectionMatrix * MV;
     glm::mat4 normalMatrix = glm::inverseTranspose(MV);
 
+    glm::vec4 lightPosition = MV * glm::vec4(0, -10, 0, 1);
+
     shader.setUniform(30, glm::value_ptr(MVP));
     shader.setUniform(31, glm::value_ptr(MV));
     shader.setUniform(32, glm::value_ptr(normalMatrix));
 
-    shader.setUniform(20, float(inModelColor.r) / 255.0f, float(inModelColor.g) / 255.0f, float(inModelColor.b) / 255.0f);
+    shader.setUniform(50, lightPosition.x, lightPosition.y, lightPosition.z);
+    shader.setUniform(20, 0.4, 0.4, 0.4, 1.0);
 
     glDrawElements(GL_TRIANGLES, buffer.indexCount, GL_UNSIGNED_INT, nullptr);
+    printGLError();
 }
 
 void OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor,
@@ -182,7 +210,6 @@ void OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string
 }
 
 void OpenGLDebugRenderer::nextFrame() {
-    std::cout << "  -> new frame" << std::endl;
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
     glfwSwapBuffers(window);
