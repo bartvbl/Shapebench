@@ -54,6 +54,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
 
 template<typename DescriptorMethod, typename DescriptorType>
 void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
+    std::cout << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
     std::mt19937_64 engine(randomSeed);
     std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
     std::cout << "Main config file: " << configFileLocation.string() << std::endl;
@@ -74,7 +75,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         std::cout << "Cached support radius was found for this method: " << supportRadius << std::endl;
     }
 
-    // Computing reference descriptors and their distance to the representative set
+    // Computing sample descriptors and their distance to the representative set
     uint32_t representativeSetSize = configuration.at("experiments").at("sharedSettings").at("representativeSetSize");
     uint32_t sampleSetSize = configuration.at("experiments").at("sharedSettings").at("sampleSetSize");
 
@@ -100,7 +101,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             char* basePointerA = reinterpret_cast<char*>(&referenceDescriptors.content[i]);
             char* basePointerB = reinterpret_cast<char*>(&readDescriptors.content[i]);
             for(uint32_t j = 0; j < sizeof(DescriptorType); j++) {
-                if(basePointerA != basePointerB) {
+                if(basePointerA[j] != basePointerB[j]) {
                     throw std::runtime_error("Descriptors at index " + std::to_string(i) + " are not identical!");
                 }
             }
@@ -117,5 +118,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     // Running experiments
     uint64_t clutterExperimentRandomSeed = engine();
     //runClutterExperiment<DescriptorMethod, DescriptorType>(configuration, computedConfig, dataset, clutterExperimentRandomSeed);
+
+
 
 }
