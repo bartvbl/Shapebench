@@ -18,6 +18,10 @@ void Shader::setUniform(unsigned int ID, float *matrix) {
     glUniformMatrix4fv(ID, 1, GL_FALSE, matrix);
 }
 
+void Shader::setUniform(unsigned int ID, float x, float y, float z) {
+    glUniform3f(ID, x, y, z);
+}
+
 void Shader::setUniform(unsigned int ID, float x, float y, float z, float w) {
     glUniform4f(ID, x, y, z, w);
 }

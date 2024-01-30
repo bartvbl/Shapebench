@@ -48,7 +48,7 @@ int main(int argc, const char** argv) {
         throw std::runtime_error("This benchmark requires CUDA support to operate.");
     }
 
-    ShapeDescriptor::createCUDAContext(forceGPU.value());
+    //ShapeDescriptor::createCUDAContext(forceGPU.value());
 
     // ---------------------------------------------------------
 

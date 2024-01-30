@@ -54,7 +54,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
 
 template<typename DescriptorMethod, typename DescriptorType>
 void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
-    std::cout << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
+    std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
     std::mt19937_64 engine(randomSeed);
     std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
     std::cout << "Main config file: " << configFileLocation.string() << std::endl;
@@ -87,15 +87,15 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     const std::filesystem::path descriptorCacheFile = std::filesystem::path(std::string(configuration.at("cacheDirectory"))) / ("referenceDescriptors-" + DescriptorMethod::getName() + ".dat");
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors;
     if(!std::filesystem::exists(descriptorCacheFile)) {
-        std::cout << "No cached reference descriptors were found.." << std::endl;
+        std::cout << "No cached reference descriptors were found." << std::endl;
         std::cout << "Computing reference descriptors.." << std::endl;
         referenceDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, representativeSetRandomSeed, supportRadius);
         std::cout << "Reference descriptors computed. Writing archive file.." << std::endl;
         ShapeDescriptor::writeCompressedDescriptors<DescriptorType>(descriptorCacheFile, referenceDescriptors);
 
+        std::cout << "Checking integrity of written data.." << std::endl;
         std::cout << "    Reading written file.." << std::endl;
         ShapeDescriptor::cpu::array<DescriptorType> readDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile);
-        std::cout << "    Checking integrity of written data.." << std::endl;
         assert(referenceDescriptors.length == readDescriptors.length);
         for(uint32_t i = 0; i < referenceDescriptors.length; i++) {
             char* basePointerA = reinterpret_cast<char*>(&referenceDescriptors.content[i]);
@@ -106,7 +106,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 }
             }
         }
-        std::cout << "    Check complete, no errors detected" << std::endl;
+        std::cout << "    Check complete, no errors detected." << std::endl;
         ShapeDescriptor::free(readDescriptors);
     } else {
         std::cout << "Loading cached reference descriptors.." << std::endl;
@@ -117,7 +117,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     // Running experiments
     uint64_t clutterExperimentRandomSeed = engine();
-    //runClutterExperiment<DescriptorMethod, DescriptorType>(configuration, computedConfig, dataset, clutterExperimentRandomSeed);
+    runClutterExperiment<DescriptorMethod, DescriptorType>(configuration, computedConfig, dataset, clutterExperimentRandomSeed);
 
 
 

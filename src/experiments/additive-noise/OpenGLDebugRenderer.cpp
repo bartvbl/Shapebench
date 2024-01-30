@@ -5,7 +5,12 @@
 #include "utils/gl/ShaderLoader.h"
 #include "utils/gl/GLUtils.h"
 #include "GLFW/glfw3.h"
+#include "glm/gtc/matrix_inverse.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #include <shapeDescriptor/shapeDescriptor.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <mutex>
 
 class OpenGLBatchImplementation : public JPH::RefTargetVirtual
 {
@@ -45,25 +50,79 @@ GeometryBuffer generateGeometryBuffer(const JPH::DebugRenderer::Vertex* vertices
     return buffer;
 }
 
+inline void printGLError() {
+    int errorID = glGetError();
+
+    if(errorID != GL_NO_ERROR) {
+        std::string errorString;
+
+        switch(errorID) {
+            case GL_INVALID_ENUM:
+                errorString = "GL_INVALID_ENUM";
+                break;
+            case GL_INVALID_OPERATION:
+                errorString = "GL_INVALID_OPERATION";
+                break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION:
+                errorString = "GL_INVALID_FRAMEBUFFER_OPERATION";
+                break;
+            case GL_OUT_OF_MEMORY:
+                errorString = "GL_OUT_OF_MEMORY";
+                break;
+            case GL_STACK_UNDERFLOW:
+                errorString = "GL_STACK_UNDERFLOW";
+                break;
+            case GL_STACK_OVERFLOW:
+                errorString = "GL_STACK_OVERFLOW";
+                break;
+            default:
+                errorString = "[Unknown error ID]";
+                break;
+        }
+
+        fprintf(stderr, "An OpenGL error occurred (%i): %s.\n",
+                errorID, errorString.c_str());
+        throw std::runtime_error(errorString);
+    }
+}
+
 
 OpenGLDebugRenderer::OpenGLDebugRenderer() {
     window = GLinitialise();
 
-    shader = loadShader("res/shaders", "phong");
+    shader = loadShader("../res/shaders", "phong");
     shader.use();
+    shader.setUniform(50, 0, 5, 0);
+
+    Initialize();
 }
 
 void OpenGLDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) {
-
+    std::unique_lock<std::mutex> ensureUnique(drawLock);
+    glfwMakeContextCurrent(window);
+    std::cout << "Drawing line: "  << inFrom << " -> " << inTo << std::endl;
 }
 
 void OpenGLDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor,
                                   JPH::DebugRenderer::ECastShadow inCastShadow) {
+    std::unique_lock<std::mutex> ensureUnique(drawLock);
+    glfwMakeContextCurrent(window);
+    std::cout << "Drawing triangle: "  << inV1 << " -> " << inV2 << " -> " << inV3 << std::endl;
+}
 
+glm::mat4 toGLMMatrix(const JPH::Mat44 &mat44) {
+    glm::mat4 outMatrix(0.0);
+    for(int column = 0; column < 4; column++) {
+        JPH::Vec4 col = mat44.GetColumn4(column);
+        outMatrix[column] = {col.GetX(), col.GetY(), col.GetZ(), col.GetW()};
+    }
+    return outMatrix;
 }
 
 JPH::DebugRenderer::Batch
 OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Triangle *inTriangles, int inTriangleCount) {
+    std::unique_lock<std::mutex> ensureUnique(drawLock);
+    glfwMakeContextCurrent(window);
     std::vector<uint32_t> indices(inTriangleCount * 3);
     for(uint32_t i = 0; i < indices.size(); i++) {
         indices.at(i) = i;
@@ -80,6 +139,7 @@ OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Triangle *inT
 JPH::DebugRenderer::Batch
 OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Vertex *inVertices, int inVertexCount,
                                          const JPH::uint32 *inIndices, int inIndexCount) {
+    std::cout << "Creating batch with vertex count " << inVertexCount << " and index count " << inIndexCount << std::endl;
     GeometryBuffer buffer = generateGeometryBuffer(inVertices, inVertexCount, inIndices, inIndexCount);
     return new OpenGLBatchImplementation(buffer);
 }
@@ -90,24 +150,48 @@ void OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::
                                        JPH::DebugRenderer::ECullMode inCullMode,
                                        JPH::DebugRenderer::ECastShadow inCastShadow,
                                        JPH::DebugRenderer::EDrawMode inDrawMode) {
+    std::unique_lock<std::mutex> ensureUnique(drawLock);
+    glfwMakeContextCurrent(window);
+    GeometryBuffer& buffer = reinterpret_cast<OpenGLBatchImplementation*>(inGeometry->mLODs.at(0).mTriangleBatch.GetPtr())->buffer;
+    glBindVertexArray(buffer.vaoID);
 
+    float aspectRatio = float(windowWidth) / float(windowHeight);
+
+    glm::mat4 projectionMatrix = glm::perspective<float>(glm::radians(90.0), aspectRatio, 0.01, 100);
+    glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -5));
+    glm::mat4 modelMatrix = toGLMMatrix(inModelMatrix);
+
+    glm::mat4 MV = viewMatrix * modelMatrix;
+    glm::mat4 MVP = projectionMatrix * MV;
+    glm::mat4 normalMatrix = glm::inverseTranspose(MV);
+
+    shader.setUniform(30, glm::value_ptr(MVP));
+    shader.setUniform(31, glm::value_ptr(MV));
+    shader.setUniform(32, glm::value_ptr(normalMatrix));
+
+    shader.setUniform(20, float(inModelColor.r) / 255.0f, float(inModelColor.g) / 255.0f, float(inModelColor.b) / 255.0f);
+
+    glDrawElements(GL_TRIANGLES, buffer.indexCount, GL_UNSIGNED_INT, nullptr);
 }
 
 void OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor,
                                      float inHeight) {
-
+    std::unique_lock<std::mutex> ensureUnique(drawLock);
+    glfwMakeContextCurrent(window);
+    std::cout << "Drawing text: " << inString << std::endl;
 }
 
 void OpenGLDebugRenderer::nextFrame() {
-    while (!glfwWindowShouldClose(window))
-    {
-        // Clear colour and depth buffers
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    std::cout << "  -> new frame" << std::endl;
+    std::unique_lock<std::mutex> ensureUnique(drawLock);
+    glfwMakeContextCurrent(window);
+    glfwSwapBuffers(window);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glfwGetWindowSize(window, &windowWidth, &windowHeight);
+    glViewport(0, 0, windowWidth, windowHeight);
+    glfwPollEvents();
+}
 
-        int windowWidth;
-        int windowHeight;
-        glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        glViewport(0, 0, windowWidth, windowHeight);
-        glfwSwapBuffers(window);
-    }
+bool OpenGLDebugRenderer::windowShouldClose() {
+    return glfwWindowShouldClose(window);
 }

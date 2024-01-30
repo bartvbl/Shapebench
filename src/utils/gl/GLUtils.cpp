@@ -34,7 +34,7 @@ GLFWwindow* GLinitialise()
     const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
     // Create window using GLFW
-    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Symmetry", glfwGetPrimaryMonitor(), nullptr);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "Symmetry", nullptr, nullptr);
 
     // Ensure the window is set up correctly
     if (!window)
@@ -59,6 +59,8 @@ GLFWwindow* GLinitialise()
     printf("GLFW\t %s\n", glfwGetVersionString());
     printf("OpenGL\t %s\n", glGetString(GL_VERSION));
     printf("GLSL\t %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+    glClearColor(0.3, 0.3, 0.3, 1.0);
 
     return window;
 }

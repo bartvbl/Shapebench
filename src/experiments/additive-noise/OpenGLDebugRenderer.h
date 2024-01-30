@@ -8,6 +8,11 @@
 class OpenGLDebugRenderer : public JPH::DebugRenderer {
     Shader shader;
     GLFWwindow* window;
+    JPH::Vec3 cameraPosition = {0, 0, 0};
+    JPH::Vec3 cameraOrientation = {0, 0, 0};
+    int windowWidth;
+    int windowHeight;
+    std::mutex drawLock;
 
 public:
     OpenGLDebugRenderer();
@@ -20,4 +25,7 @@ public:
     virtual void DrawText3D(JPH::RVec3Arg inPosition, const JPH::string_view &inString, JPH::ColorArg inColor, float inHeight) override;
 
     void nextFrame();
+    bool windowShouldClose();
+
+
 };

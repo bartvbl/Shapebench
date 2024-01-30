@@ -423,7 +423,7 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     const uint32_t attractionForceDurationSeconds = 100;
     const uint32_t attractionForceStepCount = attractionForceDurationSeconds * simulationFrameRate;
 
-    OpenGLDebugRenderer renderer;
+    OpenGLDebugRenderer* renderer = new OpenGLDebugRenderer();
 
 
 
@@ -438,6 +438,7 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     while (anyBodyActive(&body_interface, simulatedBodies))
     {
         steps++;
+        std::cout << "Frame " << steps << std::endl;
         if(steps < attractionForceStepCount) {
             JPH::RVec3 referenceObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
             for(int i = 1; i < meshes.size(); i++) {
@@ -457,8 +458,12 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
 
         JPH::BodyManager::DrawSettings settings;
         settings.mDrawShape = true;
-        physics_system.DrawBodies(settings, &renderer);
-        renderer.nextFrame();
+        physics_system.DrawBodies(settings, renderer);
+        renderer->nextFrame();
+        if(renderer->windowShouldClose()) {
+            exit(0);
+        }
+
     }
     std::cout << "    Simulation completed in " << steps << " steps." << std::endl;
 
@@ -466,6 +471,8 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     for(int i = 0; i < meshes.size(); i++) {
         totalVertexCount += meshes.at(i).vertexCount;
     }
+
+    delete renderer;
 
     ShapeDescriptor::cpu::Mesh outputMesh(totalVertexCount);
     uint32_t nextVertexIndex = 0;
