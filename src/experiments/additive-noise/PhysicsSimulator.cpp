@@ -446,8 +446,10 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
                 JPH::RVec3 sampleObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
                 JPH::RVec3 deltaVector = referenceObjectPosition - sampleObjectPosition;
                 deltaVector /= deltaVector.Length();
-                JPH::RVec3 forceDirection = 1500 * deltaVector;
+                JPH::RVec3 forceDirection = (int(5000) - int(steps) * int(5000/attractionForceStepCount)) * deltaVector;
                 body_interface.AddForce(simulatedBodies.at(i), forceDirection);
+
+                body_interface.AddForce(simulatedBodies.at(0), -forceDirection);
             }
         }
 
