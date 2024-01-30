@@ -164,6 +164,11 @@ namespace Shapebench {
             float supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
             return ShapeDescriptor::generateSpinImages(cloud, descriptorOrigins, supportRadius, supportAngleDegrees);
         }
+
+        static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
+            return isPointInCylindricalVolume(descriptorOrigin, supportRadius, supportRadius, samplePoint);
+        }
+
         static std::string getName() {
             return "SI";
         }

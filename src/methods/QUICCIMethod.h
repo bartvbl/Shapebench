@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Method.h"
+#include "utils/methodUtils/commonSupportVolumeIntersectionTests.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 
@@ -121,6 +122,10 @@ namespace Shapebench {
         }
         static std::string getName() {
             return "QUICCI";
+        }
+
+        static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
+            return isPointInCylindricalVolume(descriptorOrigin, supportRadius, supportRadius, samplePoint);
         }
 
         static ShapeDescriptor::cpu::array<uint32_t> computeDescriptorRanks(
