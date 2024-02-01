@@ -199,7 +199,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
 
     //TODO: read these from a config file
     VHACD::IVHACD::Parameters parameters;
-    parameters.m_maxConvexHulls = 100;
+    parameters.m_maxConvexHulls = 64;
     parameters.m_resolution = 10000;
     parameters.m_maxRecursionDepth = 64; // max allowed by the library
     parameters.m_maxNumVerticesPerCH = 256; // Jolt physics limitation
@@ -435,11 +435,12 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
 
     uint32_t steps = 0;
 
+    bool runUntilManualExit = false;
+
     std::cout << "Running physics simulation.." << std::endl;
-    while (anyBodyActive(&body_interface, simulatedBodies))
+    while (anyBodyActive(&body_interface, simulatedBodies) || (runUntilManualExit && !renderer->windowShouldClose()))
     {
         steps++;
-        std::cout << "Frame " << steps << std::endl;
         if(steps < attractionForceStepCount) {
             JPH::RVec3 referenceObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
             for(int i = 1; i < meshes.size(); i++) {
@@ -475,6 +476,7 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
         totalVertexCount += meshes.at(i).vertexCount;
     }
 
+    renderer->destroy();
     delete renderer;
 
     ShapeDescriptor::cpu::Mesh outputMesh(totalVertexCount);

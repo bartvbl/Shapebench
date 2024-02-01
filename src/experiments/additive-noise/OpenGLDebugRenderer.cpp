@@ -182,14 +182,18 @@ void OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::
     float aspectRatio = float(windowWidth) / float(windowHeight);
 
     glm::mat4 projectionMatrix = glm::perspective<float>(glm::radians(90.0), aspectRatio, 0.01, 100);
-    glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0, -4, -8));
+    glm::mat4 viewMatrix =
+          glm::rotate<float>(glm::mat4(1.0), cameraOrientation.x, glm::vec3(1, 0, 0))
+        * glm::rotate<float>(glm::mat4(1.0), cameraOrientation.y, glm::vec3(0, 1, 0))
+        * glm::rotate<float>(glm::mat4(1.0), cameraOrientation.z, glm::vec3(0, 0, 1))
+        * glm::translate(glm::mat4(1.0), glm::vec3(cameraPosition.x, cameraPosition.y, cameraPosition.z));
     glm::mat4 modelMatrix = toGLMMatrix(inModelMatrix);
 
     glm::mat4 MV = viewMatrix * modelMatrix;
     glm::mat4 MVP = projectionMatrix * MV;
     glm::mat4 normalMatrix = glm::inverseTranspose(MV);
 
-    glm::vec4 lightPosition = MV * glm::vec4(0, -10, 0, 1);
+    glm::vec4 lightPosition = MV * glm::vec4(0, 10, 0, 1);
 
     shader.setUniform(30, glm::value_ptr(MVP));
     shader.setUniform(31, glm::value_ptr(MV));
@@ -210,6 +214,54 @@ void OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string
 }
 
 void OpenGLDebugRenderer::nextFrame() {
+    glEnable(GL_DEPTH_TEST);
+
+    const float rotationSpeed = 0.01;
+    const float movementSpeed = 0.1;
+    if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        cameraOrientation.y += rotationSpeed;
+    }
+    if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        cameraOrientation.y -= rotationSpeed;
+    }
+    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        cameraOrientation.x -= rotationSpeed;
+    }
+    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        cameraOrientation.x += rotationSpeed;
+    }
+
+    float dx = 0;
+    float dy = 0;
+
+    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        dx += 1;
+    }
+    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        dx -= 1;
+    }
+    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        dy -= 1;
+    }
+    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        dy += 1;
+    }
+    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        cameraPosition.y -= movementSpeed;
+    }
+    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        cameraPosition.y += movementSpeed;
+    }
+
+    float angleYRadiansForward = cameraOrientation.y;
+    float angleYRadiansSideways = cameraOrientation.y + float(M_PI / 2.0);
+
+    cameraPosition.x += dy * std::sin(angleYRadiansForward) * movementSpeed;
+    cameraPosition.z -= dy * std::cos(angleYRadiansForward) * movementSpeed;
+
+    cameraPosition.x -= dx * std::sin(angleYRadiansSideways) * movementSpeed;;
+    cameraPosition.z += dx * std::cos(angleYRadiansSideways) * movementSpeed;
+
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
     glfwSwapBuffers(window);
@@ -221,4 +273,8 @@ void OpenGLDebugRenderer::nextFrame() {
 
 bool OpenGLDebugRenderer::windowShouldClose() {
     return glfwWindowShouldClose(window);
+}
+
+void OpenGLDebugRenderer::destroy() {
+    glfwDestroyWindow(window);
 }

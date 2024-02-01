@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shapeDescriptor/shapeDescriptor.h>
 #include "Jolt/Jolt.h"
 #include "Jolt/Renderer/DebugRenderer.h"
 #include "utils/gl/Shader.h"
@@ -8,8 +9,8 @@
 class OpenGLDebugRenderer : public JPH::DebugRenderer {
     Shader shader;
     GLFWwindow* window;
-    JPH::Vec3 cameraPosition = {0, 0, 0};
-    JPH::Vec3 cameraOrientation = {0, 0, 0};
+    ShapeDescriptor::cpu::float3 cameraPosition = {-4.74, -5.8, 0.34};
+    ShapeDescriptor::cpu::float3 cameraOrientation = {0.62, 4.9, 0};
     int windowWidth;
     int windowHeight;
     std::mutex drawLock;
@@ -28,4 +29,5 @@ public:
     bool windowShouldClose();
 
 
+    void destroy();
 };
