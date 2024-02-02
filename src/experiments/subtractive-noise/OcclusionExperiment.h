@@ -4,7 +4,7 @@
 #include "json.hpp"
 #include "benchmark-core/ComputedConfig.h"
 #include "benchmark-core/Dataset.h"
-#include "OcclusionGenerator.h"
+#include "filters/subtractive-noise/OcclusionGenerator.h"
 
 
 template<typename DescriptorMethod, typename DescriptorType>

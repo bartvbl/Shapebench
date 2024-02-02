@@ -8,8 +8,8 @@
 #include "glm/gtc/matrix_inverse.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include <shapeDescriptor/shapeDescriptor.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 #include <mutex>
 
 class OpenGLBatchImplementation : public JPH::RefTargetVirtual

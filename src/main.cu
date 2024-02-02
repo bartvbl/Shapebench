@@ -11,7 +11,7 @@
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
 #include "benchmark-core/ComputedConfig.h"
-#include "experiments/additive-noise/PhysicsSimulator.h"
+#include "filters/additive-noise/PhysicsSimulator.h"
 #include "experiments/additive-noise/ClutterExperiment.h"
 #include "benchmark-core/experimentRunner.h"
 #include <random>
