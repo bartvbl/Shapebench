@@ -253,6 +253,10 @@ void OpenGLDebugRenderer::nextFrame() {
         cameraPosition.y += movementSpeed;
     }
 
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
+        glfwSetWindowShouldClose(window, true);
+    }
+
     float angleYRadiansForward = cameraOrientation.y;
     float angleYRadiansSideways = cameraOrientation.y + float(M_PI / 2.0);
 
