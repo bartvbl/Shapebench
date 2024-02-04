@@ -414,10 +414,10 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
         materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
         JPH::StaticCompoundShapeSettings* compoundSettings = meshHullReplacements.at(i);
         JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, 3.0f * float(i+1), 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
+
         simulatedBodies.at(i) = meshBodyID;
     }
 
-    // We simulate the physics world in discrete time steps. 60 Hz is a good rate to update the physics system.
     const uint32_t simulationFrameRate = 165;
     const float cDeltaTime = 1.0f / float(simulationFrameRate);
 
@@ -483,9 +483,9 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
     uint32_t nextVertexIndex = 0;
 
     for(int i = 0; i < meshes.size(); i++) {
-        JPH::RVec3 outputPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
-        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(outputPosition.GetX(), outputPosition.GetY(), outputPosition.GetZ()));
+        JPH::RVec3 outputPosition = body_interface.GetPosition(simulatedBodies.at(i));
         JPH::Quat rotation = body_interface.GetRotation(simulatedBodies.at(i));
+        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(outputPosition.GetX(), outputPosition.GetY(), outputPosition.GetZ()));
         glm::mat4 rotationMatrix = glm::toMat4(glm::qua(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ()));
         glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
         glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
