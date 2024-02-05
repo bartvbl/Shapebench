@@ -253,7 +253,7 @@ namespace Shapebench {
 
 
         std::chrono::time_point end = std::chrono::steady_clock::now();
-        std::cout << std::endl << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;
+        std::cout << std::endl << "    Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;
 
         float highestMean = 0;
         float highestMeanSupportRadius = 0;

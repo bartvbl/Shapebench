@@ -52,49 +52,25 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
     return representativeDescriptors;
 }
 
-template<typename DescriptorMethod, typename DescriptorType>
-void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
-    std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
-    Shapebench::randomEngine engine(randomSeed);
-    std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
-    std::cout << "Main config file: " << configFileLocation.string() << std::endl;
-    std::cout << "Computed values config file: " << computedConfigFilePath.string() << std::endl;
-    ComputedConfig computedConfig(computedConfigFilePath);
-    const std::string methodName = DescriptorMethod::getName();
-
-    // Getting a support radius
-    float supportRadius = 0;
-    if(!computedConfig.containsKey(methodName, "supportRadius")) {
-        std::cout << "No support radius has been computed yet for this method." << std::endl;
-        std::cout << "Performing support radius estimation.." << std::endl;
-        supportRadius = Shapebench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
-        std::cout << "    Chosen support radius: " << supportRadius << std::endl;
-        computedConfig.setFloatAndSave(methodName, "supportRadius", supportRadius);
-    } else {
-        supportRadius = computedConfig.getFloat(methodName, "supportRadius");
-        std::cout << "Cached support radius was found for this method: " << supportRadius << std::endl;
-    }
-
-    // Computing sample descriptors and their distance to the representative set
-    uint32_t representativeSetSize = configuration.at("experiments").at("sharedSettings").at("representativeSetSize");
-    uint32_t sampleSetSize = configuration.at("experiments").at("sharedSettings").at("sampleSetSize");
-
-    uint64_t representativeSetRandomSeed = engine();
-    uint64_t sampleSetRandomSeed = engine();
-
-
-    std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(representativeSetRandomSeed, representativeSetSize);
-    const std::filesystem::path descriptorCacheFile = std::filesystem::path(std::string(configuration.at("cacheDirectory"))) / ("referenceDescriptors-" + DescriptorMethod::getName() + ".dat");
+template<typename DescriptorType, typename DescriptorMethod>
+ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
+        const nlohmann::json &configuration,
+        const Dataset &dataset,
+        float supportRadius,
+        uint64_t representativeSetRandomSeed,
+        const std::vector<VertexInDataset> &representativeSet,
+        std::string name) {
+    const std::filesystem::path descriptorCacheFile = std::filesystem::path(std::string(configuration.at("cacheDirectory"))) / (name + "Descriptors-" + DescriptorMethod::getName() + ".dat");
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors;
     if(!std::filesystem::exists(descriptorCacheFile)) {
-        std::cout << "No cached reference descriptors were found." << std::endl;
-        std::cout << "Computing reference descriptors.." << std::endl;
+        std::cout << "    No cached " + name + " descriptors were found." << std::endl;
+        std::cout << "    Computing " + name + " descriptors.." << std::endl;
         referenceDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, representativeSetRandomSeed, supportRadius);
-        std::cout << "Reference descriptors computed. Writing archive file.." << std::endl;
+        std::cout << "    Finished computing " + name + " descriptors. Writing archive file.." << std::endl;
         ShapeDescriptor::writeCompressedDescriptors<DescriptorType>(descriptorCacheFile, referenceDescriptors);
 
-        std::cout << "Checking integrity of written data.." << std::endl;
-        std::cout << "    Reading written file.." << std::endl;
+        std::cout << "    Checking integrity of written data.." << std::endl;
+        std::cout << "        Reading written file.." << std::endl;
         ShapeDescriptor::cpu::array<DescriptorType> readDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile);
         assert(referenceDescriptors.length == readDescriptors.length);
         for(uint32_t i = 0; i < referenceDescriptors.length; i++) {
@@ -109,16 +85,55 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         std::cout << "    Check complete, no errors detected." << std::endl;
         ShapeDescriptor::free(readDescriptors);
     } else {
-        std::cout << "Loading cached reference descriptors.." << std::endl;
+        std::cout << "    Loading cached " + name + " descriptors.." << std::endl;
         referenceDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile);
     }
+    return referenceDescriptors;
+}
 
+template<typename DescriptorMethod, typename DescriptorType>
+void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
+    std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
+    std::cout << "Initialising.." << std::endl;
+    Shapebench::randomEngine engine(randomSeed);
+    std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
+    std::cout << "    Main config file: " << configFileLocation.string() << std::endl;
+    std::cout << "    Computed values config file: " << computedConfigFilePath.string() << std::endl;
+    ComputedConfig computedConfig(computedConfigFilePath);
+    const std::string methodName = DescriptorMethod::getName();
+
+    // Getting a support radius
+    std::cout << "Determining support radius.." << std::endl;
+    float supportRadius = 0;
+    if(!computedConfig.containsKey(methodName, "supportRadius")) {
+        std::cout << "    No support radius has been computed yet for this method." << std::endl;
+        std::cout << "    Performing support radius estimation.." << std::endl;
+        supportRadius = Shapebench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
+        std::cout << "    Chosen support radius: " << supportRadius << std::endl;
+        computedConfig.setFloatAndSave(methodName, "supportRadius", supportRadius);
+    } else {
+        supportRadius = computedConfig.getFloat(methodName, "supportRadius");
+        std::cout << "    Cached support radius was found for this method: " << supportRadius << std::endl;
+    }
+
+    // Computing sample descriptors and their distance to the representative set
+    uint32_t representativeSetSize = configuration.at("experiments").at("sharedSettings").at("representativeSetSize");
+    uint32_t sampleSetSize = configuration.at("experiments").at("sharedSettings").at("sampleSetSize");
+
+    // Compute reference descriptors, or load them from a cache file
+    std::cout << "Computing reference descriptor set.." << std::endl;
+    uint64_t representativeSetRandomSeed = engine();
+    std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(representativeSetRandomSeed, representativeSetSize);
+    ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, representativeSetRandomSeed, representativeSet, "reference");
+
+    // Computing sample descriptors, or load them from a cache file
+    uint64_t sampleSetRandomSeed = engine();
     std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(sampleSetRandomSeed, sampleSetSize);
+    //ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, representativeSetRandomSeed, sampleVerticesSet, "sample");
+
 
     // Running experiments
     uint64_t clutterExperimentRandomSeed = engine();
-
-
 
 
 }
