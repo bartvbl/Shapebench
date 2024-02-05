@@ -117,7 +117,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     // Running experiments
     uint64_t clutterExperimentRandomSeed = engine();
-    runClutterExperiment<DescriptorMethod, DescriptorType>(configuration, computedConfig, dataset, clutterExperimentRandomSeed);
+
 
 
 
