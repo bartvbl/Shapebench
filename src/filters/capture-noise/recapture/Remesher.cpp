@@ -4,13 +4,13 @@
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/remeshing.h"
 
-void remesh(ShapeDescriptor::cpu::Mesh &mesh) {
+void remesh(Shapebench::FiltereredMeshPair& scene) {
     // Convert to PMP Mesh
     pmp::SurfaceMesh pmpMesh;
-    for(uint32_t i = 0; i < mesh.vertexCount; i += 3) {
-        ShapeDescriptor::cpu::float3 sourceVertex0 = mesh.vertices[i + 0];
-        ShapeDescriptor::cpu::float3 sourceVertex1 = mesh.vertices[i + 1];
-        ShapeDescriptor::cpu::float3 sourceVertex2 = mesh.vertices[i + 2];
+    for(uint32_t i = 0; i < scene.alteredMesh.vertexCount; i += 3) {
+        ShapeDescriptor::cpu::float3 sourceVertex0 = scene.alteredMesh.vertices[i + 0];
+        ShapeDescriptor::cpu::float3 sourceVertex1 = scene.alteredMesh.vertices[i + 1];
+        ShapeDescriptor::cpu::float3 sourceVertex2 = scene.alteredMesh.vertices[i + 2];
 
         pmp::Vertex vertex0 = pmpMesh.add_vertex(pmp::Point(sourceVertex0.x, sourceVertex0.y, sourceVertex0.z));
         pmp::Vertex vertex1 = pmpMesh.add_vertex(pmp::Point(sourceVertex1.x, sourceVertex1.y, sourceVertex1.z));
@@ -37,9 +37,9 @@ void remesh(ShapeDescriptor::cpu::Mesh &mesh) {
         for (auto v: pmpMesh.vertices(f)) {
             auto idx = v.idx();
             const pmp::Point p = points.vector().at(idx);
-            mesh.vertices[nextVertexIndex] = {p.data()[0], p.data()[1], p.data()[2]};
+            scene.alteredMesh.vertices[nextVertexIndex] = {p.data()[0], p.data()[1], p.data()[2]};
             nextVertexIndex++;
-            assert(nextVertexIndex <= mesh.vertexCount);
+            assert(nextVertexIndex <= scene.alteredMesh.vertexCount);
         }
     }
 }
