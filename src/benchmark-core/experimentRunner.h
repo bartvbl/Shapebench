@@ -44,7 +44,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
     uint32_t timeInHours = timeInSeconds / 3600;
     timeInSeconds -= timeInHours * 3600;
     uint32_t timeInMinutes = timeInSeconds / 60;
-    timeInSeconds -= timeInSeconds * 60;
+    timeInSeconds -= timeInMinutes * 60;
     std::cout << std::endl;
     std::cout << "    Complete." << std::endl;
     std::cout << "    Elapsed time: " << timeInHours << ":" << timeInMinutes << ":" << timeInSeconds << std::endl;
