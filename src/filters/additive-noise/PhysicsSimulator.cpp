@@ -276,7 +276,7 @@ void initPhysics() {
     JPH::RegisterTypes();
 }
 
-ClutteredScene createClutteredScene(const nlohmann::json &config, const ShapeDescriptor::cpu::Mesh referenceMesh, const Dataset &dataset, uint64_t randomSeed) {
+ShapeDescriptor::cpu::Mesh createClutteredScene(const nlohmann::json &config, const ShapeDescriptor::cpu::Mesh referenceMesh, const Dataset &dataset, uint64_t randomSeed) {
     bool enabled = config.at("experiments").at("additiveNoise").at("enabled");
     if(!enabled) {
         std::cout << "    Experiment disabled. Skipping." << std::endl;
@@ -504,5 +504,5 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const ShapeDes
     delete JPH::Factory::sInstance;
     JPH::Factory::sInstance = nullptr;
 
-    return {};
+    return outputMesh;
 }
