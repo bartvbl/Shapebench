@@ -3,6 +3,7 @@
 #include <random>
 #include <iostream>
 #include "json.hpp"
+#include "randomEngine.h"
 
 void Dataset::load(const std::filesystem::path &cacheFile) {
     std::ifstream inputStream{cacheFile};
@@ -40,7 +41,7 @@ std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32
     std::vector<uint32_t> sampleHistogram(entries.size());
     std::vector<VertexInDataset> sampledEntries(count);
 
-    std::mt19937_64 engine(randomSeed);
+    Shapebench::randomEngine engine(randomSeed);
     std::uniform_int_distribution<uint32_t> distribution(0, entries.size() - 1);
 
     for(uint32_t i = 0; i < count; i++) {

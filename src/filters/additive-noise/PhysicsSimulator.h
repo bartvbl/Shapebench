@@ -11,4 +11,4 @@ struct ClutteredScene {
 };
 
 void initPhysics();
-ClutteredScene createClutteredScene(const nlohmann::json& config, const ComputedConfig& computedConfig, const Dataset& dataset, uint64_t randomSeed);
+ClutteredScene createClutteredScene(const nlohmann::json& config, const ShapeDescriptor::cpu::Mesh referenceMesh, const Dataset& dataset, uint64_t randomSeed);

@@ -235,27 +235,6 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
         convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexShape, 0);
     }
 
-
-
-    /*for (uint32_t i = 0; i < subdivider->GetNConvexHulls(); i++)
-    {
-        VHACD::IVHACD::ConvexHull ch;
-        iface->GetConvexHull(i, ch);
-        char outputName[2048];
-        snprintf(outputName, sizeof(outputName), "Hull%03d", i);
-        SimpleMesh sm;
-        sm.mIndices = (const uint32_t *)&ch.m_triangles[0];
-        sm.mVertices = (const double *)&ch.m_points[0];
-        sm.mTriangleCount = uint32_t(ch.m_triangles.size());
-        sm.mVertexCount = uint32_t(ch.m_points.size());
-        float meshColor[3] = { 1,1,1};
-        uint32_t colorIdx = i%10;
-        meshColor[0] = (float)colorCycle[colorIdx][0] / 255;
-        meshColor[1] = (float)colorCycle[colorIdx][1] / 255;
-        meshColor[2] = (float)colorCycle[colorIdx][2] / 255;
-        s->saveMesh(outputName,sm,meshColor);
-    }*/
-
     subdivider->Release();
 
     return convexHullContainer;
@@ -297,7 +276,7 @@ void initPhysics() {
     JPH::RegisterTypes();
 }
 
-ClutteredScene createClutteredScene(const nlohmann::json &config, const ComputedConfig &computedConfig, const Dataset &dataset, uint64_t randomSeed) {
+ClutteredScene createClutteredScene(const nlohmann::json &config, const ShapeDescriptor::cpu::Mesh referenceMesh, const Dataset &dataset, uint64_t randomSeed) {
     bool enabled = config.at("experiments").at("additiveNoise").at("enabled");
     if(!enabled) {
         std::cout << "    Experiment disabled. Skipping." << std::endl;
@@ -320,17 +299,20 @@ ClutteredScene createClutteredScene(const nlohmann::json &config, const Computed
 
     uint32_t clutterObjectCount = config.at("experiments").at("additiveNoise").at("addedObjectCount");
     std::filesystem::path datasetRootDir = config.at("compressedDatasetRootDir");
-    std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed + 1, clutterObjectCount + 1);
-    std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size());
-    std::vector<JPH::TriangleList> joltMeshes(chosenVertices.size());
+    std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
+    std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
+    meshes.at(0) = referenceMesh;
+    std::vector<JPH::TriangleList> joltMeshes(meshes.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
 
     #pragma omp parallel for
     for(uint32_t i = 0; i < meshes.size(); i++) {
-        DatasetEntry entry = dataset.at(chosenVertices.at(i).meshID);
-        std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
-        meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
-        moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
+        if(i > 0) {
+            DatasetEntry entry = dataset.at(chosenVertices.at(i).meshID);
+            std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
+            meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
+            moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
+        }
         meshHullReplacements.at(i) = convertMeshToConvexHulls(meshes.at(i));
     }
 

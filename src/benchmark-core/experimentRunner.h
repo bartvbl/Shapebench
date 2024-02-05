@@ -11,7 +11,7 @@
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<VertexInDataset>& representativeSet, const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed, float supportRadius) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    std::mt19937_64 randomEngine(randomSeed);
+    Shapebench::randomEngine randomEngine(randomSeed);
     std::vector<uint64_t> randomSeeds(representativeSet.size());
     for(uint32_t i = 0; i < representativeSet.size(); i++) {
         randomSeeds.at(i) = randomEngine();
@@ -55,7 +55,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
 template<typename DescriptorMethod, typename DescriptorType>
 void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
     std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
-    std::mt19937_64 engine(randomSeed);
+    Shapebench::randomEngine engine(randomSeed);
     std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
     std::cout << "Main config file: " << configFileLocation.string() << std::endl;
     std::cout << "Computed values config file: " << computedConfigFilePath.string() << std::endl;

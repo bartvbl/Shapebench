@@ -7,6 +7,7 @@
 #include "glm/gtc/type_ptr.hpp"
 #include <iostream>
 #include "GLFW/glfw3.h"
+#include "benchmark-core/randomEngine.h"
 #include <random>
 
 OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig) {
@@ -24,7 +25,7 @@ ShapeDescriptor::cpu::Mesh OccludedSceneGenerator::computeOccludedMesh(const Sha
     // Handle other events
     glfwPollEvents();
 
-    std::mt19937_64 randomEngine(seed);
+    Shapebench::randomEngine randomEngine(seed);
 
     std::vector<ShapeDescriptor::cpu::float3> vertexColours(mesh.vertexCount);
     for(unsigned int triangle = 0; triangle < mesh.vertexCount / 3; triangle++) {

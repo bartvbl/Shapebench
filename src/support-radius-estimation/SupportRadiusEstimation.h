@@ -12,6 +12,7 @@
 #include "benchmark-core/referenceSetDistanceKernel.cuh"
 #include "benchmark-core/common-procedures/pointCloudSampler.h"
 #include "benchmark-core/common-procedures/meshLoader.h"
+#include "benchmark-core/randomEngine.h"
 
 namespace Shapebench {
     inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const Dataset& dataset, VertexInDataset vertex) {
@@ -121,7 +122,7 @@ namespace Shapebench {
         static_assert(std::is_base_of<Shapebench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
 
 
-        std::mt19937_64 randomEngine(randomSeed);
+        Shapebench::randomEngine randomEngine(randomSeed);
 
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
         uint32_t representativeSetSize = supportRadiusConfig.at("representativeSetObjectCount");
