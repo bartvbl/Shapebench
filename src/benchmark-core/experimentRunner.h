@@ -131,6 +131,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     // Running experiments
 
+    std::cout << "Cleaning up.." << std::endl;
+    ShapeDescriptor::free(referenceDescriptors);
 
-
+    std::cout << "Experiments completed." << std::endl;
 }
