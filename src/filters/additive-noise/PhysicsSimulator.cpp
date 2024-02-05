@@ -276,7 +276,7 @@ void initPhysics() {
     JPH::RegisterTypes();
 }
 
-ShapeDescriptor::cpu::Mesh createClutteredScene(const nlohmann::json &config, const ShapeDescriptor::cpu::Mesh referenceMesh, const Dataset &dataset, uint64_t randomSeed) {
+void createClutteredScene(const nlohmann::json &config, Shapebench::FiltereredMeshPair& scene, const Dataset &dataset, uint64_t randomSeed) {
     bool enabled = config.at("experiments").at("additiveNoise").at("enabled");
     if(!enabled) {
         std::cout << "    Experiment disabled. Skipping." << std::endl;
@@ -301,7 +301,7 @@ ShapeDescriptor::cpu::Mesh createClutteredScene(const nlohmann::json &config, co
     std::filesystem::path datasetRootDir = config.at("compressedDatasetRootDir");
     std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
-    meshes.at(0) = referenceMesh;
+    meshes.at(0) = scene.alteredMesh;
     std::vector<JPH::TriangleList> joltMeshes(meshes.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
 
@@ -485,7 +485,10 @@ ShapeDescriptor::cpu::Mesh createClutteredScene(const nlohmann::json &config, co
         nextVertexIndex += mesh.vertexCount;
     }
 
-    ShapeDescriptor::writeOBJ(outputMesh, "debug_output.obj");
+    //ShapeDescriptor::writeOBJ(outputMesh, "debug_output.obj");
+
+    ShapeDescriptor::free(scene.alteredMesh);
+    scene.alteredMesh = outputMesh;
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
@@ -503,6 +506,4 @@ ShapeDescriptor::cpu::Mesh createClutteredScene(const nlohmann::json &config, co
     // Destroy the factory
     delete JPH::Factory::sInstance;
     JPH::Factory::sInstance = nullptr;
-
-    return outputMesh;
 }

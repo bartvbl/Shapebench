@@ -4,8 +4,9 @@
 #include "TriangleMapping.h"
 
 namespace Shapebench {
-    struct AlteredMesh {
-        ShapeDescriptor::cpu::Mesh mesh;
+    struct FiltereredMeshPair {
+        ShapeDescriptor::cpu::Mesh originalMesh;
+        ShapeDescriptor::cpu::Mesh alteredMesh;
         Shapebench::TriangleMapping mapping;
     };
 }
