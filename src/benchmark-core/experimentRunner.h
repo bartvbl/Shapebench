@@ -122,18 +122,15 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     // Compute reference descriptors, or load them from a cache file
     std::cout << "Computing reference descriptor set.." << std::endl;
-    uint64_t representativeSetRandomSeed = engine();
-    std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(representativeSetRandomSeed, representativeSetSize);
-    ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, representativeSetRandomSeed, representativeSet, "reference");
+    std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize);
+    ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
 
     // Computing sample descriptors, or load them from a cache file
-    uint64_t sampleSetRandomSeed = engine();
-    std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(sampleSetRandomSeed, sampleSetSize);
+    std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize);
     //ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, representativeSetRandomSeed, sampleVerticesSet, "sample");
 
-
     // Running experiments
-    uint64_t clutterExperimentRandomSeed = engine();
+
 
 
 }
