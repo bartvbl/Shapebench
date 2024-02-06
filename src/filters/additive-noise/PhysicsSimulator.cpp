@@ -261,7 +261,7 @@ bool anyBodyActive(JPH::BodyInterface *bodyInterface, const std::vector<JPH::Bod
 }
 
 
-void initPhysics() {
+void ShapeBench::initPhysics() {
     // Register allocation hook
     JPH::RegisterDefaultAllocator();
 
@@ -276,7 +276,7 @@ void initPhysics() {
     JPH::RegisterTypes();
 }
 
-void addClutterToScene(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
+void ShapeBench::addClutterToScene(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
     bool enabled = config.at("experiments").at("additiveNoise").at("enabled");
     if(!enabled) {
         std::cout << "    Experiment disabled. Skipping." << std::endl;
