@@ -295,7 +295,7 @@ void ShapeBench::addClutterToScene(const nlohmann::json& config, ShapeBench::Fil
     std::filesystem::path datasetRootDir = config.at("compressedDatasetRootDir");
     std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
-    meshes.at(0) = scene.alteredMesh;
+    meshes.at(0) = scene.filteredSampleMesh;
     std::vector<JPH::TriangleList> joltMeshes(meshes.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
 
@@ -447,15 +447,16 @@ void ShapeBench::addClutterToScene(const nlohmann::json& config, ShapeBench::Fil
     }
     std::cout << "    Simulation completed in " << steps << " steps." << std::endl;
 
-    uint32_t totalVertexCount = 0;
-    for(int i = 0; i < meshes.size(); i++) {
-        totalVertexCount += meshes.at(i).vertexCount;
+    uint32_t totalAdditiveNoiseVertexCount = 0;
+    for(int i = 1; i < meshes.size(); i++) {
+        totalAdditiveNoiseVertexCount += meshes.at(i).vertexCount;
     }
 
     renderer->destroy();
     delete renderer;
 
-    ShapeDescriptor::cpu::Mesh outputMesh(totalVertexCount);
+    ShapeDescriptor::cpu::Mesh outputSampleMesh(meshes.at(0).vertexCount);
+    ShapeDescriptor::cpu::Mesh outputAdditiveNoiseMesh(totalAdditiveNoiseVertexCount);
     uint32_t nextVertexIndex = 0;
 
     for(int i = 0; i < meshes.size(); i++) {
@@ -467,22 +468,28 @@ void ShapeBench::addClutterToScene(const nlohmann::json& config, ShapeBench::Fil
         glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
         JPH::RVec3 centerOfMass = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
 
+        ShapeDescriptor::cpu::Mesh& meshToWriteTo = (i == 0) ? outputSampleMesh : outputAdditiveNoiseMesh;
+
         const ShapeDescriptor::cpu::Mesh& mesh = meshes.at(i);
         for(uint32_t vertexIndex = 0; vertexIndex < mesh.vertexCount; vertexIndex++) {
             ShapeDescriptor::cpu::float3 vertex = mesh.vertices[vertexIndex];
             ShapeDescriptor::cpu::float3 normal = mesh.normals[vertexIndex];
             glm::vec4 transformedVertexGLM = transformationMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0);
-            outputMesh.vertices[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedVertexGLM.x, transformedVertexGLM.y, transformedVertexGLM.z);
+            meshToWriteTo.vertices[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedVertexGLM.x, transformedVertexGLM.y, transformedVertexGLM.z);
             glm::vec3 transformedNormalGLM = glm::normalize(glm::vec3(normalMatrix * glm::vec4(normal.x, normal.y, normal.z, 1)));
-            outputMesh.normals[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedNormalGLM.x, transformedNormalGLM.y, transformedNormalGLM.z);
+            meshToWriteTo.normals[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedNormalGLM.x, transformedNormalGLM.y, transformedNormalGLM.z);
         }
-        nextVertexIndex += mesh.vertexCount;
+        if(i > 0) {
+            nextVertexIndex += mesh.vertexCount;
+        }
     }
 
     //ShapeDescriptor::writeOBJ(outputMesh, "debug_output.obj");
 
-    ShapeDescriptor::free(scene.alteredMesh);
-    scene.alteredMesh = outputMesh;
+    ShapeDescriptor::free(scene.filteredAdditiveNoise);
+    scene.filteredAdditiveNoise = outputAdditiveNoiseMesh;
+    ShapeDescriptor::free(scene.filteredSampleMesh);
+    scene.filteredSampleMesh = outputSampleMesh;
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
