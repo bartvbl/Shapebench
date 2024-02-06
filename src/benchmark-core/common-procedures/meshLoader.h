@@ -4,7 +4,7 @@
 #include "json.hpp"
 #include "benchmark-core/Dataset.h"
 
-namespace Shapebench {
+namespace ShapeBench {
     inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, const DatasetEntry &datasetEntry) {
         const std::filesystem::path &pathInDataset = datasetEntry.meshFile;
         float computedBoundingSphereRadius = datasetEntry.computedObjectRadius;

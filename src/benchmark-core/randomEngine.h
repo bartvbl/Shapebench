@@ -2,7 +2,7 @@
 
 #include <random>
 
-namespace Shapebench {
+namespace ShapeBench {
     using randomEngine = std::mt19937_64;
 }
 

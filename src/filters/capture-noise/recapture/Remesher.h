@@ -4,5 +4,6 @@
 #include <filters/FiltereredMeshPair.h>
 
 
-
-void remesh(Shapebench::FiltereredMeshPair &scene);
+namespace ShapeBench {
+    void remesh(ShapeBench::FilteredMeshPair &scene);
+}

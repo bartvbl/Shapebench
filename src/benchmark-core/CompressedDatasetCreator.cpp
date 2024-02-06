@@ -5,7 +5,7 @@
 #include "json.hpp"
 #include <Seb.h>
 
-void Shapebench::computeCompressedDataSet(const std::filesystem::path &originalDatasetDirectory,
+void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalDatasetDirectory,
                                           const std::filesystem::path &compressedDatasetDirectory,
                                           std::filesystem::path metadataFile) {
     const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::listDirectoryAndSubdirectories(originalDatasetDirectory);

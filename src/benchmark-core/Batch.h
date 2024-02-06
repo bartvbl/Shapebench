@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace Shapebench {
+namespace ShapeBench {
     template<typename indexType>
     class Batch {
         indexType totalElementCount = 0;

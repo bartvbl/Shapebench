@@ -7,7 +7,7 @@
 #include "support-radius-estimation/SupportRadiusEstimation.h"
 #include "pointCloudSampler.h"
 
-namespace Shapebench {
+namespace ShapeBench {
     template<typename DescriptorMethod, typename DescriptorType>
     DescriptorType computeSingleDescriptor(const ShapeDescriptor::cpu::Mesh& mesh,
                                  const ShapeDescriptor::cpu::PointCloud& pointCloud,

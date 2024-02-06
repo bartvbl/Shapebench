@@ -5,7 +5,7 @@
 #include "json.hpp"
 #include "randomEngine.h"
 
-void Dataset::load(const std::filesystem::path &cacheFile) {
+void ShapeBench::Dataset::load(const std::filesystem::path &cacheFile) {
     std::ifstream inputStream{cacheFile};
     nlohmann::json cacheFileContents = nlohmann::json::parse(inputStream);
 
@@ -37,11 +37,11 @@ void Dataset::load(const std::filesystem::path &cacheFile) {
     std::sort(entries.begin(), entries.end());
 }
 
-std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32_t count) const {
+std::vector<ShapeBench::VertexInDataset> ShapeBench::Dataset::sampleVertices(uint64_t randomSeed, uint32_t count) const {
     std::vector<uint32_t> sampleHistogram(entries.size());
     std::vector<VertexInDataset> sampledEntries(count);
 
-    Shapebench::randomEngine engine(randomSeed);
+    ShapeBench::randomEngine engine(randomSeed);
     std::uniform_int_distribution<uint32_t> distribution(0, entries.size() - 1);
 
     for(uint32_t i = 0; i < count; i++) {
@@ -61,10 +61,10 @@ std::vector<VertexInDataset> Dataset::sampleVertices(uint64_t randomSeed, uint32
     return sampledEntries;
 }
 
-const DatasetEntry &Dataset::at(uint32_t meshID) const {
+const ShapeBench::DatasetEntry &ShapeBench::Dataset::at(uint32_t meshID) const {
     return entries.at(meshID);
 }
 
-bool DatasetEntry::operator<(DatasetEntry &other) {
+bool ShapeBench::DatasetEntry::operator<(DatasetEntry &other) {
     return id < other.id;
 }

@@ -15,7 +15,7 @@
 class OpenGLBatchImplementation : public JPH::RefTargetVirtual
 {
 public:
-    explicit OpenGLBatchImplementation(GeometryBuffer _buffer) : buffer(_buffer) {  }
+    explicit OpenGLBatchImplementation(ShapeBench::GeometryBuffer _buffer) : buffer(_buffer) {  }
 
     virtual void AddRef() override {
         ++mRefCount;
@@ -26,11 +26,11 @@ public:
         }
     }
     JPH::atomic<uint32_t> mRefCount = 0;
-    GeometryBuffer buffer;
+    ShapeBench::GeometryBuffer buffer;
 };
 
-GeometryBuffer generateGeometryBuffer(const JPH::DebugRenderer::Vertex* vertices, uint32_t vertexCount, const uint32_t* indices, uint32_t indexCount) {
-    GeometryBuffer buffer;
+ShapeBench::GeometryBuffer generateGeometryBuffer(const JPH::DebugRenderer::Vertex* vertices, uint32_t vertexCount, const uint32_t* indices, uint32_t indexCount) {
+    ShapeBench::GeometryBuffer buffer;
 
     glGenVertexArrays(1, &buffer.vaoID);
     glBindVertexArray(buffer.vaoID);
@@ -105,7 +105,7 @@ inline void printGLError() {
 }
 
 
-OpenGLDebugRenderer::OpenGLDebugRenderer() {
+ShapeBench::OpenGLDebugRenderer::OpenGLDebugRenderer() {
     window = GLinitialise();
     printGLError();
 
@@ -118,13 +118,13 @@ OpenGLDebugRenderer::OpenGLDebugRenderer() {
     printGLError();
 }
 
-void OpenGLDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) {
+void ShapeBench::OpenGLDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
     std::cout << "Drawing line: "  << inFrom << " -> " << inTo << std::endl;
 }
 
-void OpenGLDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor,
+void ShapeBench::OpenGLDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor,
                                   JPH::DebugRenderer::ECastShadow inCastShadow) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
@@ -141,7 +141,7 @@ glm::mat4 toGLMMatrix(const JPH::Mat44 &mat44) {
 }
 
 JPH::DebugRenderer::Batch
-OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Triangle *inTriangles, int inTriangleCount) {
+ShapeBench::OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Triangle *inTriangles, int inTriangleCount) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
     std::vector<uint32_t> indices(inTriangleCount * 3);
@@ -159,14 +159,14 @@ OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Triangle *inT
 }
 
 JPH::DebugRenderer::Batch
-OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Vertex *inVertices, int inVertexCount,
+ShapeBench::OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Vertex *inVertices, int inVertexCount,
                                          const JPH::uint32 *inIndices, int inIndexCount) {
     std::cout << "Creating batch with vertex count " << inVertexCount << " and index count " << inIndexCount << std::endl;
     GeometryBuffer buffer = generateGeometryBuffer(inVertices, inVertexCount, inIndices, inIndexCount);
     return new OpenGLBatchImplementation(buffer);
 }
 
-void OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::AABox &inWorldSpaceBounds,
+void ShapeBench::OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::AABox &inWorldSpaceBounds,
                                        float inLODScaleSq, JPH::ColorArg inModelColor,
                                        const JPH::DebugRenderer::GeometryRef &inGeometry,
                                        JPH::DebugRenderer::ECullMode inCullMode,
@@ -206,14 +206,14 @@ void OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::
     printGLError();
 }
 
-void OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor,
+void ShapeBench::OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor,
                                      float inHeight) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
     std::cout << "Drawing text: " << inString << std::endl;
 }
 
-void OpenGLDebugRenderer::nextFrame() {
+void ShapeBench::OpenGLDebugRenderer::nextFrame() {
     glEnable(GL_DEPTH_TEST);
 
     const float rotationSpeed = 0.01;
@@ -275,10 +275,10 @@ void OpenGLDebugRenderer::nextFrame() {
     glfwPollEvents();
 }
 
-bool OpenGLDebugRenderer::windowShouldClose() {
+bool ShapeBench::OpenGLDebugRenderer::windowShouldClose() {
     return glfwWindowShouldClose(window);
 }
 
-void OpenGLDebugRenderer::destroy() {
+void ShapeBench::OpenGLDebugRenderer::destroy() {
     glfwDestroyWindow(window);
 }

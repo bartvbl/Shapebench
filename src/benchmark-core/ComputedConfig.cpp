@@ -1,7 +1,7 @@
 #include <fstream>
 #include "ComputedConfig.h"
 
-void ComputedConfig::save() {
+void ShapeBench::ComputedConfig::save() {
     // Create backup of previous version of file (or include it?)
     if(std::filesystem::exists(configFilePath)) {
         int backupVersion = 1;
@@ -23,7 +23,7 @@ void ComputedConfig::save() {
     outStream << configValues.dump(4);
 }
 
-ComputedConfig::ComputedConfig(const std::filesystem::path &configFileLocation) : configFilePath{configFileLocation} {
+ShapeBench::ComputedConfig::ComputedConfig(const std::filesystem::path &configFileLocation) : configFilePath{configFileLocation} {
     if(!std::filesystem::exists(configFileLocation)) {
         // Create empty config file
         std::ofstream emptyConfigFileStream{configFileLocation};
@@ -41,39 +41,39 @@ void ensureMethodIsPresent(nlohmann::json& config, std::string methodName) {
     }
 }
 
-float ComputedConfig::getFloat(std::string methodName, std::string valueName) {
+float ShapeBench::ComputedConfig::getFloat(std::string methodName, std::string valueName) {
     ensureMethodIsPresent(configValues, methodName);
     return configValues.at(methodName).at(valueName);
 }
 
-int32_t ComputedConfig::getInt(std::string methodName, std::string valueName) {
+int32_t ShapeBench::ComputedConfig::getInt(std::string methodName, std::string valueName) {
     ensureMethodIsPresent(configValues, methodName);
     return configValues.at(methodName).at(valueName);
 }
 
-std::string ComputedConfig::getString(std::string methodName, std::string valueName) {
+std::string ShapeBench::ComputedConfig::getString(std::string methodName, std::string valueName) {
     ensureMethodIsPresent(configValues, methodName);
     return configValues.at(methodName).at(valueName);
 }
 
-void ComputedConfig::setFloatAndSave(std::string methodName, std::string valueName, float value) {
+void ShapeBench::ComputedConfig::setFloatAndSave(std::string methodName, std::string valueName, float value) {
     ensureMethodIsPresent(configValues, methodName);
     configValues.at(methodName)[valueName] = value;
     save();
 }
 
-void ComputedConfig::setIntAndSave(std::string methodName, std::string valueName, int32_t value) {
+void ShapeBench::ComputedConfig::setIntAndSave(std::string methodName, std::string valueName, int32_t value) {
     ensureMethodIsPresent(configValues, methodName);
     configValues.at(methodName)[valueName] = value;
     save();
 }
 
-void ComputedConfig::setStringAndSave(std::string methodName, std::string valueName, std::string value) {
+void ShapeBench::ComputedConfig::setStringAndSave(std::string methodName, std::string valueName, std::string value) {
     ensureMethodIsPresent(configValues, methodName);
     configValues.at(methodName)[valueName] = value;
     save();
 }
 
-bool ComputedConfig::containsKey(std::string methodName, std::string valueName) {
+bool ShapeBench::ComputedConfig::containsKey(std::string methodName, std::string valueName) {
     return configValues.contains(methodName) && configValues.at(methodName).contains(valueName);
 }

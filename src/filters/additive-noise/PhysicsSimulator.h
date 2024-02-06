@@ -6,5 +6,7 @@
 #include "benchmark-core/Dataset.h"
 #include "filters/FiltereredMeshPair.h"
 
-void initPhysics();
-void addClutterToScene(const nlohmann::json& config, Shapebench::FiltereredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed);
+namespace ShapeBench {
+    void initPhysics();
+    void addClutterToScene(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed);
+}

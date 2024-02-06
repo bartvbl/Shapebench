@@ -10,22 +10,22 @@
 #include "benchmark-core/randomEngine.h"
 #include <random>
 
-OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig) {
+ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig) {
     offscreenTextureWidth = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(0);
     offscreenTextureHeight = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(1);
     init();
 }
 
-OccludedSceneGenerator::~OccludedSceneGenerator() {
+ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
     destroy();
 }
 
 // Mesh is assumed to be fit inside unit sphere
-ShapeDescriptor::cpu::Mesh OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mesh, uint64_t seed) {
+ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mesh, uint64_t seed) {
     // Handle other events
     glfwPollEvents();
 
-    Shapebench::randomEngine randomEngine(seed);
+    ShapeBench::randomEngine randomEngine(seed);
 
     std::vector<ShapeDescriptor::cpu::float3> vertexColours(mesh.vertexCount);
     for(unsigned int triangle = 0; triangle < mesh.vertexCount / 3; triangle++) {
@@ -139,7 +139,7 @@ ShapeDescriptor::cpu::Mesh OccludedSceneGenerator::computeOccludedMesh(const Sha
     return outMesh;
 }
 
-void OccludedSceneGenerator::destroy() {
+void ShapeBench::OccludedSceneGenerator::destroy() {
     if(isDestroyed) {
         return;
     }
@@ -151,7 +151,7 @@ void OccludedSceneGenerator::destroy() {
     isDestroyed = true;
 }
 
-void OccludedSceneGenerator::init() {
+void ShapeBench::OccludedSceneGenerator::init() {
     window = GLinitialise();
     objectIDShader = loadShader("res/shaders/", "objectIDShader");
     fullscreenQuadShader = loadShader("res/shaders/", "fullscreenquad");

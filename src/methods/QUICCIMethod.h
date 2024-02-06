@@ -5,8 +5,8 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 
-namespace Shapebench {
-    struct QUICCIMethod : public Shapebench::Method<ShapeDescriptor::QUICCIDescriptor> {
+namespace ShapeBench {
+    struct QUICCIMethod : public ShapeBench::Method<ShapeDescriptor::QUICCIDescriptor> {
         __host__ __device__ static __inline__ float computeDescriptorDistance(
                 const ShapeDescriptor::QUICCIDescriptor& descriptor,
                 const ShapeDescriptor::QUICCIDescriptor& otherDescriptor) {

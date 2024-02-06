@@ -2,4 +2,6 @@
 
 #include <GLFW/glfw3.h>
 
-GLFWwindow* GLinitialise();
+namespace ShapeBench {
+    GLFWwindow* GLinitialise();
+}

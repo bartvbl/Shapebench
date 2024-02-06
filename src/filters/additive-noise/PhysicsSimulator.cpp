@@ -276,7 +276,7 @@ void initPhysics() {
     JPH::RegisterTypes();
 }
 
-void addClutterToScene(const nlohmann::json& config, Shapebench::FiltereredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed) {
+void addClutterToScene(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
     bool enabled = config.at("experiments").at("additiveNoise").at("enabled");
     if(!enabled) {
         std::cout << "    Experiment disabled. Skipping." << std::endl;
@@ -299,7 +299,7 @@ void addClutterToScene(const nlohmann::json& config, Shapebench::FiltereredMeshP
 
     uint32_t clutterObjectCount = config.at("experiments").at("additiveNoise").at("addedObjectCount");
     std::filesystem::path datasetRootDir = config.at("compressedDatasetRootDir");
-    std::vector<VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
+    std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
     meshes.at(0) = scene.alteredMesh;
     std::vector<JPH::TriangleList> joltMeshes(meshes.size());
@@ -308,7 +308,7 @@ void addClutterToScene(const nlohmann::json& config, Shapebench::FiltereredMeshP
     #pragma omp parallel for
     for(uint32_t i = 0; i < meshes.size(); i++) {
         if(i > 0) {
-            DatasetEntry entry = dataset.at(chosenVertices.at(i).meshID);
+            ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i).meshID);
             std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
             meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
             moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
@@ -406,7 +406,7 @@ void addClutterToScene(const nlohmann::json& config, Shapebench::FiltereredMeshP
     const uint32_t attractionForceDurationSeconds = 100;
     const uint32_t attractionForceStepCount = attractionForceDurationSeconds * simulationFrameRate;
 
-    OpenGLDebugRenderer* renderer = new OpenGLDebugRenderer();
+    ShapeBench::OpenGLDebugRenderer* renderer = new ShapeBench::OpenGLDebugRenderer();
 
 
 

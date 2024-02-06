@@ -4,7 +4,7 @@
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/remeshing.h"
 
-void remesh(Shapebench::FiltereredMeshPair& scene) {
+void ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene) {
     // Convert to PMP Mesh
     pmp::SurfaceMesh pmpMesh;
     for(uint32_t i = 0; i < scene.alteredMesh.vertexCount; i += 3) {

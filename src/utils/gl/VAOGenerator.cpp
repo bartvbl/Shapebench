@@ -2,7 +2,7 @@
 #include <vector>
 #include "VAOGenerator.h"
 
-GeometryBuffer generateVertexArray(
+ShapeBench::GeometryBuffer ShapeBench::generateVertexArray(
         ShapeDescriptor::cpu::float3 *vertices,
         ShapeDescriptor::cpu::float3 *normals,
         ShapeDescriptor::cpu::float3* colours,

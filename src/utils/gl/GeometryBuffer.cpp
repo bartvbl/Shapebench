@@ -1,7 +1,7 @@
 #include "glad/gl.h"
 #include "GeometryBuffer.h"
 
-void GeometryBuffer::destroy() {
+void ShapeBench::GeometryBuffer::destroy() {
     if(vaoID != 0xFFFFFFFF) {
         glDeleteVertexArrays(1, &vaoID);
         vaoID = 0xFFFFFFFF;

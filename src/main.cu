@@ -61,7 +61,7 @@ int main(int argc, const char** argv) {
 
 
     if(!configuration.contains("cacheDirectory")) {
-        throw Shapebench::MissingBenchmarkConfigurationException("cacheDirectory");
+        throw ShapeBench::MissingBenchmarkConfigurationException("cacheDirectory");
     }
     const std::filesystem::path cacheDirectory = configuration.at("cacheDirectory");
     if(!std::filesystem::exists(cacheDirectory)) {
@@ -71,24 +71,24 @@ int main(int argc, const char** argv) {
 
 
     if(!configuration.contains("compressedDatasetRootDir")) {
-        throw Shapebench::MissingBenchmarkConfigurationException("compressedDatasetRootDir");
+        throw ShapeBench::MissingBenchmarkConfigurationException("compressedDatasetRootDir");
     }
     const std::filesystem::path baseDatasetDirectory = configuration.at("objaverseDatasetRootDir");
     const std::filesystem::path derivedDatasetDirectory = configuration.at("compressedDatasetRootDir");
-    const std::filesystem::path datasetCacheFile = cacheDirectory / Shapebench::datasetCacheFileName;
+    const std::filesystem::path datasetCacheFile = cacheDirectory / ShapeBench::datasetCacheFileName;
     if(!std::filesystem::exists(datasetCacheFile) || !std::filesystem::exists(derivedDatasetDirectory)) {
         std::cout << "Dataset metadata or compressed dataset was not found." << std::endl
                   << "Computing compressed dataset.. (this will likely take multiple hours)" << std::endl;
-        Shapebench::computeCompressedDataSet(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
+        ShapeBench::computeCompressedDataSet(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
     }
 
     std::cout << "Reading dataset cache.." << std::endl;
-    Dataset dataset;
+    ShapeBench::Dataset dataset;
     dataset.load(datasetCacheFile);
 
-    initPhysics();
+    ShapeBench::initPhysics();
 
     uint64_t randomSeed = configuration.at("randomSeed");
-    testMethod<Shapebench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
-    testMethod<Shapebench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    //testMethod<ShapeBench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
 }

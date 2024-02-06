@@ -9,9 +9,9 @@
 #include "utils/progressBar.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
-ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<VertexInDataset>& representativeSet, const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed, float supportRadius) {
+ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    Shapebench::randomEngine randomEngine(randomSeed);
+    ShapeBench::randomEngine randomEngine(randomSeed);
     std::vector<uint64_t> randomSeeds(representativeSet.size());
     for(uint32_t i = 0; i < representativeSet.size(); i++) {
         randomSeeds.at(i) = randomEngine();
@@ -22,12 +22,12 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
     #pragma omp parallel for schedule(dynamic)
     for(int i = 0; i < representativeSet.size(); i++) {
         ShapeDescriptor::OrientedPoint descriptorOrigin;
-        VertexInDataset vertex = representativeSet.at(i);
-        const DatasetEntry& entry = dataset.at(vertex.meshID);
-        ShapeDescriptor::cpu::Mesh mesh = Shapebench::readDatasetMesh(config, entry);
+        ShapeBench::VertexInDataset vertex = representativeSet.at(i);
+        const ShapeBench::DatasetEntry& entry = dataset.at(vertex.meshID);
+        ShapeDescriptor::cpu::Mesh mesh = ShapeBench::readDatasetMesh(config, entry);
         descriptorOrigin.vertex = mesh.vertices[vertex.vertexIndex];
         descriptorOrigin.normal = mesh.normals[vertex.vertexIndex];
-        representativeDescriptors[i] = Shapebench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, descriptorOrigin, config, supportRadius, randomSeeds.at(i));
+        representativeDescriptors[i] = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, descriptorOrigin, config, supportRadius, randomSeeds.at(i));
         ShapeDescriptor::free(mesh);
 
         #pragma omp atomic
@@ -35,7 +35,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
 
         if(completedCount % 100 == 0 || completedCount == representativeSet.size()) {
             std::cout << "\r    ";
-            drawProgressBar(completedCount, representativeSet.size());
+            ShapeBench::drawProgressBar(completedCount, representativeSet.size());
             std::cout << " " << completedCount << "/" << representativeSet.size() << std::flush;
         }
     }
@@ -55,10 +55,10 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
 template<typename DescriptorType, typename DescriptorMethod>
 ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
         const nlohmann::json &configuration,
-        const Dataset &dataset,
+        const ShapeBench::Dataset &dataset,
         float supportRadius,
         uint64_t representativeSetRandomSeed,
-        const std::vector<VertexInDataset> &representativeSet,
+        const std::vector<ShapeBench::VertexInDataset> &representativeSet,
         std::string name) {
     const std::filesystem::path descriptorCacheFile = std::filesystem::path(std::string(configuration.at("cacheDirectory"))) / (name + "Descriptors-" + DescriptorMethod::getName() + ".dat");
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors;
@@ -71,7 +71,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
 
         std::cout << "    Checking integrity of written data.." << std::endl;
         std::cout << "        Reading written file.." << std::endl;
-        ShapeDescriptor::cpu::array<DescriptorType> readDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile);
+        ShapeDescriptor::cpu::array<DescriptorType> readDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile, 8);
         assert(referenceDescriptors.length == readDescriptors.length);
         for(uint32_t i = 0; i < referenceDescriptors.length; i++) {
             char* basePointerA = reinterpret_cast<char*>(&referenceDescriptors.content[i]);
@@ -86,20 +86,20 @@ ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
         ShapeDescriptor::free(readDescriptors);
     } else {
         std::cout << "    Loading cached " + name + " descriptors.." << std::endl;
-        referenceDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile);
+        referenceDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile, 8);
     }
     return referenceDescriptors;
 }
 
 template<typename DescriptorMethod, typename DescriptorType>
-void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const Dataset& dataset, uint64_t randomSeed) {
+void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
     std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
     std::cout << "Initialising.." << std::endl;
-    Shapebench::randomEngine engine(randomSeed);
+    ShapeBench::randomEngine engine(randomSeed);
     std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
     std::cout << "    Main config file: " << configFileLocation.string() << std::endl;
     std::cout << "    Computed values config file: " << computedConfigFilePath.string() << std::endl;
-    ComputedConfig computedConfig(computedConfigFilePath);
+    ShapeBench::ComputedConfig computedConfig(computedConfigFilePath);
     const std::string methodName = DescriptorMethod::getName();
 
     // Getting a support radius
@@ -108,7 +108,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     if(!computedConfig.containsKey(methodName, "supportRadius")) {
         std::cout << "    No support radius has been computed yet for this method." << std::endl;
         std::cout << "    Performing support radius estimation.." << std::endl;
-        supportRadius = Shapebench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
+        supportRadius = ShapeBench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
         std::cout << "    Chosen support radius: " << supportRadius << std::endl;
         computedConfig.setFloatAndSave(methodName, "supportRadius", supportRadius);
     } else {
@@ -117,16 +117,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     }
 
     // Computing sample descriptors and their distance to the representative set
-    uint32_t representativeSetSize = configuration.at("experiments").at("sharedSettings").at("representativeSetSize");
-    uint32_t sampleSetSize = configuration.at("experiments").at("sharedSettings").at("sampleSetSize");
+    uint32_t representativeSetSize = configuration.at("commonExperimentSettings").at("representativeSetSize");
+    uint32_t sampleSetSize = configuration.at("commonExperimentSettings").at("sampleSetSize");
 
     // Compute reference descriptors, or load them from a cache file
     std::cout << "Computing reference descriptor set.." << std::endl;
-    std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize);
+    std::vector<ShapeBench::VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize);
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
 
     // Computing sample descriptors, or load them from a cache file
-    std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize);
+    std::vector<ShapeBench::VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize);
     //ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, representativeSetRandomSeed, sampleVerticesSet, "sample");
 
     // Running experiments

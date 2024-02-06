@@ -1,6 +1,6 @@
 #include "commonSupportVolumeIntersectionTests.h"
 
-bool isPointInCylindricalVolume(ShapeDescriptor::OrientedPoint referencePoint,
+bool ShapeBench::isPointInCylindricalVolume(ShapeDescriptor::OrientedPoint referencePoint,
                                 float cylinderRadius, float cylinderHeight,
                                 ShapeDescriptor::cpu::float3 point) {
     float beta = dot(point - referencePoint.vertex, referencePoint.normal) / dot(referencePoint.normal, referencePoint.normal);
@@ -13,7 +13,7 @@ bool isPointInCylindricalVolume(ShapeDescriptor::OrientedPoint referencePoint,
     return alpha <= cylinderRadius && beta >= -cylinderHalfHeight && beta <= cylinderHalfHeight;
 }
 
-bool isPointInSphericalVolume(ShapeDescriptor::OrientedPoint referencePoint,
+bool ShapeBench::isPointInSphericalVolume(ShapeDescriptor::OrientedPoint referencePoint,
                               float supportRadius,
                               ShapeDescriptor::cpu::float3 point) {
     ShapeDescriptor::cpu::float3 delta = point - referencePoint.vertex;

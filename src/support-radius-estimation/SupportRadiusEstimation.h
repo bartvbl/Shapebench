@@ -14,13 +14,13 @@
 #include "benchmark-core/common-procedures/meshLoader.h"
 #include "benchmark-core/randomEngine.h"
 
-namespace Shapebench {
-    inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const Dataset& dataset, VertexInDataset vertex) {
+namespace ShapeBench {
+    inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const ShapeBench::Dataset& dataset, ShapeBench::VertexInDataset vertex) {
         // We load the mesh for each vertex. This assumes that most of these will be unique anyway
         // That is, there is only one vertex sampled per mesh.
         // If this assumption changes later we'll have to create a second vector containing an index buffer
         // which mesh in a condensed vector to use
-        const DatasetEntry& entry = dataset.at(vertex.meshID);
+        const ShapeBench::DatasetEntry& entry = dataset.at(vertex.meshID);
         return readDatasetMesh(config, entry);
     }
 
@@ -60,7 +60,7 @@ namespace Shapebench {
     };
 
     template<typename DescriptorType>
-    DistanceStatistics computeDistances(std::vector<DescriptorDistance>& distances, uint32_t sampleDescriptorCount) {
+    DistanceStatistics computeDistances(std::vector<ShapeBench::DescriptorDistance>& distances, uint32_t sampleDescriptorCount) {
         DistanceStatistics stats;
         stats.meanOfMeans = 0;
         stats.meanOfVariance = 0;
@@ -79,7 +79,7 @@ namespace Shapebench {
         return stats;
     }
 
-    void printDistancesTable(const std::vector<DescriptorDistance> &distances,
+    void printDistancesTable(const std::vector<ShapeBench::DescriptorDistance> &distances,
                              uint32_t numberOfSampleDescriptors,
                              float supportRadiusStart,
                              float supportRadiusStep,
@@ -119,10 +119,10 @@ namespace Shapebench {
 
     template<typename DescriptorMethod, typename DescriptorType>
     float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed) {
-        static_assert(std::is_base_of<Shapebench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
+        static_assert(std::is_base_of<ShapeBench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
 
 
-        Shapebench::randomEngine randomEngine(randomSeed);
+        ShapeBench::randomEngine randomEngine(randomSeed);
 
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
         uint32_t representativeSetSize = supportRadiusConfig.at("representativeSetObjectCount");
@@ -172,7 +172,7 @@ namespace Shapebench {
                 representativeSetPointCloud = computePointCloud(representativeSetMesh, config, referencePointCloudSamplingSeed);
             }
 
-            Shapebench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
+            ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
                     referenceVertex, representativeSetMesh, representativeSetPointCloud, config,
                     supportRadiiToTry, generatedDescriptors);
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
@@ -205,7 +205,7 @@ namespace Shapebench {
                 sampleSetPointCloud = computePointCloud(sampleSetMesh, config, samplePointCloudSamplingSeed);
             }
 
-            Shapebench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
+            ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
                     sampleVertex, sampleSetMesh, sampleSetPointCloud, config,
                     supportRadiiToTry, generatedDescriptors);
 

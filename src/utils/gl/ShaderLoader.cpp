@@ -103,9 +103,9 @@ void validateProgram(unsigned int programID) {
     }
 }
 
-Shader createShader(ShaderSource* source) {
+ShapeBench::Shader createShader(ShaderSource* source) {
     unsigned int programID = glCreateProgram();
-    Shader shader(programID);
+    ShapeBench::Shader shader(programID);
     uint32_t attachedCount = 0;
 
     if(!source->vertexShaderSource.empty()) {
@@ -150,7 +150,7 @@ bool allSourcesEmpty(ShaderSource &sources) {
         && sources.vertexShaderSource.empty();
 }
 
-Shader loadShader(const std::filesystem::path& directory, const std::string& fileName) {
+ShapeBench::Shader ShapeBench::loadShader(const std::filesystem::path& directory, const std::string& fileName) {
     ShaderSource sources;
     sources.vertexShaderSource = tryFileLoad(directory / (fileName + ".vert"));
     sources.fragmentShaderSource = tryFileLoad(directory / (fileName + ".frag"));

@@ -5,8 +5,8 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 
-namespace Shapebench {
-    struct SIMethod : public Shapebench::Method<ShapeDescriptor::SpinImageDescriptor> {
+namespace ShapeBench {
+    struct SIMethod : public ShapeBench::Method<ShapeDescriptor::SpinImageDescriptor> {
         __host__ __device__ static __inline__ float computePearsonCorrelation(
                 const ShapeDescriptor::SpinImageDescriptor& descriptor,
                 const ShapeDescriptor::SpinImageDescriptor& otherDescriptor) {

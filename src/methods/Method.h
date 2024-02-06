@@ -2,10 +2,10 @@
 
 #include <shapeDescriptor/shapeDescriptor.h>
 
-namespace Shapebench {
+namespace ShapeBench {
     template<typename Type>
     inline Type readDescriptorConfigValue(const nlohmann::json& config, std::string methodName, std::string configEntryName) {
-        for(const nlohmann::json& entry : config.at("methodsToTest")) {
+        for(const nlohmann::json& entry : config.at("methodSettings")) {
             if(entry.at("name") == methodName) {
                 return Type(entry.at(configEntryName));
             }

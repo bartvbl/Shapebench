@@ -8,4 +8,6 @@
 #include "Shader.h"
 #include <filesystem>
 
-Shader loadShader(const std::filesystem::path& directory, const std::string& fileName);
+namespace ShapeBench {
+    Shader loadShader(const std::filesystem::path& directory, const std::string& fileName);
+}
