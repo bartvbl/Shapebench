@@ -277,12 +277,6 @@ void ShapeBench::initPhysics() {
 }
 
 void ShapeBench::addClutterToScene(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
-    bool enabled = config.at("experiments").at("additiveNoise").at("enabled");
-    if(!enabled) {
-        std::cout << "    Experiment disabled. Skipping." << std::endl;
-    }
-
-
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
     // B.t.w. 10 MB is way too much for this example but it is a typical value you can use.
