@@ -7,7 +7,7 @@
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
 #include "benchmarkCore/ComputedConfig.h"
-#include "filters/additiveNoise/PhysicsSimulator.h"
+#include "filters/additiveNoise/additiveNoiseFilter.h"
 #include "benchmarkCore/experimentRunner.h"
 
 

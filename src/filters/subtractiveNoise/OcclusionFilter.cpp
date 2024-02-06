@@ -1,5 +1,5 @@
 #include "glad/gl.h"
-#include "OcclusionGenerator.h"
+#include "OcclusionFilter.h"
 #include "utils/gl/GLUtils.h"
 #include "utils/gl/VAOGenerator.h"
 #include "utils/gl/Shader.h"

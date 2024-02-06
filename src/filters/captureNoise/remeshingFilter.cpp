@@ -1,6 +1,6 @@
 #include <iostream>
 #include <shapeDescriptor/shapeDescriptor.h>
-#include "Remesher.h"
+#include "remeshingFilter.h"
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/remeshing.h"
 
