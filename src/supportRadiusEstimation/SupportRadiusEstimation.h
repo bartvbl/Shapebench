@@ -4,15 +4,15 @@
 #include <iostream>
 #include <random>
 #include <malloc.h>
-#include "benchmark-core/Dataset.h"
+#include "benchmarkCore/Dataset.h"
 #include "json.hpp"
-#include "benchmark-core/Batch.h"
+#include "benchmarkCore/Batch.h"
 #include "methods/Method.h"
-#include "benchmark-core/common-procedures/descriptorGenerator.h"
-#include "benchmark-core/referenceSetDistanceKernel.cuh"
-#include "benchmark-core/common-procedures/pointCloudSampler.h"
-#include "benchmark-core/common-procedures/meshLoader.h"
-#include "benchmark-core/randomEngine.h"
+#include "benchmarkCore/common-procedures/descriptorGenerator.h"
+#include "benchmarkCore/referenceSetDistanceKernel.cuh"
+#include "benchmarkCore/common-procedures/pointCloudSampler.h"
+#include "benchmarkCore/common-procedures/meshLoader.h"
+#include "benchmarkCore/randomEngine.h"
 
 namespace ShapeBench {
     inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const ShapeBench::Dataset& dataset, ShapeBench::VertexInDataset vertex) {

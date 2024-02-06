@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "json.hpp"
-#include "benchmark-core/ComputedConfig.h"
+#include "benchmarkCore/ComputedConfig.h"
 
 #include "Jolt/Jolt.h"
 

@@ -2,8 +2,8 @@
 
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
-#include "benchmark-core/ComputedConfig.h"
-#include "benchmark-core/Dataset.h"
+#include "benchmarkCore/ComputedConfig.h"
+#include "benchmarkCore/Dataset.h"
 #include "GLFW/glfw3.h"
 #include "utils/gl/Shader.h"
 #include "utils/gl/GeometryBuffer.h"

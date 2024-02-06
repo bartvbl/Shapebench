@@ -1,6 +1,7 @@
 #pragma once
 
 #include <shapeDescriptor/shapeDescriptor.h>
+#include <nlohmann/json.hpp>
 
 namespace ShapeBench {
     template<typename Type>

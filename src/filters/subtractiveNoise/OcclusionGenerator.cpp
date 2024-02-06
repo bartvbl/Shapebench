@@ -7,7 +7,7 @@
 #include "glm/gtc/type_ptr.hpp"
 #include <iostream>
 #include "GLFW/glfw3.h"
-#include "benchmark-core/randomEngine.h"
+#include "benchmarkCore/randomEngine.h"
 #include <random>
 
 ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig) {

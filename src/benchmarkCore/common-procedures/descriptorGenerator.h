@@ -1,10 +1,10 @@
 #pragma once
 
 #include "shapeDescriptor/shapeDescriptor.h"
-#include "benchmark-core/Dataset.h"
+#include "benchmarkCore/Dataset.h"
 #include "json.hpp"
-#include "benchmark-core/Batch.h"
-#include "support-radius-estimation/SupportRadiusEstimation.h"
+#include "benchmarkCore/Batch.h"
+#include "supportRadiusEstimation/SupportRadiusEstimation.h"
 #include "pointCloudSampler.h"
 
 namespace ShapeBench {

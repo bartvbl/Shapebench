@@ -2,7 +2,7 @@
 
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
-#include "benchmark-core/Dataset.h"
+#include "benchmarkCore/Dataset.h"
 
 namespace ShapeBench {
     inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, const DatasetEntry &datasetEntry) {

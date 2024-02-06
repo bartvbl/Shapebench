@@ -5,7 +5,7 @@
 #include "json.hpp"
 #include "Dataset.h"
 #include "ComputedConfig.h"
-#include "support-radius-estimation/SupportRadiusEstimation.h"
+#include "supportRadiusEstimation/SupportRadiusEstimation.h"
 #include "utils/progressBar.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
