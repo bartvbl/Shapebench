@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shapeDescriptor/containerTypes.h>
+#include <shapeDescriptor/shapeDescriptor.h>
 
 namespace ShapeBench {
     struct FilteredMeshPair {

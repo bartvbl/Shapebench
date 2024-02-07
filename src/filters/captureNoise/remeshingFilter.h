@@ -1,7 +1,7 @@
 #pragma once
 
 #include <shapeDescriptor/containerTypes.h>
-#include "filters/FiltereredMeshPair.h"
+#include "filters/FilteredMeshPair.h"
 
 
 namespace ShapeBench {
