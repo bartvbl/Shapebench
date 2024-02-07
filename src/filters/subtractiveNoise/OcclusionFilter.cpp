@@ -10,7 +10,7 @@
 #include "benchmarkCore/randomEngine.h"
 #include <random>
 
-ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig) {
+ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config) {
     offscreenTextureWidth = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(0);
     offscreenTextureHeight = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(1);
     init();
@@ -21,14 +21,15 @@ ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
 }
 
 // Mesh is assumed to be fit inside unit sphere
-ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const ShapeDescriptor::cpu::Mesh mesh, uint64_t seed) {
+void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
     // Handle other events
     glfwPollEvents();
 
     ShapeBench::randomEngine randomEngine(seed);
 
-    std::vector<ShapeDescriptor::cpu::float3> vertexColours(mesh.vertexCount);
-    for(unsigned int triangle = 0; triangle < mesh.vertexCount / 3; triangle++) {
+    const uint32_t totalVertexCount = scene.filteredSampleMesh.vertexCount + scene.filteredAdditiveNoise.vertexCount;
+    std::vector<ShapeDescriptor::cpu::float3> vertexColours(totalVertexCount);
+    for(unsigned int triangle = 0; triangle < totalVertexCount / 3; triangle++) {
         float red = float((triangle & 0x00FF0000U) >> 16U) / 255.0f;
         float green = float((triangle & 0x0000FF00U) >> 8U) / 255.0f;
         float blue = float((triangle & 0x000000FFU) >> 0U) / 255.0f;
@@ -38,7 +39,14 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeOccludedMe
         vertexColours.at(3 * triangle + 2) = {red, green, blue};
     }
 
-    GeometryBuffer buffers = generateVertexArray(mesh.vertices, mesh.normals, vertexColours.data(), mesh.vertexCount);
+    GeometryBuffer sampleMeshBuffers = generateVertexArray(scene.filteredSampleMesh.vertices,
+                                                           scene.filteredSampleMesh.normals,
+                                                           vertexColours.data(),
+                                                           scene.filteredSampleMesh.vertexCount);
+    GeometryBuffer additiveNoiseBuffers = generateVertexArray(scene.filteredAdditiveNoise.vertices,
+                                                              scene.filteredAdditiveNoise.normals,
+                                                              vertexColours.data() + scene.filteredSampleMesh.vertexCount,
+                                                              scene.filteredAdditiveNoise.vertexCount);
 
     objectIDShader.use();
 
@@ -60,9 +68,11 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeOccludedMe
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBindVertexArray(buffers.vaoID);
     glEnable(GL_DEPTH_TEST);
-    glDrawElements(GL_TRIANGLES, mesh.vertexCount, GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(sampleMeshBuffers.vaoID);
+    glDrawElements(GL_TRIANGLES, scene.filteredSampleMesh.vertexCount, GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(additiveNoiseBuffers.vaoID);
+    glDrawElements(GL_TRIANGLES, scene.filteredAdditiveNoise.vertexCount, GL_UNSIGNED_INT, nullptr);
 
     // Do visibility testing
 
@@ -70,7 +80,7 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeOccludedMe
     glReadPixels(0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_RGB, GL_UNSIGNED_BYTE, localFramebufferCopy.data());
 
 
-    std::vector<bool> triangleAppearsInImage(mesh.vertexCount / 3);
+    std::vector<bool> triangleAppearsInImage(totalVertexCount / 3);
 
     for(size_t pixel = 0; pixel < offscreenTextureWidth * offscreenTextureHeight; pixel++) {
         unsigned int triangleIndex =
@@ -86,29 +96,53 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeOccludedMe
         triangleAppearsInImage.at(triangleIndex) = true;
     }
 
-    unsigned int visibleVertexCount = 0;
+    uint32_t visibleSampleMeshVertexCount = 0;
+    uint32_t visibleAdditiveNoiseVertexCount = 0;
     for(unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
         if(triangleAppearsInImage.at(triangle)) {
-            visibleVertexCount += 3;
+            if(3 * triangle < scene.filteredSampleMesh.vertexCount) {
+                visibleSampleMeshVertexCount += 3;
+            } else {
+                visibleAdditiveNoiseVertexCount += 3;
+            }
         }
     }
 
-    ShapeDescriptor::cpu::Mesh outMesh(visibleVertexCount);
+    ShapeDescriptor::cpu::Mesh occludedSampleMesh(visibleSampleMeshVertexCount);
+    ShapeDescriptor::cpu::Mesh occludedAdditiveNoiseMesh(visibleAdditiveNoiseVertexCount);
 
     uint32_t nextVisibleVertexIndex = 0;
     for(unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
+        uint32_t targetIndex = nextVisibleVertexIndex % visibleSampleMeshVertexCount;
         if(triangleAppearsInImage.at(triangle)) {
-            outMesh.vertices[nextVisibleVertexIndex + 0] = mesh.vertices[3 * triangle + 0];
-            outMesh.vertices[nextVisibleVertexIndex + 1] = mesh.vertices[3 * triangle + 1];
-            outMesh.vertices[nextVisibleVertexIndex + 2] = mesh.vertices[3 * triangle + 2];
+            if(3 * triangle < scene.filteredSampleMesh.vertexCount) {
+                occludedSampleMesh.vertices[targetIndex + 0] = scene.filteredSampleMesh.vertices[3 * triangle + 0];
+                occludedSampleMesh.vertices[targetIndex + 1] = scene.filteredSampleMesh.vertices[3 * triangle + 1];
+                occludedSampleMesh.vertices[targetIndex + 2] = scene.filteredSampleMesh.vertices[3 * triangle + 2];
 
-            outMesh.normals[nextVisibleVertexIndex + 0] = mesh.normals[3 * triangle + 0];
-            outMesh.normals[nextVisibleVertexIndex + 1] = mesh.normals[3 * triangle + 1];
-            outMesh.normals[nextVisibleVertexIndex + 2] = mesh.normals[3 * triangle + 2];
+                occludedSampleMesh.normals[targetIndex + 0] = scene.filteredSampleMesh.normals[3 * triangle + 0];
+                occludedSampleMesh.normals[targetIndex + 1] = scene.filteredSampleMesh.normals[3 * triangle + 1];
+                occludedSampleMesh.normals[targetIndex + 2] = scene.filteredSampleMesh.normals[3 * triangle + 2];
+            } else {
+                uint32_t baseIndex = 3 * triangle - scene.filteredSampleMesh.vertexCount;
+
+                occludedAdditiveNoiseMesh.vertices[targetIndex + 0] = scene.filteredAdditiveNoise.vertices[baseIndex + 0];
+                occludedAdditiveNoiseMesh.vertices[targetIndex + 1] = scene.filteredAdditiveNoise.vertices[baseIndex + 1];
+                occludedAdditiveNoiseMesh.vertices[targetIndex + 2] = scene.filteredAdditiveNoise.vertices[baseIndex + 2];
+
+                occludedAdditiveNoiseMesh.normals[targetIndex + 0] = scene.filteredAdditiveNoise.normals[baseIndex + 0];
+                occludedAdditiveNoiseMesh.normals[targetIndex + 1] = scene.filteredAdditiveNoise.normals[baseIndex + 1];
+                occludedAdditiveNoiseMesh.normals[targetIndex + 2] = scene.filteredAdditiveNoise.normals[baseIndex + 2];
+            }
 
             nextVisibleVertexIndex += 3;
         }
     }
+
+    ShapeDescriptor::free(scene.filteredSampleMesh);
+    ShapeDescriptor::free(scene.filteredAdditiveNoise);
+    scene.filteredSampleMesh = occludedSampleMesh;
+    scene.filteredAdditiveNoise = occludedAdditiveNoiseMesh;
 
     // Draw visible version
 
@@ -132,11 +166,11 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeOccludedMe
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
-    buffers.destroy();
+    sampleMeshBuffers.destroy();
+    additiveNoiseBuffers.destroy();
 
     // Flip buffers
     glfwSwapBuffers(window);
-    return outMesh;
 }
 
 void ShapeBench::OccludedSceneGenerator::destroy() {
@@ -193,4 +227,11 @@ void ShapeBench::OccludedSceneGenerator::init() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferID);
 
     localFramebufferCopy.resize(3 * offscreenTextureWidth * offscreenTextureHeight);
+}
+
+void ShapeBench::applyOcclusionFilter(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
+    OccludedSceneGenerator generator(config);
+    generator.init();
+    generator.computeOccludedMesh(scene, seed);
+    generator.destroy();
 }

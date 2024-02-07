@@ -7,6 +7,7 @@
 #include "GLFW/glfw3.h"
 #include "utils/gl/Shader.h"
 #include "utils/gl/GeometryBuffer.h"
+#include "filters/FilteredMeshPair.h"
 
 namespace ShapeBench {
     class OccludedSceneGenerator {
@@ -23,10 +24,12 @@ namespace ShapeBench {
         uint32_t offscreenTextureHeight = 0;
 
     public:
-        explicit OccludedSceneGenerator(const nlohmann::json& config, const nlohmann::json& computedConfig);
+        explicit OccludedSceneGenerator(const nlohmann::json& config);
         ~OccludedSceneGenerator();
-        ShapeDescriptor::cpu::Mesh computeOccludedMesh(ShapeDescriptor::cpu::Mesh mesh, uint64_t seed);
+        void computeOccludedMesh(ShapeBench::FilteredMeshPair &scene, uint64_t seed);
         void init();
         void destroy();
     };
+
+    void applyOcclusionFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, uint64_t seed);
 }
