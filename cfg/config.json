@@ -17,11 +17,15 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "filters": ["additive-noise"]
+            "filters": [
+                {"type": "additive-noise"}
+            ]
         },
         {
             "name": "subtractive-noise-only",
-            "filters": ["subtractive-noise"]
+            "filters": [
+                {"type": "subtractive-noise"}
+            ]
         }
     ],
 

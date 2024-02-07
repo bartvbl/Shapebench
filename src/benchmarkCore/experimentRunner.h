@@ -7,6 +7,9 @@
 #include "ComputedConfig.h"
 #include "supportRadiusEstimation/SupportRadiusEstimation.h"
 #include "utils/progressBar.h"
+#include "filters/subtractiveNoise/OcclusionFilter.h"
+#include "filters/captureNoise/remeshingFilter.h"
+#include "filters/captureNoise/normalNoiseFilter.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -130,6 +133,61 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     //ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, representativeSetRandomSeed, sampleVerticesSet, "sample");
 
     // Running experiments
+    const uint32_t experimentCount = configuration.at("experimentsToRun").size();
+    std::cout << "Running experiments.." << std::endl;
+    uint64_t experimentBaseRandomSeed = engine();
+
+    for(uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
+        const nlohmann::json& experimentConfig = configuration.at("experimentsToRun").at(experimentIndex);
+        std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": " << experimentConfig.at("name") << std::endl;
+
+        ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
+
+        for(uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex++) {
+            uint64_t experimentInstanceRandomSeed = experimentSeedEngine();
+            ShapeBench::randomEngine experimentInstanceRandomEngine(experimentInstanceRandomSeed);
+
+            ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex);
+            const ShapeBench::DatasetEntry& entry = dataset.at(sampleVertex.meshID);
+            ShapeDescriptor::cpu::Mesh originalSampleMesh = ShapeBench::readDatasetMesh(configuration, entry);
+
+            ShapeBench::FilteredMeshPair filteredMesh;
+            filteredMesh.originalMesh = originalSampleMesh.clone();
+            filteredMesh.filteredSampleMesh = originalSampleMesh.clone();
+
+            for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                uint64_t filterRandomSeed = experimentInstanceRandomEngine();
+                const nlohmann::json& filterConfig = experimentConfig.at("filters").at(filterStepIndex);
+                const std::string& filterType = filterConfig.at("type");
+                if(filterType == "additive-noise") {
+                    ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed);
+                } else if(filterType == "subtractive-noise") {
+                    ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
+                } else if(filterType == "repeated-capture") {
+                    ShapeBench::remesh(filteredMesh);
+                } else if(filterType == "normal-noise") {
+                    ShapeBench::applyNormalNoiseFilter(filteredMesh);
+                }
+            }
+
+            // Collect data here
+
+            // 1. Compute sample descriptor on clean mesh
+            // 2. Compute modified descriptor based on filtered mesh and its corresponding sample point
+            // 3. Compute distance from sample -> modified descriptor, and distance from sample -> all descriptors in reference set
+            // 4. Compute rank of sample
+            // Record metadata about "difficulty" of this sample
+
+            ShapeDescriptor::free(originalSampleMesh);
+            filteredMesh.free();
+
+            if(sampleVertexIndex % 100 == 99 || sampleVertexIndex + 1 == sampleSetSize) {
+                std::cout << "\r    ";
+                ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
+                std::cout << " " << (sampleVertexIndex+1) << "/" << sampleSetSize;
+            }
+        }
+    }
 
     std::cout << "Cleaning up.." << std::endl;
     ShapeDescriptor::free(referenceDescriptors);
