@@ -10,5 +10,7 @@ namespace ShapeBench {
 
         ShapeDescriptor::OrientedPoint originalReferenceVertex;
         ShapeDescriptor::OrientedPoint mappedReferenceVertex;
+
+        void free();
     };
 }
