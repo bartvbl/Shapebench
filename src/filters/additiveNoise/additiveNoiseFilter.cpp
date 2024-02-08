@@ -535,7 +535,9 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
-        ShapeDescriptor::free(meshes.at(i));
+        if(i > 0) {
+            ShapeDescriptor::free(meshes.at(i));
+        }
         if(!meshIncluded.at(i)) {
             continue;
         }
