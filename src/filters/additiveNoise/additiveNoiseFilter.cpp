@@ -443,8 +443,10 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     bool runUntilManualExit = false;
 
+    const uint32_t stepLimit = 2500;
+
     std::cout << "Running physics simulation.." << std::endl;
-    while (anyBodyActive(&body_interface, simulatedBodies) || (settings.enableDebugRenderer && runUntilManualExit && !renderer->windowShouldClose()))
+    while ((steps < stepLimit) && anyBodyActive(&body_interface, simulatedBodies) || (settings.enableDebugRenderer && runUntilManualExit && !renderer->windowShouldClose()))
     {
         steps++;
         if(steps < attractionForceStepCount) {
