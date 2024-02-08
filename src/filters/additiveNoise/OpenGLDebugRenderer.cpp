@@ -121,14 +121,12 @@ ShapeBench::OpenGLDebugRenderer::OpenGLDebugRenderer() {
 void ShapeBench::OpenGLDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
-    std::cout << "Drawing line: "  << inFrom << " -> " << inTo << std::endl;
 }
 
 void ShapeBench::OpenGLDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor,
                                   JPH::DebugRenderer::ECastShadow inCastShadow) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
-    std::cout << "Drawing triangle: "  << inV1 << " -> " << inV2 << " -> " << inV3 << std::endl;
 }
 
 glm::mat4 toGLMMatrix(const JPH::Mat44 &mat44) {
@@ -161,7 +159,6 @@ ShapeBench::OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::T
 JPH::DebugRenderer::Batch
 ShapeBench::OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::Vertex *inVertices, int inVertexCount,
                                          const JPH::uint32 *inIndices, int inIndexCount) {
-    std::cout << "Creating batch with vertex count " << inVertexCount << " and index count " << inIndexCount << std::endl;
     GeometryBuffer buffer = generateGeometryBuffer(inVertices, inVertexCount, inIndices, inIndexCount);
     return new OpenGLBatchImplementation(buffer);
 }
@@ -210,7 +207,6 @@ void ShapeBench::OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const
                                      float inHeight) {
     std::unique_lock<std::mutex> ensureUnique(drawLock);
     glfwMakeContextCurrent(window);
-    std::cout << "Drawing text: " << inString << std::endl;
 }
 
 void ShapeBench::OpenGLDebugRenderer::nextFrame() {
