@@ -201,7 +201,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     //TODO: read these from a config file
     VHACD::IVHACD::Parameters parameters;
     parameters.m_maxConvexHulls = 64;
-    parameters.m_resolution = 25000;
+    parameters.m_resolution = 400000;
     parameters.m_maxRecursionDepth = 64; // max allowed by the library
     parameters.m_maxNumVerticesPerCH = 256; // Jolt physics limitation
 
@@ -417,7 +417,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         JPH::PhysicsMaterialList materials;
         materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
         JPH::StaticCompoundShapeSettings* compoundSettings = meshHullReplacements.at(i);
-        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, 3.0f * float(i+1), 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
+        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, 2.1f * float(i) + 1.0f, 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
 
         simulatedBodies.at(i) = meshBodyID;
     }
