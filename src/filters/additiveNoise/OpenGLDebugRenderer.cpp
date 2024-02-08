@@ -188,9 +188,9 @@ void ShapeBench::OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix,
 
     glm::mat4 MV = viewMatrix * modelMatrix;
     glm::mat4 MVP = projectionMatrix * MV;
-    glm::mat4 normalMatrix = glm::inverseTranspose(MV);
+    glm::mat4 normalMatrix = toGLMMatrix(inModelMatrix.GetRotationSafe().Inversed3x3().Transposed3x3());
 
-    glm::vec4 lightPosition = MV * glm::vec4(0, 10, 0, 1);
+    glm::vec4 lightPosition = modelMatrix * glm::vec4(0, 3, 0, 1);
 
     shader.setUniform(30, glm::value_ptr(MVP));
     shader.setUniform(31, glm::value_ptr(MV));
