@@ -10,7 +10,7 @@ namespace ShapeBench {
     struct AdditiveNoiseFilterSettings {
         std::filesystem::path compressedDatasetRootDir;
         uint32_t addedClutterObjectCount = 1;
-        bool enableDebugRenderer = true;
+        bool enableDebugRenderer = false;
         uint32_t simulationFrameRate = 165;
     };
 

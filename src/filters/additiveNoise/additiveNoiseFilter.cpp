@@ -183,7 +183,7 @@ public:
 };
 
 inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDescriptor::cpu::Mesh& mesh) {
-    std::cout << "Computing hulls for mesh with " << mesh.vertexCount << " vertices" << std::endl;
+    //std::cout << "Computing hulls for mesh with " << mesh.vertexCount << " vertices" << std::endl;
     VHACD::IVHACD *subdivider = VHACD::CreateVHACD();
 
     std::vector<double> meshVertices(3 * mesh.vertexCount);
@@ -205,19 +205,9 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     parameters.m_maxRecursionDepth = 64; // max allowed by the library
     parameters.m_maxNumVerticesPerCH = 256; // Jolt physics limitation
 
-    bool started = subdivider->Compute(meshVertices.data(), mesh.vertexCount, indices.data(), mesh.vertexCount / 3, parameters);
+    subdivider->Compute(meshVertices.data(), mesh.vertexCount, indices.data(), mesh.vertexCount / 3, parameters);
 
-
-
-    while ( !subdivider->IsReady() )
-    {
-        std::this_thread::sleep_for(std::chrono::nanoseconds(10000)); // s
-    }
-
-    assert(started);
     assert(subdivider->GetNConvexHulls() > 0);
-
-    std::cout << "    Subdivided into " << subdivider->GetNConvexHulls() << " hulls" << std::endl;
 
     JPH::StaticCompoundShapeSettings* convexHullContainer = new JPH::StaticCompoundShapeSettings();
     std::vector<JPH::Vec3> hullVertices;
@@ -242,7 +232,6 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
         float volume;
         builder.GetCenterOfMassAndVolume(centerOfMass, volume);
         if(volume == 0) {
-            std::cout << "    Empty convex hull detected." << std::endl;
             delete convexShape;
             continue;
         }
@@ -445,7 +434,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     const uint32_t stepLimit = 2500;
 
-    std::cout << "Running physics simulation.." << std::endl;
+    //std::cout << "Running physics simulation.." << std::endl;
     while ((steps < stepLimit) && anyBodyActive(&body_interface, simulatedBodies) || (settings.enableDebugRenderer && runUntilManualExit && !renderer->windowShouldClose()))
     {
         steps++;

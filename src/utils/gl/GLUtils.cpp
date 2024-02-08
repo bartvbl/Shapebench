@@ -55,10 +55,10 @@ GLFWwindow* ShapeBench::GLinitialise()
     }
 
     // Print various OpenGL information to stdout
-    printf("%s: %s\n", glGetString(GL_VENDOR), glGetString(GL_RENDERER));
-    printf("GLFW\t %s\n", glfwGetVersionString());
-    printf("OpenGL\t %s\n", glGetString(GL_VERSION));
-    printf("GLSL\t %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    //printf("%s: %s\n", glGetString(GL_VENDOR), glGetString(GL_RENDERER));
+    //printf("GLFW\t %s\n", glfwGetVersionString());
+    //printf("OpenGL\t %s\n", glGetString(GL_VERSION));
+    //printf("GLSL\t %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
 
