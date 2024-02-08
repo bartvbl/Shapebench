@@ -21,7 +21,8 @@ pmp::SurfaceMesh convertSDMeshToPMP(const ShapeDescriptor::cpu::Mesh& mesh) {
 }
 
 ShapeDescriptor::cpu::Mesh convertPMPMeshToSD(const pmp::SurfaceMesh& mesh) {
-    ShapeDescriptor::cpu::Mesh outMesh(mesh.n_faces());
+    uint32_t vertexCount = 3 * mesh.n_faces();
+    ShapeDescriptor::cpu::Mesh outMesh(vertexCount);
 
     pmp::VertexProperty<pmp::Point> points = mesh.get_vertex_property<pmp::Point>("v:point");
 
@@ -30,7 +31,7 @@ ShapeDescriptor::cpu::Mesh convertPMPMeshToSD(const pmp::SurfaceMesh& mesh) {
         for (auto v: mesh.vertices(f)) {
             auto idx = v.idx();
             const pmp::Point p = points.vector().at(idx);
-            assert(nextVertexIndex < mesh.vertexCount);
+            assert(nextVertexIndex < vertexCount);
             outMesh.vertices[nextVertexIndex] = {p.data()[0], p.data()[1], p.data()[2]};
             nextVertexIndex++;
         }

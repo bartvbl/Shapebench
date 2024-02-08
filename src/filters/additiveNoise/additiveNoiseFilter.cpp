@@ -276,7 +276,7 @@ void ShapeBench::initPhysics() {
     JPH::RegisterTypes();
 }
 
-void ShapeBench::applyAdditiveNoiseFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
+void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
     // B.t.w. 10 MB is way too much for this example but it is a typical value you can use.
@@ -291,8 +291,8 @@ void ShapeBench::applyAdditiveNoiseFilter(const nlohmann::json& config, ShapeBen
 
 
 
-    uint32_t clutterObjectCount = config.at("experiments").at("additiveNoise").at("addedObjectCount");
-    std::filesystem::path datasetRootDir = config.at("compressedDatasetRootDir");
+    uint32_t clutterObjectCount = settings.addedClutterObjectCount;
+    std::filesystem::path datasetRootDir = settings.compressedDatasetRootDir;
     std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
     meshes.at(0) = scene.filteredSampleMesh;

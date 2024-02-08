@@ -24,12 +24,19 @@ namespace ShapeBench {
         uint32_t offscreenTextureHeight = 0;
 
     public:
-        explicit OccludedSceneGenerator(const nlohmann::json& config);
+        explicit OccludedSceneGenerator(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         ~OccludedSceneGenerator();
         void computeOccludedMesh(ShapeBench::FilteredMeshPair &scene, uint64_t seed);
         void init();
         void destroy();
     };
 
-    void applyOcclusionFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, uint64_t seed);
+    inline void applyOcclusionFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, uint64_t seed) {
+        uint32_t visibilityImageWidth = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(0);
+        uint32_t visibilityImageHeight = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(1);
+        OccludedSceneGenerator generator(visibilityImageWidth, visibilityImageHeight);
+        generator.init();
+        generator.computeOccludedMesh(scene, seed);
+        generator.destroy();
+    }
 }

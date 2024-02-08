@@ -10,9 +10,9 @@
 #include "benchmarkCore/randomEngine.h"
 #include <random>
 
-ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator(const nlohmann::json& config) {
-    offscreenTextureWidth = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(0);
-    offscreenTextureHeight = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(1);
+ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight) {
+    offscreenTextureWidth = visibilityImageWidth;
+    offscreenTextureHeight = visibilityImageHeight;
     init();
 }
 
@@ -227,11 +227,4 @@ void ShapeBench::OccludedSceneGenerator::init() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferID);
 
     localFramebufferCopy.resize(3 * offscreenTextureWidth * offscreenTextureHeight);
-}
-
-void ShapeBench::applyOcclusionFilter(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
-    OccludedSceneGenerator generator(config);
-    generator.init();
-    generator.computeOccludedMesh(scene, seed);
-    generator.destroy();
 }

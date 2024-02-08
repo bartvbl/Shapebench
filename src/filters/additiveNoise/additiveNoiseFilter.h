@@ -7,6 +7,18 @@
 #include "filters/FilteredMeshPair.h"
 
 namespace ShapeBench {
+    struct AdditiveNoiseFilterSettings {
+        std::filesystem::path compressedDatasetRootDir;
+        uint32_t addedClutterObjectCount = 1;
+    };
+
+
     void initPhysics();
-    void applyAdditiveNoiseFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed);
+    void runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed);
+    inline void applyAdditiveNoiseFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed) {
+        AdditiveNoiseFilterSettings settings;
+        settings.addedClutterObjectCount = config.at("experiments").at("additiveNoise").at("addedObjectCount");
+        settings.compressedDatasetRootDir = std::string(config.at("compressedDatasetRootDir"));
+        runAdditiveNoiseFilter(settings, scene, dataset, randomSeed);
+    }
 }
