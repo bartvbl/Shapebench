@@ -33,6 +33,7 @@
 #define ENABLE_VHACD_IMPLEMENTATION 1
 #define VHACD_DISABLE_THREADING 0
 #include "VHACD.h"
+#include "Jolt/Geometry/ConvexHullBuilder.h"
 
 static void TraceImpl(const char *inFMT, ...)
 {
@@ -183,7 +184,7 @@ public:
 
 inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDescriptor::cpu::Mesh& mesh) {
     std::cout << "Computing hulls for mesh with " << mesh.vertexCount << " vertices" << std::endl;
-    VHACD::IVHACD *subdivider = VHACD::CreateVHACD_ASYNC();
+    VHACD::IVHACD *subdivider = VHACD::CreateVHACD();
 
     std::vector<double> meshVertices(3 * mesh.vertexCount);
     for(uint32_t i = 0; i < mesh.vertexCount; i++) {
@@ -200,7 +201,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     //TODO: read these from a config file
     VHACD::IVHACD::Parameters parameters;
     parameters.m_maxConvexHulls = 64;
-    parameters.m_resolution = 10000;
+    parameters.m_resolution = 25000;
     parameters.m_maxRecursionDepth = 64; // max allowed by the library
     parameters.m_maxNumVerticesPerCH = 256; // Jolt physics limitation
 
@@ -222,6 +223,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     std::vector<JPH::Vec3> hullVertices;
 
     for(uint32_t i = 0; i < subdivider->GetNConvexHulls(); i++) {
+
         hullVertices.clear();
         VHACD::IVHACD::ConvexHull hull;
         subdivider->GetConvexHull(i, hull);
@@ -232,7 +234,21 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
             hullVertices.push_back(converted);
         }
         JPH::ConvexHullShapeSettings* convexShape = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
+
+        const char *error = nullptr;
+        JPH::ConvexHullBuilder builder(convexShape->mPoints);
+        builder.Initialize(JPH::ConvexHullShape::cMaxPointsInHull, convexShape->mHullTolerance, error);
+        JPH::Vec3 centerOfMass;
+        float volume;
+        builder.GetCenterOfMassAndVolume(centerOfMass, volume);
+        if(volume == 0) {
+            std::cout << "    Empty convex hull detected." << std::endl;
+            delete convexShape;
+            continue;
+        }
+
         convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexShape, 0);
+
     }
 
     subdivider->Release();
@@ -299,19 +315,28 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     std::vector<JPH::TriangleList> joltMeshes(meshes.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
 
+    std::vector<bool> meshIncluded(chosenVertices.size() + 1, true);
+
     #pragma omp parallel for
     for(uint32_t i = 0; i < meshes.size(); i++) {
         if(i > 0) {
-            ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i).meshID);
+            ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
             std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
             meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
             moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
         }
-        meshHullReplacements.at(i) = convertMeshToConvexHulls(meshes.at(i));
+        JPH::StaticCompoundShapeSettings* hullSettings = convertMeshToConvexHulls(meshes.at(i));
+
+        if(hullSettings->mSubShapes.size() > 0) {
+            meshHullReplacements.at(i) = hullSettings;
+        } else {
+            // Mesh only has empty convex hull volumes and cannot be simulated. It is therefore excluded.
+            if(i == 0) {
+                throw std::runtime_error("Reference mesh has no convex hulls!");
+            }
+            meshIncluded.at(i) = false;
+        }
     }
-
-
-
 
     // This is the max amount of rigid bodies that you can add to the physics system. If you try to add more you'll get an error.
     // Note: This value is low because this is a simple test. For a real project use something in the order of 65536.
@@ -386,6 +411,9 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     // Note that this uses the shorthand version of creating and adding a body to the world
     std::vector<JPH::BodyID> simulatedBodies(meshes.size());
     for(uint32_t i = 0; i < meshes.size(); i++) {
+        if(!meshIncluded.at(i)) {
+            continue;
+        }
         JPH::PhysicsMaterialList materials;
         materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
         JPH::StaticCompoundShapeSettings* compoundSettings = meshHullReplacements.at(i);
@@ -394,13 +422,15 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         simulatedBodies.at(i) = meshBodyID;
     }
 
-    const uint32_t simulationFrameRate = 165;
-    const float cDeltaTime = 1.0f / float(simulationFrameRate);
+    const float cDeltaTime = 1.0f / float(settings.simulationFrameRate);
 
     const uint32_t attractionForceDurationSeconds = 100;
-    const uint32_t attractionForceStepCount = attractionForceDurationSeconds * simulationFrameRate;
+    const uint32_t attractionForceStepCount = attractionForceDurationSeconds * settings.simulationFrameRate;
 
-    ShapeBench::OpenGLDebugRenderer* renderer = new ShapeBench::OpenGLDebugRenderer();
+    ShapeBench::OpenGLDebugRenderer* renderer;
+    if(settings.enableDebugRenderer) {
+        renderer = new ShapeBench::OpenGLDebugRenderer();
+    }
 
 
 
@@ -414,12 +444,15 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     bool runUntilManualExit = false;
 
     std::cout << "Running physics simulation.." << std::endl;
-    while (anyBodyActive(&body_interface, simulatedBodies) || (runUntilManualExit && !renderer->windowShouldClose()))
+    while (anyBodyActive(&body_interface, simulatedBodies) || (settings.enableDebugRenderer && runUntilManualExit && !renderer->windowShouldClose()))
     {
         steps++;
         if(steps < attractionForceStepCount) {
             JPH::RVec3 referenceObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
             for(int i = 1; i < meshes.size(); i++) {
+                if(!meshIncluded.at(i)) {
+                    continue;
+                }
                 JPH::RVec3 sampleObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
                 JPH::RVec3 deltaVector = referenceObjectPosition - sampleObjectPosition;
                 deltaVector /= deltaVector.Length();
@@ -436,30 +469,37 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         // Step the world
         physics_system.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
 
-        JPH::BodyManager::DrawSettings settings;
-        settings.mDrawShape = true;
-        physics_system.DrawBodies(settings, renderer);
-        renderer->nextFrame();
-        if(renderer->windowShouldClose()) {
-            exit(0);
+        if(settings.enableDebugRenderer) {
+            JPH::BodyManager::DrawSettings settings;
+            settings.mDrawShape = true;
+            physics_system.DrawBodies(settings, renderer);
+            renderer->nextFrame();
         }
-
     }
     std::cout << "    Simulation completed in " << steps << " steps." << std::endl;
 
     uint32_t totalAdditiveNoiseVertexCount = 0;
     for(int i = 1; i < meshes.size(); i++) {
+        if(!meshIncluded.at(i)) {
+            continue;
+        }
         totalAdditiveNoiseVertexCount += meshes.at(i).vertexCount;
     }
 
-    renderer->destroy();
-    delete renderer;
+    if(settings.enableDebugRenderer) {
+        renderer->destroy();
+        delete renderer;
+    }
 
     ShapeDescriptor::cpu::Mesh outputSampleMesh(meshes.at(0).vertexCount);
     ShapeDescriptor::cpu::Mesh outputAdditiveNoiseMesh(totalAdditiveNoiseVertexCount);
     uint32_t nextVertexIndex = 0;
 
     for(int i = 0; i < meshes.size(); i++) {
+        if(!meshIncluded.at(i)) {
+            continue;
+        }
+
         JPH::RVec3 outputPosition = body_interface.GetPosition(simulatedBodies.at(i));
         JPH::Quat rotation = body_interface.GetRotation(simulatedBodies.at(i));
         glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(outputPosition.GetX(), outputPosition.GetY(), outputPosition.GetZ()));
@@ -493,6 +533,10 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
+        ShapeDescriptor::free(meshes.at(i));
+        if(!meshIncluded.at(i)) {
+            continue;
+        }
         body_interface.RemoveBody(simulatedBodies.at(i));
         body_interface.DestroyBody(simulatedBodies.at(i));
     }
