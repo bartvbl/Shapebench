@@ -257,9 +257,6 @@ void ShapeBench::initPhysics() {
 }
 
 std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
-                                                                      ShapeBench::FilteredMeshPair& scene,
-                                                                      const ShapeBench::Dataset& dataset,
-                                                                      uint64_t randomSeed,
                                                                       const std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
@@ -465,19 +462,17 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     // Load meshes
 #pragma omp parallel for
-    for(uint32_t i = 0; i < meshes.size(); i++) {
-        if(i > 0) {
-            ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
-            std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
-            meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
-            moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
-        }
+    for(uint32_t i = 1; i < meshes.size(); i++) {
+        ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
+        std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
+        meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
+        moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
     }
 
     // Compute orientations by doing a physics simulation or using a cached result
     std::vector<ShapeBench::Orientation> objectOrientations;
     if(!cache.contains(randomSeed)) {
-        objectOrientations = runPhysicsSimulation(settings, scene, dataset, randomSeed, meshes);
+        objectOrientations = runPhysicsSimulation(settings, meshes);
         cache.set(randomSeed, objectOrientations);
     } else {
         objectOrientations = cache.get(randomSeed);
@@ -487,7 +482,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     uint32_t totalAdditiveNoiseVertexCount = 0;
     for(int i = 1; i < meshes.size(); i++) {
-        if(!std::isnan(objectOrientations.at(i).position.x)) {
+        if(std::isnan(objectOrientations.at(i).position.x)) {
             continue;
         }
         totalAdditiveNoiseVertexCount += meshes.at(i).vertexCount;
@@ -531,9 +526,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     scene.filteredSampleMesh = outputSampleMesh;
 
 
-    for(uint32_t i = 0; i < meshes.size(); i++) {
-        if(i > 0) {
-            ShapeDescriptor::free(meshes.at(i));
-        }
+    for(uint32_t i = 1; i < meshes.size(); i++) {
+        ShapeDescriptor::free(meshes.at(i));
     }
 }

@@ -11,11 +11,7 @@ class AdditiveNoiseCache;
 
 namespace ShapeBench {
     void initPhysics();
-    std::vector<ShapeBench::Orientation> runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
-                                                              ShapeBench::FilteredMeshPair& scene,
-                                                              const ShapeBench::Dataset& dataset,
-                                                              uint64_t randomSeed,
-                                                              const std::vector<ShapeDescriptor::cpu::Mesh>& meshes);
+    std::vector<ShapeBench::Orientation> runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings, const std::vector<ShapeDescriptor::cpu::Mesh>& meshes);
     void runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache);
 
 
