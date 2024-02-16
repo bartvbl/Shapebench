@@ -5,6 +5,7 @@
 #include "benchmarkCore/ComputedConfig.h"
 #include "benchmarkCore/Dataset.h"
 #include "filters/FilteredMeshPair.h"
+#include "AdditiveNoiseCache.h"
 
 namespace ShapeBench {
     struct AdditiveNoiseFilterSettings {
@@ -26,11 +27,15 @@ namespace ShapeBench {
 
 
     void initPhysics();
-    void runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed);
-    inline void applyAdditiveNoiseFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed) {
-        AdditiveNoiseFilterSettings settings;
-        const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
+    std::vector<ShapeBench::Orientation> runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
+                                                              ShapeBench::FilteredMeshPair& scene,
+                                                              const ShapeBench::Dataset& dataset,
+                                                              uint64_t randomSeed,
+                                                              const std::vector<ShapeDescriptor::cpu::Mesh>& meshes);
+    void runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache);
 
+    inline AdditiveNoiseFilterSettings readAdditiveNoiseFilterSettings(const nlohmann::json &config, const nlohmann::json &filterSettings) {
+        AdditiveNoiseFilterSettings settings;
         settings.compressedDatasetRootDir = std::string(config.at("compressedDatasetRootDir"));
         settings.addedClutterObjectCount = filterSettings.at("addedObjectCount");
         settings.enableDebugRenderer = filterSettings.at("enableDebugCamera");
@@ -44,6 +49,13 @@ namespace ShapeBench {
         settings.convexHullGenerationRecursionDepth = filterSettings.at("convexHullGenerationRecursionDepth");
         settings.convexHullGenerationMaxVerticesPerHull = filterSettings.at("convexHullGenerationMaxVerticesPerHull");
         settings.floorFriction = filterSettings.at("floorFriction");
-        runAdditiveNoiseFilter(settings, scene, dataset, randomSeed);
+        return settings;
+    }
+
+    inline void applyAdditiveNoiseFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache) {
+        const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
+
+        AdditiveNoiseFilterSettings settings = readAdditiveNoiseFilterSettings(config, filterSettings);
+        runAdditiveNoiseFilter(settings, scene, dataset, randomSeed, cache);
     }
 }

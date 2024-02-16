@@ -10,6 +10,7 @@
 #include "filters/subtractiveNoise/OcclusionFilter.h"
 #include "filters/captureNoise/remeshingFilter.h"
 #include "filters/captureNoise/normalNoiseFilter.h"
+#include "filters/additiveNoise/AdditiveNoiseCache.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -129,8 +130,14 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
 
     // Computing sample descriptors, or load them from a cache file
+    std::cout << "Computing sample descriptor set.." << std::endl;
     std::vector<ShapeBench::VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize);
-    //ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, representativeSetRandomSeed, sampleVerticesSet, "sample");
+    ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), sampleVerticesSet, "sample");
+
+    // Initialise filter caches
+    std::cout << "Initialising filter caches.." << std::endl;
+    ShapeBench::AdditiveNoiseCache additiveCache;
+    additiveCache.load(configuration);
 
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();
@@ -144,6 +151,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
 
         for(uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex++) {
+            std::cout << "Index " << sampleVertexIndex << std::endl;
             uint64_t experimentInstanceRandomSeed = experimentSeedEngine();
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentInstanceRandomSeed);
 
@@ -160,7 +168,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 const nlohmann::json& filterConfig = experimentConfig.at("filters").at(filterStepIndex);
                 const std::string& filterType = filterConfig.at("type");
                 if(filterType == "additive-noise") {
-                    ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed);
+                    ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed, additiveCache);
                 } else if(filterType == "subtractive-noise") {
                     ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                 } else if(filterType == "repeated-capture") {
@@ -181,10 +189,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             ShapeDescriptor::free(originalSampleMesh);
             filteredMesh.free();
 
-            if(sampleVertexIndex % 10 == 9 || sampleVertexIndex + 1 == sampleSetSize) {
+            bool isLastVertexIndex = sampleVertexIndex + 1 == sampleSetSize;
+            if(sampleVertexIndex % 10 == 9 || isLastVertexIndex) {
                 std::cout << "\r    ";
                 ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
                 std::cout << " " << (sampleVertexIndex+1) << "/" << sampleSetSize;
+            }
+
+            if(sampleVertexIndex % 100 == 99 || isLastVertexIndex) {
+                std::cout << "Writing caches.." << std::endl;
+                additiveCache.save(configuration);
             }
         }
     }

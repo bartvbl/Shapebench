@@ -256,7 +256,11 @@ void ShapeBench::initPhysics() {
     JPH::RegisterTypes();
 }
 
-void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
+std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
+                                                                      ShapeBench::FilteredMeshPair& scene,
+                                                                      const ShapeBench::Dataset& dataset,
+                                                                      uint64_t randomSeed,
+                                                                      const std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
     JPH::TempAllocatorImpl temp_allocator(settings.tempAllocatorSizeBytes);
@@ -266,27 +270,14 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     // of your own job scheduler. JobSystemThreadPool is an example implementation.
     JPH::JobSystemThreadPool job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
 
-
-    uint32_t clutterObjectCount = settings.addedClutterObjectCount;
-    std::filesystem::path datasetRootDir = settings.compressedDatasetRootDir;
-    std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
-    std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
-    meshes.at(0) = scene.filteredSampleMesh;
     std::vector<JPH::TriangleList> joltMeshes(meshes.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
 
-    std::vector<bool> meshIncluded(chosenVertices.size() + 1, true);
+    std::vector<bool> meshIncluded(meshes.size(), true);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for(uint32_t i = 0; i < meshes.size(); i++) {
-        if(i > 0) {
-            ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
-            std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
-            meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
-            moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
-        }
         JPH::StaticCompoundShapeSettings* hullSettings = convertMeshToConvexHulls(meshes.at(i), settings);
-
         if(hullSettings->mSubShapes.size() > 0) {
             meshHullReplacements.at(i) = hullSettings;
         } else {
@@ -408,50 +399,21 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         std::cout << "    Simulation completed in " << steps << " steps." << std::endl;
     }
 
-    uint32_t totalAdditiveNoiseVertexCount = 0;
-    for(int i = 1; i < meshes.size(); i++) {
-        if(!meshIncluded.at(i)) {
-            continue;
-        }
-        totalAdditiveNoiseVertexCount += meshes.at(i).vertexCount;
-    }
-
-    if(settings.enableDebugRenderer) {
-        renderer->destroy();
-        delete renderer;
-    }
-
-    ShapeDescriptor::cpu::Mesh outputSampleMesh(meshes.at(0).vertexCount);
-    ShapeDescriptor::cpu::Mesh outputAdditiveNoiseMesh(totalAdditiveNoiseVertexCount);
-    uint32_t nextVertexIndex = 0;
+    std::vector<ShapeBench::Orientation> orientations(meshes.size());
 
     for(int i = 0; i < meshes.size(); i++) {
         if(!meshIncluded.at(i)) {
+            float invalidValue = std::nanf("");
+            orientations.at(i) = {{invalidValue, invalidValue, invalidValue}, {invalidValue, invalidValue, invalidValue, invalidValue}};
             continue;
         }
 
         JPH::RVec3 outputPosition = body_interface.GetPosition(simulatedBodies.at(i));
         JPH::Quat rotation = body_interface.GetRotation(simulatedBodies.at(i));
-        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(outputPosition.GetX(), outputPosition.GetY(), outputPosition.GetZ()));
-        glm::mat4 rotationMatrix = glm::toMat4(glm::qua(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ()));
-        glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
-        glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
-        JPH::RVec3 centerOfMass = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
 
-        ShapeDescriptor::cpu::Mesh& meshToWriteTo = (i == 0) ? outputSampleMesh : outputAdditiveNoiseMesh;
-
-        const ShapeDescriptor::cpu::Mesh& mesh = meshes.at(i);
-        for(uint32_t vertexIndex = 0; vertexIndex < mesh.vertexCount; vertexIndex++) {
-            ShapeDescriptor::cpu::float3 vertex = mesh.vertices[vertexIndex];
-            ShapeDescriptor::cpu::float3 normal = mesh.normals[vertexIndex];
-            glm::vec4 transformedVertexGLM = transformationMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0);
-            meshToWriteTo.vertices[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedVertexGLM.x, transformedVertexGLM.y, transformedVertexGLM.z);
-            glm::vec3 transformedNormalGLM = glm::normalize(glm::vec3(normalMatrix * glm::vec4(normal.x, normal.y, normal.z, 1)));
-            meshToWriteTo.normals[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedNormalGLM.x, transformedNormalGLM.y, transformedNormalGLM.z);
-        }
-        if(i > 0) {
-            nextVertexIndex += mesh.vertexCount;
-        }
+        orientations.at(i) = {
+                {outputPosition.GetX(), outputPosition.GetY(), outputPosition.GetZ()},
+                {rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW()}};
     }
 
     /*ShapeDescriptor::cpu::Mesh outputMesh(outputSampleMesh.vertexCount + outputAdditiveNoiseMesh.vertexCount);
@@ -466,16 +428,13 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     ShapeDescriptor::free(outputMesh);*/
 
-    ShapeDescriptor::free(scene.filteredAdditiveNoise);
-    scene.filteredAdditiveNoise = outputAdditiveNoiseMesh;
-    ShapeDescriptor::free(scene.filteredSampleMesh);
-    scene.filteredSampleMesh = outputSampleMesh;
+    if(settings.enableDebugRenderer) {
+        renderer->destroy();
+        delete renderer;
+    }
 
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     for(uint32_t i = 0; i < simulatedBodies.size(); i++) {
-        if(i > 0) {
-            ShapeDescriptor::free(meshes.at(i));
-        }
         if(!meshIncluded.at(i)) {
             continue;
         }
@@ -493,4 +452,88 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     // Destroy the factory
     delete JPH::Factory::sInstance;
     JPH::Factory::sInstance = nullptr;
+
+    return orientations;
+}
+
+void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache) {
+    std::filesystem::path datasetRootDir = settings.compressedDatasetRootDir;
+    uint32_t clutterObjectCount = settings.addedClutterObjectCount;
+    std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
+    std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
+    meshes.at(0) = scene.filteredSampleMesh;
+
+    // Load meshes
+#pragma omp parallel for
+    for(uint32_t i = 0; i < meshes.size(); i++) {
+        if(i > 0) {
+            ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
+            std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
+            meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
+            moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
+        }
+    }
+
+    // Compute orientations by doing a physics simulation or using a cached result
+    std::vector<ShapeBench::Orientation> objectOrientations;
+    if(!cache.contains(randomSeed)) {
+        objectOrientations = runPhysicsSimulation(settings, scene, dataset, randomSeed, meshes);
+        cache.set(randomSeed, objectOrientations);
+    } else {
+        objectOrientations = cache.get(randomSeed);
+    }
+
+    // Constructing cluttered scene
+
+    uint32_t totalAdditiveNoiseVertexCount = 0;
+    for(int i = 1; i < meshes.size(); i++) {
+        if(!std::isnan(objectOrientations.at(i).position.x)) {
+            continue;
+        }
+        totalAdditiveNoiseVertexCount += meshes.at(i).vertexCount;
+    }
+
+    ShapeDescriptor::cpu::Mesh outputSampleMesh(meshes.at(0).vertexCount);
+    ShapeDescriptor::cpu::Mesh outputAdditiveNoiseMesh(totalAdditiveNoiseVertexCount);
+    uint32_t nextVertexIndex = 0;
+
+    for(int i = 0; i < meshes.size(); i++) {
+        if(std::isnan(objectOrientations.at(i).position.x)) {
+            continue;
+        }
+
+        ShapeBench::Orientation orientation = objectOrientations.at(i);
+
+        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(orientation.position.x, orientation.position.y, orientation.position.z));
+        glm::mat4 rotationMatrix = glm::toMat4(glm::qua(orientation.rotation.w, orientation.rotation.x, orientation.rotation.y, orientation.rotation.z));
+        glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
+        glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
+
+        ShapeDescriptor::cpu::Mesh& meshToWriteTo = (i == 0) ? outputSampleMesh : outputAdditiveNoiseMesh;
+
+        const ShapeDescriptor::cpu::Mesh& mesh = meshes.at(i);
+        for(uint32_t vertexIndex = 0; vertexIndex < mesh.vertexCount; vertexIndex++) {
+            ShapeDescriptor::cpu::float3 vertex = mesh.vertices[vertexIndex];
+            ShapeDescriptor::cpu::float3 normal = mesh.normals[vertexIndex];
+            glm::vec4 transformedVertexGLM = transformationMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0);
+            meshToWriteTo.vertices[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedVertexGLM.x, transformedVertexGLM.y, transformedVertexGLM.z);
+            glm::vec3 transformedNormalGLM = glm::normalize(glm::vec3(normalMatrix * glm::vec4(normal.x, normal.y, normal.z, 1)));
+            meshToWriteTo.normals[nextVertexIndex + vertexIndex] = ShapeDescriptor::cpu::float3(transformedNormalGLM.x, transformedNormalGLM.y, transformedNormalGLM.z);
+        }
+        if(i > 0) {
+            nextVertexIndex += mesh.vertexCount;
+        }
+    }
+
+    ShapeDescriptor::free(scene.filteredAdditiveNoise);
+    scene.filteredAdditiveNoise = outputAdditiveNoiseMesh;
+    ShapeDescriptor::free(scene.filteredSampleMesh);
+    scene.filteredSampleMesh = outputSampleMesh;
+
+
+    for(uint32_t i = 0; i < meshes.size(); i++) {
+        if(i > 0) {
+            ShapeDescriptor::free(meshes.at(i));
+        }
+    }
 }
