@@ -31,7 +31,18 @@
 
     "filterSettings": {
         "additiveNoise": {
-            "addedObjectCount": 10
+            "addedObjectCount": 10,
+            "enableDebugCamera": false,
+            "runSimulationUntilManualExit": false,
+            "objectAttractionForceMagnitude": 5000.0,
+            "initialObjectSeparation": 2.1,
+            "simulationFramerate": 165,
+            "simulationStepLimit": 2500,
+            "maxConvexHulls": 64,
+            "convexHullGenerationResolution": 400000,
+            "convexHullGenerationRecursionDepth": 64,
+            "convexHullGenerationMaxVerticesPerHull": 256,
+            "floorFriction": 0.5
         },
         "subtractiveNoise": {
             "visibilityImageResolution": [25000, 25000]

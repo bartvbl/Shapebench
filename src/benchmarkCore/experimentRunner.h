@@ -181,7 +181,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             ShapeDescriptor::free(originalSampleMesh);
             filteredMesh.free();
 
-            if(sampleVertexIndex % 100 == 99 || sampleVertexIndex + 1 == sampleSetSize) {
+            if(sampleVertexIndex % 10 == 9 || sampleVertexIndex + 1 == sampleSetSize) {
                 std::cout << "\r    ";
                 ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
                 std::cout << " " << (sampleVertexIndex+1) << "/" << sampleSetSize;

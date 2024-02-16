@@ -198,12 +198,11 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
         indices.at(i) = i;
     }
 
-    //TODO: read these from a config file
     VHACD::IVHACD::Parameters parameters;
-    parameters.m_maxConvexHulls = 64;
-    parameters.m_resolution = 400000;
-    parameters.m_maxRecursionDepth = 64; // max allowed by the library
-    parameters.m_maxNumVerticesPerCH = 256; // Jolt physics limitation
+    parameters.m_maxConvexHulls = settings.maxConvexHulls;//64;
+    parameters.m_resolution = settings.convexHullGenerationResolution;//400000;
+    parameters.m_maxRecursionDepth = settings.convexHullGenerationRecursionDepth;//64; // max allowed by the library
+    parameters.m_maxNumVerticesPerCH = settings.convexHullGenerationMaxVerticesPerHull;//256; // Jolt physics limitation
 
     subdivider->Compute(meshVertices.data(), mesh.vertexCount, indices.data(), mesh.vertexCount / 3, parameters);
 
@@ -284,16 +283,12 @@ void ShapeBench::initPhysics() {
 void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
-    // B.t.w. 10 MB is way too much for this example but it is a typical value you can use.
-    // If you don't want to pre-allocate you can also use TempAllocatorMalloc to fall back to
-    // malloc / free.
-    JPH::TempAllocatorImpl temp_allocator(10 * 1024 * 1024);
+    JPH::TempAllocatorImpl temp_allocator(settings.tempAllocatorSizeBytes);
 
     // We need a job system that will execute physics jobs on multiple threads. Typically
     // you would implement the JobSystem interface yourself and let Jolt Physics run on top
     // of your own job scheduler. JobSystemThreadPool is an example implementation.
     JPH::JobSystemThreadPool job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
-
 
 
     uint32_t clutterObjectCount = settings.addedClutterObjectCount;
@@ -314,7 +309,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
             meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
             moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
         }
-        JPH::StaticCompoundShapeSettings* hullSettings = convertMeshToConvexHulls(meshes.at(i));
+        JPH::StaticCompoundShapeSettings* hullSettings = convertMeshToConvexHulls(meshes.at(i), settings);
 
         if(hullSettings->mSubShapes.size() > 0) {
             meshHullReplacements.at(i) = hullSettings;
@@ -327,51 +322,28 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         }
     }
 
-    // This is the max amount of rigid bodies that you can add to the physics system. If you try to add more you'll get an error.
-    // Note: This value is low because this is a simple test. For a real project use something in the order of 65536.
-    const uint cMaxBodies = 1024;
+    const uint32_t cMaxBodies = 65536;
 
     // This determines how many mutexes to allocate to protect rigid bodies from concurrent access. Set it to 0 for the default settings.
-    const uint cNumBodyMutexes = 0;
+    const uint32_t cNumBodyMutexes = 0;
 
     // This is the max amount of body pairs that can be queued at any time (the broad phase will detect overlapping
     // body pairs based on their bounding boxes and will insert them into a queue for the narrowphase). If you make this buffer
     // too small the queue will fill up and the broad phase jobs will start to do narrow phase work. This is slightly less efficient.
-    // Note: This value is low because this is a simple test. For a real project use something in the order of 65536.
-    const uint cMaxBodyPairs = 1024;
+    const uint32_t cMaxBodyPairs = 65536;
 
     // This is the maximum size of the contact constraint buffer. If more contacts (collisions between bodies) are detected than this
     // number then these contacts will be ignored and bodies will start interpenetrating / fall through the world.
     // Note: This value is low because this is a simple test. For a real project use something in the order of 10240.
-    const uint cMaxContactConstraints = 1024;
+    const uint32_t cMaxContactConstraints = 10240;
 
-    // Create mapping table from object layer to broadphase layer
-    // Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
     BPLayerInterfaceImpl broad_phase_layer_interface;
-
-    // Create class that filters object vs broadphase layers
-    // Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
     ObjectVsBroadPhaseLayerFilterImpl object_vs_broadphase_layer_filter;
-
-    // Create class that filters object vs object layers
-    // Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
     ObjectLayerPairFilterImpl object_vs_object_layer_filter;
 
     // Now we can create the actual physics system.
     JPH::PhysicsSystem physics_system;
     physics_system.Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, broad_phase_layer_interface, object_vs_broadphase_layer_filter, object_vs_object_layer_filter);
-
-    // A body activation listener gets notified when bodies activate and go to sleep
-    // Note that this is called from a job so whatever you do here needs to be thread safe.
-    // Registering one is entirely optional.
-    MyBodyActivationListener body_activation_listener;
-    physics_system.SetBodyActivationListener(&body_activation_listener);
-
-    // A contact listener gets notified when bodies (are about to) collide, and when they separate again.
-    // Note that this is called from a job so whatever you do here needs to be thread safe.
-    // Registering one is entirely optional.
-    MyContactListener contact_listener;
-    physics_system.SetContactListener(&contact_listener);
 
     // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
     // variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
@@ -391,13 +363,10 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     // Create the actual rigid body
     JPH::Body *floor = body_interface.CreateBody(floor_settings); // Note that if we run out of bodies this can return nullptr
-    floor->SetFriction(0.5);
-
-    // Add it to the world
+    floor->SetFriction(settings.floorFriction);
     body_interface.AddBody(floor->GetID(), JPH::EActivation::DontActivate);
 
-    // Now create a dynamic body to bounce on the floor
-    // Note that this uses the shorthand version of creating and adding a body to the world
+    // Adding sample objects to the scene
     std::vector<JPH::BodyID> simulatedBodies(meshes.size());
     for(uint32_t i = 0; i < meshes.size(); i++) {
         if(!meshIncluded.at(i)) {
@@ -406,22 +375,17 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         JPH::PhysicsMaterialList materials;
         materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
         JPH::StaticCompoundShapeSettings* compoundSettings = meshHullReplacements.at(i);
-        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, 2.1f * float(i) + 1.0f, 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
+        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, settings.initialObjectSeparation * float(i) + 1.0f, 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
 
         simulatedBodies.at(i) = meshBodyID;
     }
 
     const float cDeltaTime = 1.0f / float(settings.simulationFrameRate);
 
-    const uint32_t attractionForceDurationSeconds = 100;
-    const uint32_t attractionForceStepCount = attractionForceDurationSeconds * settings.simulationFrameRate;
-
-    ShapeBench::OpenGLDebugRenderer* renderer;
+    ShapeBench::OpenGLDebugRenderer* renderer = nullptr;
     if(settings.enableDebugRenderer) {
         renderer = new ShapeBench::OpenGLDebugRenderer();
     }
-
-
 
     // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
     // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
@@ -430,28 +394,24 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 
     uint32_t steps = 0;
 
-    bool runUntilManualExit = false;
-
-    const uint32_t stepLimit = 2500;
-
-    //std::cout << "Running physics simulation.." << std::endl;
-    while ((steps < stepLimit) && anyBodyActive(&body_interface, simulatedBodies) || (settings.enableDebugRenderer && runUntilManualExit && !renderer->windowShouldClose()))
+    while ((steps < settings.simulationStepLimit) && anyBodyActive(&body_interface, simulatedBodies) || (settings.enableDebugRenderer && settings.runSimulationUntilManualExit && !renderer->windowShouldClose()))
     {
         steps++;
-        if(steps < attractionForceStepCount) {
-            JPH::RVec3 referenceObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
-            for(int i = 1; i < meshes.size(); i++) {
-                if(!meshIncluded.at(i)) {
-                    continue;
-                }
-                JPH::RVec3 sampleObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
-                JPH::RVec3 deltaVector = referenceObjectPosition - sampleObjectPosition;
-                deltaVector /= deltaVector.Length();
-                JPH::RVec3 forceDirection = (int(5000) - int(steps) * int(5000/attractionForceStepCount)) * deltaVector;
-                body_interface.AddForce(simulatedBodies.at(i), forceDirection);
 
-                body_interface.AddForce(simulatedBodies.at(0), -forceDirection);
+        JPH::RVec3 referenceObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(0));
+        for(int i = 1; i < meshes.size(); i++) {
+            if(!meshIncluded.at(i)) {
+                continue;
             }
+            JPH::RVec3 sampleObjectPosition = body_interface.GetCenterOfMassPosition(simulatedBodies.at(i));
+            JPH::RVec3 deltaVector = referenceObjectPosition - sampleObjectPosition;
+            deltaVector /= deltaVector.Length();
+            JPH::RVec3 forceDirection = settings.objectAttractionForceMagnitude * deltaVector;
+
+            // Only applying a force to the sample object will cause several objects to push the reference one indefinitely
+            // It is therefore necessary to apply a separate force in the opposite direction for the simulation to converge
+            body_interface.AddForce(simulatedBodies.at(i), forceDirection);
+            body_interface.AddForce(simulatedBodies.at(0), -forceDirection);
         }
 
         // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
