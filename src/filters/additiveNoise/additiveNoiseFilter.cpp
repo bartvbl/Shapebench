@@ -158,31 +158,7 @@ public:
     }
 };
 
-// An example contact listener
-class MyContactListener : public JPH::ContactListener
-{
-public:
-    // See: ContactListener
-    virtual JPH::ValidateResult	OnContactValidate(const JPH::Body &inBody1, const JPH::Body &inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult &inCollisionResult) override
-    {
-        // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
-        return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
-    }
-
-    virtual void OnContactAdded(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override {}
-    virtual void OnContactPersisted(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings) override {}
-    virtual void OnContactRemoved(const JPH::SubShapeIDPair &inSubShapePair) override {}
-};
-
-// An example activation listener
-class MyBodyActivationListener : public JPH::BodyActivationListener
-{
-public:
-    virtual void OnBodyActivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override {}
-    virtual void OnBodyDeactivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override {}
-};
-
-inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDescriptor::cpu::Mesh& mesh) {
+inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDescriptor::cpu::Mesh& mesh, const ShapeBench::AdditiveNoiseFilterSettings& settings) {
     //std::cout << "Computing hulls for mesh with " << mesh.vertexCount << " vertices" << std::endl;
     VHACD::IVHACD *subdivider = VHACD::CreateVHACD();
 
@@ -427,7 +403,10 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
             renderer->nextFrame();
         }
     }
-    std::cout << "    Simulation completed in " << steps << " steps." << std::endl;
+
+    if(settings.enableDebugRenderer) {
+        std::cout << "    Simulation completed in " << steps << " steps." << std::endl;
+    }
 
     uint32_t totalAdditiveNoiseVertexCount = 0;
     for(int i = 1; i < meshes.size(); i++) {
@@ -475,7 +454,17 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         }
     }
 
-    //ShapeDescriptor::writeOBJ(outputMesh, "debug_output.obj");
+    /*ShapeDescriptor::cpu::Mesh outputMesh(outputSampleMesh.vertexCount + outputAdditiveNoiseMesh.vertexCount);
+    std::copy(outputSampleMesh.vertices, outputSampleMesh.vertices + outputSampleMesh.vertexCount, outputMesh.vertices);
+    std::copy(outputSampleMesh.normals, outputSampleMesh.normals + outputSampleMesh.vertexCount, outputMesh.normals);
+    std::copy(outputSampleMesh.vertexColours, outputSampleMesh.vertexColours + outputSampleMesh.vertexCount, outputMesh.vertexColours);
+    std::copy(outputAdditiveNoiseMesh.vertices, outputAdditiveNoiseMesh.vertices + outputAdditiveNoiseMesh.vertexCount, outputMesh.vertices + outputSampleMesh.vertexCount);
+    std::copy(outputAdditiveNoiseMesh.normals, outputAdditiveNoiseMesh.normals + outputAdditiveNoiseMesh.vertexCount, outputMesh.normals + outputSampleMesh.vertexCount);
+    std::copy(outputAdditiveNoiseMesh.vertexColours, outputAdditiveNoiseMesh.vertexColours + outputAdditiveNoiseMesh.vertexCount, outputMesh.vertexColours + outputSampleMesh.vertexCount);
+
+    ShapeDescriptor::writeOBJ(outputMesh, "clutterScene_" + ShapeDescriptor::generateUniqueFilenameString() + ".obj");
+
+    ShapeDescriptor::free(outputMesh);*/
 
     ShapeDescriptor::free(scene.filteredAdditiveNoise);
     scene.filteredAdditiveNoise = outputAdditiveNoiseMesh;
