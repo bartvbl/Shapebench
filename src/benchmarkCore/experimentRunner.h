@@ -137,7 +137,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     // Initialise filter caches
     std::cout << "Initialising filter caches.." << std::endl;
     ShapeBench::AdditiveNoiseCache additiveCache;
-    additiveCache.load(configuration);
+    ShapeBench::loadAdditiveNoiseCache(additiveCache, configuration);
 
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();
@@ -198,7 +198,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
             if(sampleVertexIndex % 100 == 99 || isLastVertexIndex) {
                 std::cout << "Writing caches.." << std::endl;
-                additiveCache.save(configuration);
+                ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
             }
         }
     }
