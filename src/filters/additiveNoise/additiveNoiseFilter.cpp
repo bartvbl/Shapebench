@@ -34,6 +34,7 @@
 #define VHACD_DISABLE_THREADING 0
 #include "VHACD.h"
 #include "Jolt/Geometry/ConvexHullBuilder.h"
+#include "Jolt/Physics/Collision/Shape/Shape.h"
 
 static void TraceImpl(const char *inFMT, ...)
 {
@@ -188,7 +189,6 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     std::vector<JPH::Vec3> hullVertices;
 
     for(uint32_t i = 0; i < subdivider->GetNConvexHulls(); i++) {
-
         hullVertices.clear();
         VHACD::IVHACD::ConvexHull hull;
         subdivider->GetConvexHull(i, hull);
@@ -198,21 +198,15 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
             JPH::Vec3 converted(vertex.mX, vertex.mY, vertex.mZ);
             hullVertices.push_back(converted);
         }
-        JPH::ConvexHullShapeSettings* convexShape = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
-
-        const char *error = nullptr;
-        JPH::ConvexHullBuilder builder(convexShape->mPoints);
-        builder.Initialize(JPH::ConvexHullShape::cMaxPointsInHull, convexShape->mHullTolerance, error);
-        JPH::Vec3 centerOfMass;
-        float volume;
-        builder.GetCenterOfMassAndVolume(centerOfMass, volume);
-        if(volume == 0) {
-            delete convexShape;
+        JPH::ConvexHullShapeSettings* convexHullSettings = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
+        JPH::ConvexHullShape::ShapeResult shapeResult;
+        JPH::ConvexHullShape tempShape(*convexHullSettings, shapeResult);
+        if(!shapeResult.IsValid()) {
+            delete convexHullSettings;
             continue;
         }
 
-        convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexShape, 0);
-
+        convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexHullSettings, 0);
     }
 
     subdivider->Release();
@@ -339,7 +333,8 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
         JPH::PhysicsMaterialList materials;
         materials.push_back(new JPH::PhysicsMaterialSimple("Default material", JPH::Color::sGetDistinctColor(i)));
         JPH::StaticCompoundShapeSettings* compoundSettings = meshHullReplacements.at(i);
-        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(JPH::BodyCreationSettings(compoundSettings, JPH::RVec3(0, settings.initialObjectSeparation * float(i) + 1.0f, 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING), JPH::EActivation::Activate);
+        JPH::BodyCreationSettings bodySettings(compoundSettings, JPH::RVec3(0, settings.initialObjectSeparation * float(i) + 1.0f, 0), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::MOVING);
+        JPH::BodyID meshBodyID = body_interface.CreateAndAddBody(bodySettings, JPH::EActivation::Activate);
 
         simulatedBodies.at(i) = meshBodyID;
     }
