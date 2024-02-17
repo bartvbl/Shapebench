@@ -205,6 +205,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
             delete convexHullSettings;
             continue;
         }
+        tempShape.Release();
 
         convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexHullSettings, 0);
     }
