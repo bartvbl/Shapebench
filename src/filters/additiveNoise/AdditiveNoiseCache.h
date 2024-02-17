@@ -25,7 +25,7 @@ namespace ShapeBench {
     };
 
     inline void loadAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config) {
-        std::filesystem::path cacheFilePath = std::filesystem::path(config.at("cacheDirectory")) / cache.cacheFileName;
+        std::filesystem::path cacheFilePath = std::filesystem::path(std::string(config.at("cacheDirectory"))) / cache.cacheFileName;
 
         if(std::filesystem::exists(cacheFilePath)) {
 
@@ -44,7 +44,7 @@ namespace ShapeBench {
 
         AdditiveNoiseFilterSettings filterSettings = readAdditiveNoiseFilterSettings(config, additiveNoiseSettings);
 
-        std::filesystem::path cacheFilePath = std::filesystem::path(config.at("cacheDirectory")) / cache.cacheFileName;
+        std::filesystem::path cacheFilePath = std::filesystem::path(std::string(config.at("cacheDirectory"))) / cache.cacheFileName;
         std::ofstream outputFile(cacheFilePath, std::ios::binary);
 
         // Writing header
