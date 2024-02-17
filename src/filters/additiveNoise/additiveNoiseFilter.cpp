@@ -183,7 +183,9 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
 
     subdivider->Compute(meshVertices.data(), mesh.vertexCount, indices.data(), mesh.vertexCount / 3, parameters);
 
-    assert(subdivider->GetNConvexHulls() > 0);
+    if(subdivider->GetNConvexHulls() == 0) {
+        return nullptr;
+    }
 
     JPH::StaticCompoundShapeSettings* convexHullContainer = new JPH::StaticCompoundShapeSettings();
     std::vector<JPH::Vec3> hullVertices;
@@ -286,7 +288,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
 #pragma omp parallel for
     for(uint32_t i = 0; i < meshes.size(); i++) {
         JPH::StaticCompoundShapeSettings* hullSettings = convertMeshToConvexHulls(meshes.at(i), settings);
-        if(hullSettings->mSubShapes.size() > 0) {
+        if(hullSettings->mSubShapes.size() > 0 && hullSettings != nullptr) {
             meshHullReplacements.at(i) = hullSettings;
         } else {
             // Mesh only has empty convex hull volumes and cannot be simulated. It is therefore excluded.
