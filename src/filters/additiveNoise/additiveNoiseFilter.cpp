@@ -189,6 +189,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     std::vector<JPH::Vec3> hullVertices;
 
     for(uint32_t i = 0; i < subdivider->GetNConvexHulls(); i++) {
+
         hullVertices.clear();
         VHACD::IVHACD::ConvexHull hull;
         subdivider->GetConvexHull(i, hull);
@@ -198,16 +199,31 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
             JPH::Vec3 converted(vertex.mX, vertex.mY, vertex.mZ);
             hullVertices.push_back(converted);
         }
-        JPH::ConvexHullShapeSettings* convexHullSettings = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
+        JPH::ConvexHullShapeSettings* convexShape = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
+
+        const char *error = nullptr;
+        JPH::ConvexHullBuilder builder(convexShape->mPoints);
+        builder.Initialize(JPH::ConvexHullShape::cMaxPointsInHull, convexShape->mHullTolerance, error);
         JPH::ConvexHullShape::ShapeResult shapeResult;
-        JPH::ConvexHullShape tempShape(*convexHullSettings, shapeResult);
-        if(!shapeResult.IsValid()) {
-            delete convexHullSettings;
+        JPH::Vec3 centerOfMass;
+        float volume;
+        builder.GetCenterOfMassAndVolume(centerOfMass, volume);
+        if(volume == 0) {
+            delete convexShape;
             continue;
         }
-        tempShape.Release();
+        JPH::ConvexHullBuilder::Face *max_error_face;
+        float max_error_distance, coplanar_distance;
+        int max_error_idx;
+        builder.DetermineMaxError(max_error_face, max_error_distance, max_error_idx, coplanar_distance);
+        if (max_error_distance > 4.0f * std::max(coplanar_distance, convexShape->mHullTolerance)) // Coplanar distance could be bigger than the allowed tolerance if the points are far apart
+        {
+            delete convexShape;
+            continue;
+        }
 
-        convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexHullSettings, 0);
+        convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexShape, 0);
+
     }
 
     subdivider->Release();
