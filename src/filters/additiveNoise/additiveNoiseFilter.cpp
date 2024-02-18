@@ -203,15 +203,13 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
         }
         JPH::ConvexHullShapeSettings* convexHullSettings = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
         JPH::ConvexHullShape::ShapeResult result;
-        std::unique_ptr<JPH::ConvexHullShape> convexShape {new JPH::ConvexHullShape(*convexHullSettings, result)};
+        JPH::RefConst<JPH::ConvexHullShape> convexShape {new JPH::ConvexHullShape(*convexHullSettings, result)};
 
-        if(!result.IsValid()) {
+        if(!result.IsValid() || convexShape->GetMassProperties().mMass <= 0) {
             delete convexHullSettings;
             continue;
         }
-
         convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexHullSettings, 0);
-
     }
 
     subdivider->Release();

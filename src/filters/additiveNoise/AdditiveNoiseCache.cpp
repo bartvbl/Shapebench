@@ -11,6 +11,7 @@ void ShapeBench::AdditiveNoiseCache::set(uint64_t randomSeed, const std::vector<
     uint32_t startIndex = 0;
     if(!startIndexMap.contains(randomSeed)) {
         startIndex = objectOrientations.size();
+        startIndexMap.insert({randomSeed, startIndex});
     } else {
         startIndex = startIndexMap.at(randomSeed);
     }

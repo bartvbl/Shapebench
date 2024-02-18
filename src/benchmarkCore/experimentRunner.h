@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <random>
 #include <iostream>
 #include "json.hpp"
@@ -151,9 +152,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
 
         for(uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex++) {
-            std::cout << "Index " << sampleVertexIndex << std::endl;
             uint64_t experimentInstanceRandomSeed = experimentSeedEngine();
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentInstanceRandomSeed);
+
+//if(sampleVertexIndex < 384) {continue;}
+
+std::cout << "Vertex " << sampleVertexIndex << std::endl;
 
             ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex);
             const ShapeBench::DatasetEntry& entry = dataset.at(sampleVertex.meshID);
@@ -193,11 +197,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             if(sampleVertexIndex % 10 == 9 || isLastVertexIndex) {
                 std::cout << "\r    ";
                 ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
-                std::cout << " " << (sampleVertexIndex+1) << "/" << sampleSetSize;
+                std::cout << " " << (sampleVertexIndex+1) << "/" << sampleSetSize << std::flush;
             }
 
             if(sampleVertexIndex % 100 == 99 || isLastVertexIndex) {
-                std::cout << "Writing caches.." << std::endl;
+                std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
             }
         }
