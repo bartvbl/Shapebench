@@ -155,52 +155,57 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             uint64_t experimentInstanceRandomSeed = experimentSeedEngine();
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentInstanceRandomSeed);
 
-//if(sampleVertexIndex < 384) {continue;}
+if(sampleVertexIndex < 444) {continue;}
 
-std::cout << "Vertex " << sampleVertexIndex << std::endl;
+            std::cout << "Vertex " << sampleVertexIndex << std::endl;
 
             ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex);
-            const ShapeBench::DatasetEntry& entry = dataset.at(sampleVertex.meshID);
+            const ShapeBench::DatasetEntry &entry = dataset.at(sampleVertex.meshID);
             ShapeDescriptor::cpu::Mesh originalSampleMesh = ShapeBench::readDatasetMesh(configuration, entry);
 
             ShapeBench::FilteredMeshPair filteredMesh;
             filteredMesh.originalMesh = originalSampleMesh.clone();
             filteredMesh.filteredSampleMesh = originalSampleMesh.clone();
 
-            for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
-                uint64_t filterRandomSeed = experimentInstanceRandomEngine();
-                const nlohmann::json& filterConfig = experimentConfig.at("filters").at(filterStepIndex);
-                const std::string& filterType = filterConfig.at("type");
-                if(filterType == "additive-noise") {
-                    ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed, additiveCache);
-                } else if(filterType == "subtractive-noise") {
-                    ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
-                } else if(filterType == "repeated-capture") {
-                    ShapeBench::remesh(filteredMesh);
-                } else if(filterType == "normal-noise") {
-                    ShapeBench::applyNormalNoiseFilter(filteredMesh);
+            try {
+                for (uint32_t filterStepIndex = 0;
+                     filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                    uint64_t filterRandomSeed = experimentInstanceRandomEngine();
+                    const nlohmann::json &filterConfig = experimentConfig.at("filters").at(filterStepIndex);
+                    const std::string &filterType = filterConfig.at("type");
+                    if (filterType == "additive-noise") {
+                        ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed,additiveCache);
+                    } else if (filterType == "subtractive-noise") {
+                        ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
+                    } else if (filterType == "repeated-capture") {
+                        ShapeBench::remesh(filteredMesh);
+                    } else if (filterType == "normal-noise") {
+                        ShapeBench::applyNormalNoiseFilter(filteredMesh);
+                    }
                 }
+
+                // Collect data here
+
+                // 1. Compute sample descriptor on clean mesh
+                // 2. Compute modified descriptor based on filtered mesh and its corresponding sample point
+                // 3. Compute distance from sample -> modified descriptor, and distance from sample -> all descriptors in reference set
+                // 4. Compute rank of sample
+                // Record metadata about "difficulty" of this sample
+            } catch(std::runtime_error& e) {
+                std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
             }
-
-            // Collect data here
-
-            // 1. Compute sample descriptor on clean mesh
-            // 2. Compute modified descriptor based on filtered mesh and its corresponding sample point
-            // 3. Compute distance from sample -> modified descriptor, and distance from sample -> all descriptors in reference set
-            // 4. Compute rank of sample
-            // Record metadata about "difficulty" of this sample
 
             ShapeDescriptor::free(originalSampleMesh);
             filteredMesh.free();
 
             bool isLastVertexIndex = sampleVertexIndex + 1 == sampleSetSize;
-            if(sampleVertexIndex % 10 == 9 || isLastVertexIndex) {
+            if (sampleVertexIndex % 10 == 9 || isLastVertexIndex) {
                 std::cout << "\r    ";
                 ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
-                std::cout << " " << (sampleVertexIndex+1) << "/" << sampleSetSize << std::flush;
+                std::cout << " " << (sampleVertexIndex + 1) << "/" << sampleSetSize << std::flush;
             }
 
-            if(sampleVertexIndex % 100 == 99 || isLastVertexIndex) {
+            if (sampleVertexIndex % 100 == 99 || isLastVertexIndex) {
                 std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
             }
