@@ -201,30 +201,16 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
             JPH::Vec3 converted(vertex.mX, vertex.mY, vertex.mZ);
             hullVertices.push_back(converted);
         }
-        JPH::ConvexHullShapeSettings* convexShape = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
+        JPH::ConvexHullShapeSettings* convexHullSettings = new JPH::ConvexHullShapeSettings(hullVertices.data(), hullVertices.size());
+        JPH::ConvexHullShape::ShapeResult result;
+        std::unique_ptr<JPH::ConvexHullShape> convexShape {new JPH::ConvexHullShape(*convexHullSettings, result)};
 
-        const char *error = nullptr;
-        JPH::ConvexHullBuilder builder(convexShape->mPoints);
-        builder.Initialize(JPH::ConvexHullShape::cMaxPointsInHull, convexShape->mHullTolerance, error);
-        JPH::ConvexHullShape::ShapeResult shapeResult;
-        JPH::Vec3 centerOfMass;
-        float volume;
-        builder.GetCenterOfMassAndVolume(centerOfMass, volume);
-        if(volume == 0) {
-            delete convexShape;
-            continue;
-        }
-        JPH::ConvexHullBuilder::Face *max_error_face;
-        float max_error_distance, coplanar_distance;
-        int max_error_idx;
-        builder.DetermineMaxError(max_error_face, max_error_distance, max_error_idx, coplanar_distance);
-        if (max_error_distance > 4.0f * std::max(coplanar_distance, convexShape->mHullTolerance)) // Coplanar distance could be bigger than the allowed tolerance if the points are far apart
-        {
-            delete convexShape;
+        if(!result.IsValid()) {
+            delete convexHullSettings;
             continue;
         }
 
-        convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexShape, 0);
+        convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexHullSettings, 0);
 
     }
 
