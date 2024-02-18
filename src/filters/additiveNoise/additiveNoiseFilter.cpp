@@ -288,7 +288,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
 #pragma omp parallel for
     for(uint32_t i = 0; i < meshes.size(); i++) {
         JPH::StaticCompoundShapeSettings* hullSettings = convertMeshToConvexHulls(meshes.at(i), settings);
-        if(hullSettings->mSubShapes.size() > 0 && hullSettings != nullptr) {
+        if(hullSettings != nullptr && hullSettings->mSubShapes.size() > 0) {
             meshHullReplacements.at(i) = hullSettings;
         } else {
             // Mesh only has empty convex hull volumes and cannot be simulated. It is therefore excluded.
