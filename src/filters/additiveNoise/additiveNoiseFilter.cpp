@@ -276,11 +276,12 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
             meshHullReplacements.at(i) = hullSettings;
         } else {
             // Mesh only has empty convex hull volumes and cannot be simulated. It is therefore excluded.
-            if(i == 0) {
-                throw std::runtime_error("Reference mesh has no convex hulls!");
-            }
             meshIncluded.at(i) = false;
         }
+    }
+
+    if(meshIncluded.at(0) == false) {
+        throw std::runtime_error("Reference mesh has no convex hulls!");
     }
 
     const uint32_t cMaxBodies = 65536;
