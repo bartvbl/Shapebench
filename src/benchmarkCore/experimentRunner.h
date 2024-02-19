@@ -205,7 +205,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 std::cout << " " << (sampleVertexIndex + 1) << "/" << sampleSetSize << std::flush;
             }
 
-            if (sampleVertexIndex % 100 == 99 || isLastVertexIndex) {
+            if (sampleVertexIndex % 500 == 499 || isLastVertexIndex) {
                 std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
             }
