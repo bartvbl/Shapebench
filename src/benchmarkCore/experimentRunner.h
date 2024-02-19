@@ -12,6 +12,7 @@
 #include "filters/captureNoise/remeshingFilter.h"
 #include "filters/captureNoise/normalNoiseFilter.h"
 #include "filters/additiveNoise/AdditiveNoiseCache.h"
+#include "results/ExperimentResult.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -122,8 +123,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     }
 
     // Computing sample descriptors and their distance to the representative set
-    uint32_t representativeSetSize = configuration.at("commonExperimentSettings").at("representativeSetSize");
-    uint32_t sampleSetSize = configuration.at("commonExperimentSettings").at("sampleSetSize");
+    const uint32_t representativeSetSize = configuration.at("commonExperimentSettings").at("representativeSetSize");
+    const uint32_t sampleSetSize = configuration.at("commonExperimentSettings").at("sampleSetSize");
     const uint32_t verticesPerSampleObject = configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject");
 
     // Compute reference descriptors, or load them from a cache file
@@ -148,6 +149,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     uint64_t experimentBaseRandomSeed = engine();
 
     for(uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
+        ShapeBench::ExperimentResult experimentResult;
+        experimentResult.methodName = DescriptorMethod::getName();
+        experimentResult.usedConfiguration = configuration;
+        experimentResult.usedComputedConfiguration = computedConfig;
+        experimentResult.experimentRandomSeed = experimentBaseRandomSeed;
+
         const nlohmann::json& experimentConfig = configuration.at("experimentsToRun").at(experimentIndex);
         std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": " << experimentConfig.at("name") << std::endl;
 
@@ -157,21 +164,30 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             uint64_t experimentInstanceRandomSeed = experimentSeedEngine();
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentInstanceRandomSeed);
 
+// Enable for debugging
 //if(sampleVertexIndex < 444) {continue;}
 
             std::cout << "Vertex " << sampleVertexIndex << std::endl;
 
-            ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex);
-            const ShapeBench::DatasetEntry &entry = dataset.at(sampleVertex.meshID);
+            ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
+            const ShapeBench::DatasetEntry &entry = dataset.at(firstSampleVertex.meshID);
             ShapeDescriptor::cpu::Mesh originalSampleMesh = ShapeBench::readDatasetMesh(configuration, entry);
 
             ShapeBench::FilteredMeshPair filteredMesh;
             filteredMesh.originalMesh = originalSampleMesh.clone();
             filteredMesh.filteredSampleMesh = originalSampleMesh.clone();
 
+            filteredMesh.mappedReferenceVertices.resize(verticesPerSampleObject);
+            filteredMesh.originalReferenceVertices.resize(verticesPerSampleObject);
+            for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex + i);
+                filteredMesh.originalReferenceVertices.at(i).vertex = filteredMesh.originalMesh.vertices[sampleVertex.vertexIndex];
+                filteredMesh.originalReferenceVertices.at(i).normal = filteredMesh.originalMesh.normals[sampleVertex.vertexIndex];
+                filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
+            }
+
             try {
-                for (uint32_t filterStepIndex = 0;
-                     filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
                     uint64_t filterRandomSeed = experimentInstanceRandomEngine();
                     const nlohmann::json &filterConfig = experimentConfig.at("filters").at(filterStepIndex);
                     const std::string &filterType = filterConfig.at("type");
@@ -187,8 +203,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 }
 
                 // Collect data here
+                ShapeBench::ExperimentResultsEntry resultsEntry;
 
-                // 1. Compute sample descriptor on clean mesh
+                for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                    resultsEntry.sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
+                    resultsEntry.filteredDescriptorRank = 0;
+                }
+
+                experimentResult.vertexResults.push_back(resultsEntry);
+
+                // 1. DONE - Compute sample descriptor on clean mesh
                 // 2. Compute modified descriptor based on filtered mesh and its corresponding sample point
                 // 3. Compute distance from sample -> modified descriptor, and distance from sample -> all descriptors in reference set
                 // 4. Compute rank of sample

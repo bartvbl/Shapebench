@@ -11,6 +11,7 @@ namespace ShapeBench {
 
     public:
         explicit ComputedConfig(const std::filesystem::path& configFileLocation);
+        explicit ComputedConfig() = default;
 
         float getFloat(std::string methodName, std::string valueName);
         int32_t getInt(std::string methodName, std::string valueName);
