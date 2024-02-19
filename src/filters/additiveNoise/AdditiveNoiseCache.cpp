@@ -1,7 +1,6 @@
 
 
 #include "AdditiveNoiseCache.h"
-#include "additiveNoiseFilter.h"
 
 bool ShapeBench::AdditiveNoiseCache::contains(uint64_t randomSeed) {
     return startIndexMap.contains(randomSeed);

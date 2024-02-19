@@ -139,6 +139,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     std::cout << "Initialising filter caches.." << std::endl;
     ShapeBench::AdditiveNoiseCache additiveCache;
     ShapeBench::loadAdditiveNoiseCache(additiveCache, configuration);
+    std::cout << "    Loaded Additive Noise filter cache" << std::endl;
 
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();

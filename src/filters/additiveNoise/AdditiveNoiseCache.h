@@ -33,6 +33,9 @@ namespace ShapeBench {
         std::filesystem::path cacheFilePath = std::filesystem::path(std::string(config.at("cacheDirectory"))) / cache.cacheFileName;
         uint32_t configuredObjectsPerEntry = uint32_t(config.at("filterSettings").at("additiveNoise").at("addedObjectCount")) + 1;
 
+        // Objects per entry = 1 reference mesh + n added noise objects
+        cache.objectsPerEntry = configuredObjectsPerEntry;
+
         if(std::filesystem::exists(cacheFilePath)) {
             std::ifstream inputFile(cacheFilePath, std::ios::binary);
             if(!inputFile) {
@@ -57,8 +60,9 @@ namespace ShapeBench {
 
             uint32_t entryCount = 0;
             inputFile.read((char*) &entryCount, sizeof(uint32_t));
+            std::cout << "    Cache has " << entryCount << " entries" << std::endl;
 
-            cache.objectOrientations.resize(entryCount);
+            cache.objectOrientations.resize(entryCount * cache.objectsPerEntry);
             cache.startIndexMap.reserve(entryCount);
 
             
@@ -123,9 +127,6 @@ namespace ShapeBench {
             }
 
             inputFile.read((char*) cache.objectOrientations.data(), cache.objectOrientations.size() * sizeof(ShapeBench::Orientation));
-        } else {
-            // Objects per entry = 1 reference mesh + n added noise objects
-            cache.objectsPerEntry = configuredObjectsPerEntry;
         }
     }
 
