@@ -144,8 +144,8 @@ namespace ShapeBench {
         std::vector<DescriptorType> sampleDescriptors(representativeSetSize * numberOfSupportRadiiToTry);
         std::vector<DescriptorType> referenceDescriptors(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
 
-        std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize);
-        std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize);
+        std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize, 1);
+        std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize, 1);
 
         std::vector<float> supportRadiiToTry(numberOfSupportRadiiToTry);
         for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {

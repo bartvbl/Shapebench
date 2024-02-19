@@ -37,20 +37,23 @@ void ShapeBench::Dataset::load(const std::filesystem::path &cacheFile) {
     std::sort(entries.begin(), entries.end());
 }
 
-std::vector<ShapeBench::VertexInDataset> ShapeBench::Dataset::sampleVertices(uint64_t randomSeed, uint32_t count) const {
+std::vector<ShapeBench::VertexInDataset> ShapeBench::Dataset::sampleVertices(uint64_t randomSeed, uint32_t count, uint32_t verticesPerObject) const {
+    assert(count % verticesPerObject == 0);
     std::vector<uint32_t> sampleHistogram(entries.size());
     std::vector<VertexInDataset> sampledEntries(count);
 
     ShapeBench::randomEngine engine(randomSeed);
     std::uniform_int_distribution<uint32_t> distribution(0, entries.size() - 1);
 
-    for(uint32_t i = 0; i < count; i++) {
+    uint32_t objectsToSample = count / verticesPerObject;
+
+    for(uint32_t i = 0; i < objectsToSample; i++) {
         uint32_t chosenMeshIndex = distribution(engine);
         sampleHistogram.at(chosenMeshIndex)++;
     }
     uint32_t nextIndex = 0;
     for(uint32_t i = 0; i < entries.size(); i++) {
-        for(uint32_t j = 0; j < sampleHistogram.at(i); j++) {
+        for(uint32_t j = 0; j < sampleHistogram.at(i) * verticesPerObject; j++) {
             sampledEntries.at(nextIndex).meshID = i;
             std::uniform_int_distribution<uint32_t> vertexIndexDistribution(0, entries.at(i).vertexCount - 1);
             sampledEntries.at(nextIndex).vertexIndex = vertexIndexDistribution(engine);

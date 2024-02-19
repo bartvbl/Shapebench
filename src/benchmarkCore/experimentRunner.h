@@ -124,15 +124,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     // Computing sample descriptors and their distance to the representative set
     uint32_t representativeSetSize = configuration.at("commonExperimentSettings").at("representativeSetSize");
     uint32_t sampleSetSize = configuration.at("commonExperimentSettings").at("sampleSetSize");
+    const uint32_t verticesPerSampleObject = configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject");
 
     // Compute reference descriptors, or load them from a cache file
     std::cout << "Computing reference descriptor set.." << std::endl;
-    std::vector<ShapeBench::VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize);
+    std::vector<ShapeBench::VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize, 1);
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
 
     // Computing sample descriptors, or load them from a cache file
     std::cout << "Computing sample descriptor set.." << std::endl;
-    std::vector<ShapeBench::VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize);
+    std::vector<ShapeBench::VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize, configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject"));
     ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), sampleVerticesSet, "sample");
 
     // Initialise filter caches
@@ -152,7 +153,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
 
-        for(uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex++) {
+        for(uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject) {
             uint64_t experimentInstanceRandomSeed = experimentSeedEngine();
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentInstanceRandomSeed);
 
@@ -200,18 +201,21 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             filteredMesh.free();
 
             bool isLastVertexIndex = sampleVertexIndex + 1 == sampleSetSize;
-            if (sampleVertexIndex % 10 == 9 || isLastVertexIndex) {
+            if (sampleVertexIndex % 100 == 0 || isLastVertexIndex) {
                 std::cout << "\r    ";
                 ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
                 std::cout << " " << (sampleVertexIndex + 1) << "/" << sampleSetSize << std::flush;
             }
 
-            if (sampleVertexIndex % 500 == 499 || isLastVertexIndex) {
+            if (sampleVertexIndex % 500 == 0) {
                 std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
             }
         }
     }
+
+    std::cout << std::endl << "    Writing caches.." << std::endl;
+    ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
 
     std::cout << "Cleaning up.." << std::endl;
     ShapeDescriptor::free(referenceDescriptors);

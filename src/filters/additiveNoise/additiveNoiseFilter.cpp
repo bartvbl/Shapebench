@@ -455,7 +455,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
 void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache) {
     std::filesystem::path datasetRootDir = settings.compressedDatasetRootDir;
     uint32_t clutterObjectCount = settings.addedClutterObjectCount;
-    std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount);
+    std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount, 1);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
     meshes.at(0) = scene.filteredSampleMesh;
 
