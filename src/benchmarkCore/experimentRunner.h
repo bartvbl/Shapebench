@@ -155,7 +155,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             uint64_t experimentInstanceRandomSeed = experimentSeedEngine();
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentInstanceRandomSeed);
 
-if(sampleVertexIndex < 444) {continue;}
+//if(sampleVertexIndex < 444) {continue;}
 
             std::cout << "Vertex " << sampleVertexIndex << std::endl;
 
@@ -191,7 +191,7 @@ if(sampleVertexIndex < 444) {continue;}
                 // 3. Compute distance from sample -> modified descriptor, and distance from sample -> all descriptors in reference set
                 // 4. Compute rank of sample
                 // Record metadata about "difficulty" of this sample
-            } catch(std::runtime_error& e) {
+            } catch(const std::exception& e) {
                 std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
             }
 
