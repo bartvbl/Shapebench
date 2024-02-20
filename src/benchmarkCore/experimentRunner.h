@@ -180,11 +180,13 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
             filteredMesh.mappedReferenceVertices.resize(verticesPerSampleObject);
             filteredMesh.originalReferenceVertices.resize(verticesPerSampleObject);
+            filteredMesh.referenceVertexIndices.resize(verticesPerSampleObject);
             for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
                 ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                 filteredMesh.originalReferenceVertices.at(i).vertex = filteredMesh.originalMesh.vertices[sampleVertex.vertexIndex];
                 filteredMesh.originalReferenceVertices.at(i).normal = filteredMesh.originalMesh.normals[sampleVertex.vertexIndex];
                 filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
+                filteredMesh.referenceVertexIndices.at(i) = sampleVertex.vertexIndex;
             }
 
             try {
