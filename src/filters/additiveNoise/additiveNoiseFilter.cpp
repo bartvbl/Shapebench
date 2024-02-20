@@ -503,6 +503,18 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
         glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
 
+        if(i == 0) {
+            for(uint32_t index = 0; index < scene.mappedReferenceVertices.size(); index++) {
+                // Move the vertices we intend to use for measurements to the updated location
+                ShapeDescriptor::cpu::float3 inputVertex = scene.mappedReferenceVertices.at(index).vertex;
+                ShapeDescriptor::cpu::float3 inputNormal = scene.mappedReferenceVertices.at(index).normal;
+                glm::vec4 transformedVertex = transformationMatrix * glm::vec4(inputVertex.x, inputVertex.y, inputVertex.z, 1);
+                glm::vec3 transformedNormal = glm::normalize(glm::vec3(normalMatrix * glm::vec4(inputNormal.x, inputNormal.y, inputNormal.z, 1)));
+                scene.mappedReferenceVertices.at(index).vertex = ShapeDescriptor::cpu::float3(transformedVertex.x, transformedVertex.y, transformedVertex.z);
+                scene.mappedReferenceVertices.at(index).normal = ShapeDescriptor::cpu::float3(transformedNormal.x, transformedNormal.y, transformedNormal.z);
+            }
+        }
+
         ShapeDescriptor::cpu::Mesh& meshToWriteTo = (i == 0) ? outputSampleMesh : outputAdditiveNoiseMesh;
 
         const ShapeDescriptor::cpu::Mesh& mesh = meshes.at(i);
