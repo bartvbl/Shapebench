@@ -10,6 +10,10 @@ namespace ShapeBench {
     struct ExperimentResultsEntry {
         ShapeBench::VertexInDataset sourceVertex;
         uint32_t filteredDescriptorRank = 0;
+        ShapeDescriptor::OrientedPoint originalVertexLocation;
+        ShapeDescriptor::OrientedPoint filteredVertexLocation;
+        float fractionAddedNoise = 0;
+        float fractionSurfacePartiality = 0;
     };
 
     struct ExperimentResult {
@@ -17,8 +21,7 @@ namespace ShapeBench {
         nlohmann::json usedConfiguration;
         ShapeBench::ComputedConfig usedComputedConfiguration;
         uint64_t experimentRandomSeed = 0;
-        float fractionAddedNoise = 0;
-        float fractionSurfacePartiality = 0;
+
 
         std::vector<ExperimentResultsEntry> vertexResults;
     };

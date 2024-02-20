@@ -13,6 +13,7 @@
 #include "filters/captureNoise/normalNoiseFilter.h"
 #include "filters/additiveNoise/AdditiveNoiseCache.h"
 #include "results/ExperimentResult.h"
+#include "benchmarkCore/common-procedures/areaEstimator.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -204,10 +205,25 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 // Collect data here
                 ShapeBench::ExperimentResultsEntry resultsEntry;
+                const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
+
+
 
                 for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntry.sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                     resultsEntry.filteredDescriptorRank = 0;
+                    resultsEntry.originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
+                    resultsEntry.filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
+
+                    ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh,
+                                                                                                                      resultsEntry.originalVertexLocation,
+                                                                                                                      resultsEntry.filteredVertexLocation,
+                                                                                                                      supportRadius,
+                                                                                                                      configuration,
+                                                                                                                      areaEstimationRandomSeed);
+
+                    resultsEntry.fractionAddedNoise = areaEstimate.addedAdrea;
+                    resultsEntry.fractionSurfacePartiality = areaEstimate.subtractiveArea;
                 }
 
                 experimentResult.vertexResults.push_back(resultsEntry);
