@@ -13,5 +13,6 @@ namespace ShapeBench {
         std::vector<ShapeDescriptor::OrientedPoint> mappedReferenceVertices;
 
         void free();
+        ShapeDescriptor::cpu::Mesh combinedFilteredMesh();
     };
 }

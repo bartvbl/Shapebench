@@ -14,6 +14,7 @@
 #include "filters/additiveNoise/AdditiveNoiseCache.h"
 #include "results/ExperimentResult.h"
 #include "benchmarkCore/common-procedures/areaEstimator.h"
+#include "benchmarkCore/common-procedures/referenceIndexer.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -208,8 +209,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 // Collect data here
                 ShapeBench::ExperimentResultsEntry resultsEntry;
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
+                const uint64_t pointCloudSamplingSeed = experimentInstanceRandomEngine();
 
-
+                ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
                 for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntry.sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
@@ -224,9 +226,19 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                                                                                                                       configuration,
                                                                                                                       areaEstimationRandomSeed);
 
+
+
+                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(
+                            combinedMesh, resultsEntry.filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed);
+
+                    uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredPointDescriptor, referenceDescriptors);
+                    std::cout << "Final index: " << imageIndex << std::endl;
+
                     resultsEntry.fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntry.fractionSurfacePartiality = areaEstimate.subtractiveArea;
                 }
+
+                ShapeDescriptor::free(combinedMesh);
 
                 experimentResult.vertexResults.push_back(resultsEntry);
 
