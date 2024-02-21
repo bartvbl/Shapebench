@@ -213,7 +213,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
-                //filteredMesh.writeFilteredMesh(DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentInstanceRandomSeed) + ".obj");
+                writeFilteredMesh<DescriptorMethod>(filteredMesh, DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentInstanceRandomSeed) + ".obj", filteredMesh.mappedReferenceVertices.at(0), supportRadius, true);
 
                 for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntry.sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
@@ -221,20 +221,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntry.originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
                     resultsEntry.filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
 
-                    ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh,
-                                                                                                                      resultsEntry.originalVertexLocation,
-                                                                                                                      resultsEntry.filteredVertexLocation,
-                                                                                                                      supportRadius,
-                                                                                                                      configuration,
-                                                                                                                      areaEstimationRandomSeed);
-
-
+                    ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntry.originalVertexLocation, resultsEntry.filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
 
                     DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(
                             combinedMesh, resultsEntry.filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed);
 
                     uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredPointDescriptor, referenceDescriptors);
-                    std::cout << areaEstimate.addedAdrea << ", " << imageIndex << std::endl;
 
                     resultsEntry.fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntry.fractionSurfacePartiality = areaEstimate.subtractiveArea;
