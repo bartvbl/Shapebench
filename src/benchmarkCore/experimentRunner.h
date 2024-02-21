@@ -213,6 +213,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
+                //filteredMesh.writeFilteredMesh(DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentInstanceRandomSeed) + ".obj");
+
                 for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntry.sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                     resultsEntry.filteredDescriptorRank = 0;
@@ -232,7 +234,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                             combinedMesh, resultsEntry.filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed);
 
                     uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredPointDescriptor, referenceDescriptors);
-                    std::cout << "Final index: " << imageIndex << std::endl;
+                    std::cout << areaEstimate.addedAdrea << ", " << imageIndex << std::endl;
 
                     resultsEntry.fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntry.fractionSurfacePartiality = areaEstimate.subtractiveArea;

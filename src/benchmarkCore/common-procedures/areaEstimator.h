@@ -117,7 +117,7 @@ namespace ShapeBench {
         AreaEstimate estimate;
         estimate.addedAdrea = double(additiveMeshSamples) / double(referenceMeshSamples);
         estimate.subtractiveArea = double(subtractiveMeshSamples) / double(referenceMeshSamples);
-        std::cout << "Area estimate: added " << estimate.addedAdrea << ", subtracted " << estimate.subtractiveArea << std::endl;
+        //std::cout << "Area estimate: added " << estimate.addedAdrea << ", subtracted " << estimate.subtractiveArea << std::endl;
 
         return estimate;
     }

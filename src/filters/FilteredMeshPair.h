@@ -14,5 +14,6 @@ namespace ShapeBench {
 
         void free();
         ShapeDescriptor::cpu::Mesh combinedFilteredMesh();
+        void writeFilteredMesh(std::filesystem::path outputFile);
     };
 }
