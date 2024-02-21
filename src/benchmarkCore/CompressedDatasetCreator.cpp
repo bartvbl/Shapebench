@@ -19,11 +19,18 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
     datasetCache["metadata"]["cacheDirectory"] = std::filesystem::absolute(metadataFile).string();
 
     datasetCache["files"] = {};
-    size_t nextID = 0;
+    // Creating stubs
+    for(uint32_t i = 0; i < datasetFiles.size(); i++) {
+        nlohmann::json datasetEntry;
+        datasetEntry["id"] = i;
+        datasetCache["files"].push_back(datasetEntry);
+    }
+
+
     unsigned int pointCloudCount = 0;
     unsigned int hashMismatches = 0;
     size_t processedMeshCount = 0;
-    #pragma omp parallel for schedule(dynamic) default(none) shared(hashMismatches, processedMeshCount, std::cout, datasetFiles, originalDatasetDirectory, nextID, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
+    #pragma omp parallel for schedule(dynamic) default(none) shared(hashMismatches, processedMeshCount, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
     for(size_t i = 0; i < datasetFiles.size(); i++) {
         #pragma omp atomic
         processedMeshCount++;
@@ -76,8 +83,8 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
                 datasetEntry["vertexCount"] = mesh.vertexCount;
 
                 // Integrity check
-                ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::loadMeshFromCompressedGeometryFile(
-                        compressedMeshPath);
+                ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::loadMeshFromCompressedGeometryFile(compressedMeshPath);
+
                 if(!ShapeDescriptor::compareMesh(mesh, readMesh)) {
                     std::cout << "\n!! MESH HASH MISMATCH " + compressedMeshPath.string() + "\n" << std::flush;
                     #pragma omp atomic
@@ -116,10 +123,9 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
 
         #pragma omp critical
         {
-            datasetCache["files"].push_back(datasetEntry);
-            nextID++;
+            datasetCache["files"].at(i) = datasetEntry;
 
-            if((nextID + 1) % 50000 == 0) {
+            if((i + 1) % 50000 == 0) {
                 std::cout << std::endl << "Writing backup JSON.. " << std::endl;
                 std::ofstream outCacheStream {metadataFile};
                 outCacheStream << datasetCache.dump(4);
