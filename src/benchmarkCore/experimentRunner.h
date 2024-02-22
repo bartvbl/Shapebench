@@ -60,6 +60,11 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
     return representativeDescriptors;
 }
 
+template<typename DescriptorMethod, typename DescriptorType>
+void writeExperimentResults() {
+
+}
+
 template<typename DescriptorType, typename DescriptorMethod>
 ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
         const nlohmann::json &configuration,
@@ -150,6 +155,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     std::cout << "Running experiments.." << std::endl;
     uint64_t experimentBaseRandomSeed = engine();
 
+    const uint32_t intermediateSaveFrequency = configuration.at("commonExperimentSettings").at("intermediateSaveFrequency");
+    ShapeDescriptor::cpu::array<DescriptorType> debugDescriptors(2 * intermediateSaveFrequency);
+
     for(uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
         ShapeBench::ExperimentResult experimentResult;
         experimentResult.methodName = DescriptorMethod::getName();
@@ -170,6 +178,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 //if(sampleVertexIndex < 444) {continue;}
 
             std::cout << "Vertex " << sampleVertexIndex << std::endl;
+            uint32_t debugDescriptorIndex = 2 * ((sampleVertexIndex + i) % intermediateSaveFrequency);
 
             ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
             const ShapeBench::DatasetEntry &entry = dataset.at(firstSampleVertex.meshID);
@@ -188,6 +197,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 filteredMesh.originalReferenceVertices.at(i).normal = filteredMesh.originalMesh.normals[sampleVertex.vertexIndex];
                 filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
                 filteredMesh.referenceVertexIndices.at(i) = sampleVertex.vertexIndex;
+
+                debugDescriptors[debugDescriptorIndex] = cleanSampleDescriptors[sampleVertexIndex + i];
             }
 
             try {
@@ -207,6 +218,13 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 }
 
                 // Collect data here
+
+                std::filesystem::path resultsDirectory = configuration.at("resultsDirectory");
+                if(!std::filesystem::exists(resultsDirectory)) {
+                    std::cout << "    Creating results directory.." << std::endl;
+                    std::filesystem::create_directories(resultsDirectory);
+                }
+
                 ShapeBench::ExperimentResultsEntry resultsEntry;
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
                 const uint64_t pointCloudSamplingSeed = experimentInstanceRandomEngine();
@@ -230,6 +248,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                     resultsEntry.fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntry.fractionSurfacePartiality = areaEstimate.subtractiveArea;
+
+                    debugDescriptors[debugDescriptorIndex + 1] = filteredPointDescriptor;
                 }
 
                 ShapeDescriptor::free(combinedMesh);
@@ -255,12 +275,20 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 std::cout << " " << (sampleVertexIndex + 1) << "/" << sampleSetSize << std::flush;
             }
 
-            if (sampleVertexIndex % 500 == 0) {
+            if (sampleVertexIndex % intermediateSaveFrequency == 0) {
                 std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
+                ShapeDescriptor::writeDescriptorImages(debugDescriptors, "debugimages-" + DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".png", false, 50);
+                writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
             }
         }
+
+        std::cout << "Writing experiment results file.." << std::endl;
+        writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
+        std::cout << "Experiment complete." << std::endl;
     }
+
+    ShapeDescriptor::free(debugDescriptors);
 
     std::cout << std::endl << "    Writing caches.." << std::endl;
     ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);

@@ -13,18 +13,21 @@
         "verticesToTestPerSampleObject": 10,
         "sampleSetSize": 100000,
         "representativeSetSize": 1000000,
-        "pointSampleDensity": 1000000
+        "pointSampleDensity": 1000000,
+        "intermediateSaveFrequency": 500
     },
 
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
+            "enabled": true,
             "filters": [
                 {"type": "additive-noise"}
             ]
         },
         {
             "name": "subtractive-noise-only",
+            "enabled": false,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
