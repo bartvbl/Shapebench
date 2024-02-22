@@ -166,6 +166,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         experimentResult.experimentRandomSeed = experimentBaseRandomSeed;
 
         const nlohmann::json& experimentConfig = configuration.at("experimentsToRun").at(experimentIndex);
+
+        if(!experimentConfig.at("enabled")) {
+            std::cout << "Experiment " << (experimentIndex + 1) << " is disabled. Skipping." << std::endl;
+            continue;
+        }
+
         std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": " << experimentConfig.at("name") << std::endl;
 
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
