@@ -4,6 +4,7 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
 #include <Seb.h>
+#include <malloc.h>
 
 void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalDatasetDirectory,
                                           const std::filesystem::path &compressedDatasetDirectory,
@@ -125,10 +126,11 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
         {
             datasetCache["files"].at(i) = datasetEntry;
 
-            if((i + 1) % 50000 == 0) {
+            if((i + 1) % 10000 == 0) {
                 std::cout << std::endl << "Writing backup JSON.. " << std::endl;
                 std::ofstream outCacheStream {metadataFile};
                 outCacheStream << datasetCache.dump(4);
+                malloc_trim(0);
             }
         };
     }
