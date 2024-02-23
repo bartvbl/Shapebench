@@ -115,6 +115,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     ShapeBench::ComputedConfig computedConfig(computedConfigFilePath);
     const std::string methodName = DescriptorMethod::getName();
 
+    std::filesystem::path resultsDirectory = configuration.at("resultsDirectory");
+    if(!std::filesystem::exists(resultsDirectory)) {
+        std::cout << "    Creating results directory.." << std::endl;
+        std::filesystem::create_directories(resultsDirectory);
+    }
+
     // Getting a support radius
     std::cout << "Determining support radius.." << std::endl;
     float supportRadius = 0;
@@ -184,7 +190,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 //if(sampleVertexIndex < 444) {continue;}
 
             std::cout << "Vertex " << sampleVertexIndex << std::endl;
-            uint32_t debugDescriptorIndex = 2 * ((sampleVertexIndex + i) % intermediateSaveFrequency);
+            uint32_t debugDescriptorIndex = 2 * ((sampleVertexIndex) % intermediateSaveFrequency);
 
             ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
             const ShapeBench::DatasetEntry &entry = dataset.at(firstSampleVertex.meshID);
@@ -204,7 +210,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
                 filteredMesh.referenceVertexIndices.at(i) = sampleVertex.vertexIndex;
 
-                debugDescriptors[debugDescriptorIndex] = cleanSampleDescriptors[sampleVertexIndex + i];
+                debugDescriptors[debugDescriptorIndex + i] = cleanSampleDescriptors[sampleVertexIndex + i];
             }
 
             try {
@@ -225,11 +231,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 // Collect data here
 
-                std::filesystem::path resultsDirectory = configuration.at("resultsDirectory");
-                if(!std::filesystem::exists(resultsDirectory)) {
-                    std::cout << "    Creating results directory.." << std::endl;
-                    std::filesystem::create_directories(resultsDirectory);
-                }
+
 
                 ShapeBench::ExperimentResultsEntry resultsEntry;
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
@@ -255,7 +257,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntry.fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntry.fractionSurfacePartiality = areaEstimate.subtractiveArea;
 
-                    debugDescriptors[debugDescriptorIndex + 1] = filteredPointDescriptor;
+                    debugDescriptors[debugDescriptorIndex + i + 1] = filteredPointDescriptor;
                 }
 
                 ShapeDescriptor::free(combinedMesh);
@@ -285,12 +287,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
                 ShapeDescriptor::writeDescriptorImages(debugDescriptors, "debugimages-" + DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".png", false, 50);
-                writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
+                //writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
             }
         }
 
         std::cout << "Writing experiment results file.." << std::endl;
-        writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
+        //writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
         std::cout << "Experiment complete." << std::endl;
     }
 
