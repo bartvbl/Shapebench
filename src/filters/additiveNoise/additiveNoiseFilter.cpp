@@ -463,7 +463,10 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 #pragma omp parallel for
     for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
-        std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
+        std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile;
+        if(!std::filesystem::exists(meshFilePath)) {
+            meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
+        }
         meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
         moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
     }

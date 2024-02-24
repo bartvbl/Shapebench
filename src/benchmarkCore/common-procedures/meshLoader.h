@@ -12,7 +12,10 @@ namespace ShapeBench {
 
         std::filesystem::path datasetBasePath = config.at("compressedDatasetRootDir");
         std::filesystem::path currentMeshPath = datasetBasePath / pathInDataset;
-        currentMeshPath = currentMeshPath.replace_extension(".cm");
+        // Use compressed mesh file as fallback
+        if(!std::filesystem::exists(currentMeshPath)) {
+            currentMeshPath = currentMeshPath.replace_extension(".cm");
+        }
         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(currentMeshPath);
 
         // Scale mesh down to a unit sphere
