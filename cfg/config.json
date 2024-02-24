@@ -21,11 +21,7 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-<<<<<<< Updated upstream
-            "enabled": true,
-=======
             "enabled": false,
->>>>>>> Stashed changes
             "filters": [
                 {"type": "additive-noise"}
             ]
