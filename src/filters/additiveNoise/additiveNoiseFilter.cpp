@@ -35,6 +35,7 @@
 #include "VHACD.h"
 #include "Jolt/Geometry/ConvexHullBuilder.h"
 #include "Jolt/Physics/Collision/Shape/Shape.h"
+#include "benchmarkCore/common-procedures/areaEstimator.h"
 
 static void TraceImpl(const char *inFMT, ...)
 {
@@ -220,11 +221,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
 void moveMeshToOriginAndUnitSphere(ShapeDescriptor::cpu::Mesh &mesh, ShapeDescriptor::cpu::float3 sphereCentre, float sphereRadius) {
     float oneOverSphereRadius = 1.0f/sphereRadius;
     for(uint32_t i = 0; i < mesh.vertexCount; i++) {
-        ShapeDescriptor::cpu::float3 vertex = mesh.vertices[i];
-        vertex.x = (vertex.x - sphereCentre.x) * oneOverSphereRadius;
-        vertex.y = (vertex.y - sphereCentre.y) * oneOverSphereRadius;
-        vertex.z = (vertex.z - sphereCentre.z) * oneOverSphereRadius;
-        mesh.vertices[i] = vertex;
+        mesh.vertices[i] = (mesh.vertices[i] - sphereCentre) * oneOverSphereRadius;
     }
 }
 
@@ -280,7 +277,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
         }
     }
 
-    if(meshIncluded.at(0) == false) {
+    if(!meshIncluded.at(0)) {
         throw std::runtime_error("Reference mesh has no convex hulls!");
     }
 
@@ -460,7 +457,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     meshes.at(0) = scene.filteredSampleMesh;
 
     // Load meshes
-#pragma omp parallel for
+//#pragma omp parallel for
     for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
         std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile;
@@ -469,6 +466,14 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         }
         meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
         moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
+
+        double totalArea = 0;
+        for(uint32_t j = 0; j < meshes.at(i).vertexCount; j += 3) {
+            double area = ShapeBench::computeSingleTriangleArea(meshes.at(i).vertices[j], meshes.at(i).vertices[j + 1], meshes.at(i).vertices[j + 2]);
+            totalArea += area;
+        }
+        std::cout << "    Mesh " << i << " - total area: " << totalArea << " " << entry.computedObjectRadius << " " << meshFilePath.string() << std::endl;
+        //ShapeDescriptor::writeOBJ(meshes.at(i), meshFilePath.filename().replace_extension(".obj").string());
     }
 
     // Compute orientations by doing a physics simulation or using a cached result
@@ -485,6 +490,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     uint32_t totalAdditiveNoiseVertexCount = 0;
     for(int i = 1; i < meshes.size(); i++) {
         if(std::isnan(objectOrientations.at(i).position.x)) {
+            std::cout << "    Mesh " << i << " was excluded." << std::endl;
             continue;
         }
         totalAdditiveNoiseVertexCount += meshes.at(i).vertexCount;
@@ -505,6 +511,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         glm::mat4 rotationMatrix = glm::toMat4(glm::qua(orientation.rotation.w, orientation.rotation.x, orientation.rotation.y, orientation.rotation.z));
         glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
         glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
+        //std::cout << "Mesh " << i << ": " << orientation.position << ", " << orientation.rotation << std::endl;
 
         if(i == 0) {
             for(uint32_t index = 0; index < scene.mappedReferenceVertices.size(); index++) {
