@@ -10,6 +10,7 @@ namespace ShapeBench {
         Shader() = default;
         void use();
         unsigned int get();
+        void setUniformMat3(unsigned int ID, float *matrix);
         void setUniform(unsigned int ID, float* matrix);
         void setUniform(unsigned int ID, float x, float y, float z);
         void setUniform(unsigned int ID, float x, float y, float z, float w);
