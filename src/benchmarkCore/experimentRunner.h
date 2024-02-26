@@ -7,7 +7,7 @@
 #include "Dataset.h"
 #include "ComputedConfig.h"
 #include "supportRadiusEstimation/SupportRadiusEstimation.h"
-#include "utils/progressBar.h"
+#include "utils/prettyprint.h"
 #include "filters/subtractiveNoise/OcclusionFilter.h"
 #include "filters/captureNoise/remeshingFilter.h"
 #include "filters/captureNoise/normalNoiseFilter.h"
@@ -48,14 +48,10 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
         }
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    uint32_t timeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
-    uint32_t timeInHours = timeInSeconds / 3600;
-    timeInSeconds -= timeInHours * 3600;
-    uint32_t timeInMinutes = timeInSeconds / 60;
-    timeInSeconds -= timeInMinutes * 60;
-    std::cout << std::endl;
     std::cout << "    Complete." << std::endl;
-    std::cout << "    Elapsed time: " << timeInHours << ":" << timeInMinutes << ":" << timeInSeconds << std::endl;
+    std::cout << "    Elapsed time: ";
+    ShapeBench::printDuration(end - begin);
+    std::cout << std::endl;
 
     return representativeDescriptors;
 }

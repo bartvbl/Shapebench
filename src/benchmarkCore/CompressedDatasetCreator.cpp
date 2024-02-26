@@ -3,7 +3,7 @@
 #include "CompressedDatasetCreator.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
-#include "utils/progressBar.h"
+#include "utils/prettyprint.h"
 #include <Seb.h>
 #include <malloc.h>
 
@@ -34,6 +34,8 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
     size_t processedMeshCount = 0;
 
     std::cout << "Computing dataset cache.." << std::endl;
+    std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
+
     #pragma omp parallel for schedule(dynamic) default(none) shared(hashMismatches, processedMeshCount, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
     for(size_t i = 0; i < datasetFiles.size(); i++) {
         #pragma omp atomic
@@ -141,6 +143,11 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
             }
         };
     }
+    std::cout << std::endl;
+
+    std::chrono::time_point<std::chrono::steady_clock> endTime = std::chrono::steady_clock::now();
+    std::cout << "    Compressed dataset was successfully computed. Total duration: ";
+    ShapeBench::printDuration(endTime - startTime);
     std::cout << std::endl;
 
     std::ofstream outCacheStream {metadataFile};

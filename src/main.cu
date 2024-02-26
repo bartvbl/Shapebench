@@ -46,6 +46,12 @@ int main(int argc, const char** argv) {
 
     // ---------------------------------------------------------
 
+    // Special case meshes used as sanity checks
+    //ShapeDescriptor::cpu::Mesh inMesh = ShapeDescriptor::loadMesh("/mnt/DATASETS/objaverse/hf-objaverse-v1/glbs/000-031/006eccb258c94370bdfd26205491d135.glb");
+    //ShapeDescriptor::writeOBJ(inMesh, "smallMesh.obj");
+    //inMesh = ShapeDescriptor::loadMesh("/mnt/DATASETS/objaverse/hf-objaverse-v1/glbs/000-000/0554eaf578284d2b8fa3493a1f1d56c6.glb");
+    //ShapeDescriptor::writeOBJ(inMesh, "alarm.obj");
+
     std::cout << "Reading configuration.." << std::endl;
     const std::filesystem::path configurationFileLocation(configurationFile.value());
     if(!std::filesystem::exists(configurationFileLocation)) {
@@ -85,5 +91,5 @@ int main(int argc, const char** argv) {
 
     uint64_t randomSeed = configuration.at("randomSeed");
     testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
-    //testMethod<ShapeBench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    testMethod<ShapeBench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
 }
