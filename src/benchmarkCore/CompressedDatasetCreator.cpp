@@ -3,6 +3,7 @@
 #include "CompressedDatasetCreator.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
+#include "utils/progressBar.h"
 #include <Seb.h>
 #include <malloc.h>
 
@@ -31,12 +32,16 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
     unsigned int pointCloudCount = 0;
     unsigned int hashMismatches = 0;
     size_t processedMeshCount = 0;
+
+    std::cout << "Computing dataset cache.." << std::endl;
     #pragma omp parallel for schedule(dynamic) default(none) shared(hashMismatches, processedMeshCount, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
     for(size_t i = 0; i < datasetFiles.size(); i++) {
         #pragma omp atomic
         processedMeshCount++;
         if(processedMeshCount % 100 == 99) {
-            std::cout << "\r    Computing dataset cache.. Processed: " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%), found " << pointCloudCount << " point clouds, " << hashMismatches << " mismatched hashes" << std::flush;
+            std::cout << "\r     ";
+            ShapeBench::drawProgressBar(processedMeshCount + 1, datasetFiles.size());
+            std::cout << " " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%), found " << pointCloudCount << " point clouds, " << hashMismatches << " mismatched hashes" << std::flush;
         }
 
         nlohmann::json datasetEntry;
@@ -130,6 +135,8 @@ void ShapeBench::computeCompressedDataSet(const std::filesystem::path &originalD
                 std::cout << std::endl << "Writing backup JSON.. " << std::endl;
                 std::ofstream outCacheStream {metadataFile};
                 outCacheStream << datasetCache.dump(4);
+            }
+            if((i + 1) % 2500 == 0) {
                 malloc_trim(0);
             }
         };
