@@ -133,6 +133,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     } else {
         supportRadius = computedConfig.getFloat(methodName, "supportRadius");
         std::cout << "    Cached support radius was found for this method: " << supportRadius << std::endl;
+        engine(); // Used for RNG consistency
     }
 
     // Computing sample descriptors and their distance to the representative set
