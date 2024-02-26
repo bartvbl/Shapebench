@@ -95,7 +95,7 @@ namespace ShapeBench {
                 ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
                 float supportRadius) {
-            return ShapeDescriptor::generateQUICCImages(mesh, descriptorOrigins, supportRadius);
+            return ShapeDescriptor::generatePartialityResistantQUICCImages(mesh, descriptorOrigins, supportRadius);
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::PointCloud cloud,
@@ -110,7 +110,7 @@ namespace ShapeBench {
                 ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
                 float supportRadius) {
-            return ShapeDescriptor::generateQUICCImages(mesh, descriptorOrigins, supportRadius);
+            return ShapeDescriptor::generatePartialityResistantQUICCImages(mesh, descriptorOrigins, supportRadius);
         }
         static ShapeDescriptor::cpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::PointCloud cloud,
