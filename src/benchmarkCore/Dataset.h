@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <vector>
 #include <shapeDescriptor/shapeDescriptor.h>
+#include "nlohmann/json.hpp"
 
 namespace ShapeBench {
     struct VertexInDataset {
@@ -23,8 +24,13 @@ namespace ShapeBench {
     class Dataset {
         std::vector<DatasetEntry> entries;
     public:
-        void load(const std::filesystem::path &cacheFile);
+        void load(const nlohmann::json& cacheJson);
         std::vector<VertexInDataset> sampleVertices(uint64_t randomSeed, uint32_t count, uint32_t verticesPerObject) const;
         const DatasetEntry& at(uint32_t meshID) const;
+
+        static ShapeBench::Dataset
+        computeOrLoadCached(const std::filesystem::path baseDatasetDirectory,
+                            const std::filesystem::path derivedDatasetDirectory,
+                            const std::filesystem::path datasetCacheFile);
     };
 }

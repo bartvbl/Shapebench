@@ -12,6 +12,7 @@
 
     "commonExperimentSettings": {
         "verticesToTestPerSampleObject": 10,
+        "memoryCleanupFrequency": 1000,
         "sampleSetSize": 100000,
         "representativeSetSize": 1000000,
         "pointSampleDensity": 1000000,
@@ -38,7 +39,7 @@
     "filterSettings": {
         "additiveNoise": {
             "addedObjectCount": 10,
-            "enableDebugCamera": false,
+            "enableDebugCamera": true,
             "runSimulationUntilManualExit": false,
             "objectAttractionForceMagnitude": 5000.0,
             "initialObjectSeparation": 2.1,

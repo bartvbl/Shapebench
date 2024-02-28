@@ -4,11 +4,11 @@
 #include <iostream>
 #include "json.hpp"
 #include "randomEngine.h"
+#include "nlohmann/json.hpp"
+#include "constants.h"
+#include "CompressedDatasetCreator.h"
 
-void ShapeBench::Dataset::load(const std::filesystem::path &cacheFile) {
-    std::ifstream inputStream{cacheFile};
-    nlohmann::json cacheFileContents = nlohmann::json::parse(inputStream);
-
+void ShapeBench::Dataset::load(const nlohmann::json& cacheFileContents) {
     assert(cacheFileContents.contains("files"));
     uint32_t fileCount = cacheFileContents.at("files").size();
     entries.reserve(fileCount);
@@ -70,4 +70,14 @@ const ShapeBench::DatasetEntry &ShapeBench::Dataset::at(uint32_t meshID) const {
 
 bool ShapeBench::DatasetEntry::operator<(DatasetEntry &other) {
     return id < other.id;
+}
+
+ShapeBench::Dataset ShapeBench::Dataset::computeOrLoadCached(
+        const std::filesystem::path baseDatasetDirectory,
+        const std::filesystem::path derivedDatasetDirectory,
+        const std::filesystem::path datasetCacheFile) {
+    nlohmann::json datasetCacheJson = ShapeBench::computeOrReadDatasetCache(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
+    ShapeBench::Dataset dataset;
+    dataset.load(datasetCacheJson);
+    return dataset;
 }

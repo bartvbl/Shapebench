@@ -77,15 +77,8 @@ int main(int argc, const char** argv) {
     const std::filesystem::path baseDatasetDirectory = configuration.at("objaverseDatasetRootDir");
     const std::filesystem::path derivedDatasetDirectory = configuration.at("compressedDatasetRootDir");
     const std::filesystem::path datasetCacheFile = cacheDirectory / ShapeBench::datasetCacheFileName;
-    if(!std::filesystem::exists(datasetCacheFile) || !std::filesystem::exists(derivedDatasetDirectory)) {
-        std::cout << "Dataset metadata or compressed dataset was not found." << std::endl
-                  << "Computing compressed dataset.. (this will likely take multiple hours)" << std::endl;
-        ShapeBench::computeCompressedDataSet(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
-    }
 
-    std::cout << "Reading dataset cache.." << std::endl;
-    ShapeBench::Dataset dataset;
-    dataset.load(datasetCacheFile);
+    ShapeBench::Dataset dataset = ShapeBench::Dataset::computeOrLoadCached(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
 
     ShapeBench::initPhysics();
 
