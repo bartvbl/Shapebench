@@ -15,6 +15,7 @@
 #include "results/ExperimentResult.h"
 #include "benchmarkCore/common-procedures/areaEstimator.h"
 #include "benchmarkCore/common-procedures/referenceIndexer.h"
+#include "results/ResultDumper.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -56,10 +57,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
     return representativeDescriptors;
 }
 
-template<typename DescriptorMethod, typename DescriptorType>
-void writeExperimentResults() {
 
-}
 
 template<typename DescriptorType, typename DescriptorMethod>
 ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
@@ -228,9 +226,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 }
 
                 // Collect data here
-
-
-
                 ShapeBench::ExperimentResultsEntry resultsEntry;
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
                 const uint64_t pointCloudSamplingSeed = experimentInstanceRandomEngine();
@@ -287,12 +282,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
                 ShapeDescriptor::writeDescriptorImages(debugDescriptors, "debugimages-" + DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".png", false, 50, 2000);
-                //writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
+                writeExperimentResults(experimentResult, resultsDirectory);
             }
         }
 
         std::cout << "Writing experiment results file.." << std::endl;
-        //writeExperimentResults<DescriptorMethod, DescriptorType>(experimentResult, resultsDirectory);
+        writeExperimentResults(experimentResult, resultsDirectory);
         std::cout << "Experiment complete." << std::endl;
     }
 

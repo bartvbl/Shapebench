@@ -22,7 +22,7 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "additive-noise"}
             ]
@@ -39,7 +39,7 @@
     "filterSettings": {
         "additiveNoise": {
             "addedObjectCount": 10,
-            "enableDebugCamera": true,
+            "enableDebugCamera": false,
             "runSimulationUntilManualExit": false,
             "objectAttractionForceMagnitude": 5000.0,
             "initialObjectSeparation": 2.1,
