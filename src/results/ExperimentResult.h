@@ -19,9 +19,10 @@ namespace ShapeBench {
     struct ExperimentResult {
         std::string methodName = "NOT SPECIFIED";
         nlohmann::json usedConfiguration;
+        nlohmann::json methodMetadata;
         ShapeBench::ComputedConfig usedComputedConfiguration;
         uint64_t experimentRandomSeed = 0;
-
+        uint32_t experimentIndex = 0;
 
         std::vector<ExperimentResultsEntry> vertexResults;
     };

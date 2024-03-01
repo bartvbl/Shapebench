@@ -178,5 +178,12 @@ namespace ShapeBench {
                 ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> haystackDescriptors) {
             return ShapeDescriptor::computeSpinImageSearchResultRanks(needleDescriptors, haystackDescriptors);
         }
+        static nlohmann::json getMetadata() {
+            nlohmann::json metadata;
+            metadata["resolution"] = spinImageWidthPixels;
+            metadata["pixelType"] = std::string(typeid(spinImagePixelType).name());
+            metadata["distanceFunction"] = "Pearson Correlation";
+            return metadata;
+        }
     };
 }

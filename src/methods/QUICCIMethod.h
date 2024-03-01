@@ -133,5 +133,11 @@ namespace ShapeBench {
                 ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> haystackDescriptors) {
             return ShapeDescriptor::computeQUICCImageSearchResultRanks(needleDescriptors, haystackDescriptors);
         }
+        static nlohmann::json getMetadata() {
+            nlohmann::json metadata;
+            metadata["resolution"] = spinImageWidthPixels;
+            metadata["distanceFunction"] = "Weighted Hamming";
+            return metadata;
+        }
     };
 }

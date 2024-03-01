@@ -13,6 +13,15 @@ set(CMAKE_CXX_STANDARD 20)
 enable_language(CUDA)
 find_package(OpenMP REQUIRED)
 
+
+# Utility for baking in the current git commit into source code
+set(PRE_CONFIGURE_FILE "lib/cmake-git/git.cc.in")
+set(POST_CONFIGURE_FILE "${CMAKE_CURRENT_BINARY_DIR}/git.cc")
+include(lib/cmake-git/git_watcher.cmake)
+add_library(gitinfo STATIC ${POST_CONFIGURE_FILE})
+target_include_directories(gitinfo PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_dependencies(gitinfo check_git)
+
 #
 # CMake setup
 #
@@ -50,6 +59,7 @@ include_directories (
     lib/glad/include
     lib/pmp-library/src
     lib/pmp-library/external/eigen-3.4.0
+    lib/cmake-git
     ../libShapeDescriptor/lib/glm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
@@ -70,7 +80,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp) # lsan
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo) # lsan
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand

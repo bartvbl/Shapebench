@@ -83,6 +83,9 @@ namespace ShapeBench {
         static std::string getName() {
             return "METHOD NAME NOT SPECIFIED";
         }
+        static nlohmann::json getMetadata() {
+            return {};
+        }
     };
 
 

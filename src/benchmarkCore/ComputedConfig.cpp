@@ -77,3 +77,7 @@ void ShapeBench::ComputedConfig::setStringAndSave(std::string methodName, std::s
 bool ShapeBench::ComputedConfig::containsKey(std::string methodName, std::string valueName) {
     return configValues.contains(methodName) && configValues.at(methodName).contains(valueName);
 }
+
+nlohmann::json ShapeBench::ComputedConfig::toJSON() const {
+    return configValues;
+}

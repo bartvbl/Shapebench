@@ -10,6 +10,8 @@ namespace ShapeBench {
         void save();
 
     public:
+        nlohmann::json toJSON() const;
+
         explicit ComputedConfig(const std::filesystem::path& configFileLocation);
         explicit ComputedConfig() = default;
 
