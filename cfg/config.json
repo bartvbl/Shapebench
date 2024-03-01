@@ -16,7 +16,7 @@
         "sampleSetSize": 100000,
         "representativeSetSize": 1000000,
         "pointSampleDensity": 1000000,
-        "intermediateSaveFrequency": 500
+        "intermediateSaveFrequency": 5000
     },
 
     "experimentsToRun": [

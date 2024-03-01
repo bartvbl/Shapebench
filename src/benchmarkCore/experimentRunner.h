@@ -167,6 +167,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         experimentResult.usedComputedConfiguration = computedConfig;
         experimentResult.experimentRandomSeed = experimentBaseRandomSeed;
         experimentResult.experimentIndex = experimentIndex;
+        experimentResult.methodMetadata = DescriptorMethod::getMetadata();
 
         const nlohmann::json& experimentConfig = configuration.at("experimentsToRun").at(experimentIndex);
 
