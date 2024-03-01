@@ -105,9 +105,7 @@ namespace ShapeBench {
         double filteredOriginalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.filteredSampleMesh);
         double filteredAdditiveMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.filteredAdditiveNoise);
 
-        uint64_t sampleCountOriginalMesh = ShapeBench::computeSampleCount(originalMeshArea, config) / 10;
-        uint64_t sampleCountFilteredOriginalMesh = uint64_t((filteredOriginalMeshArea / originalMeshArea) * double(sampleCountOriginalMesh));
-        uint64_t sampleCountFilteredAdditiveMesh = uint64_t((filteredAdditiveMeshArea / originalMeshArea) * double(sampleCountOriginalMesh));
+        ShapeBench::AreaEstimateSampleCounts sampleCounts = ShapeBench::computeAreaEstimateSampleCounts(config, originalMeshArea, filteredOriginalMeshArea, filteredAdditiveMeshArea);
 
         uint64_t referenceMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.originalMesh, sampleCountOriginalMesh, pointInOriginalMesh, supportRadius, randomSeed);
         uint64_t subtractiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredSampleMesh, sampleCountFilteredOriginalMesh, pointInFilteredMesh, supportRadius, randomSeed);

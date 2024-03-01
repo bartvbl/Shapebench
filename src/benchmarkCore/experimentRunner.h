@@ -206,7 +206,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
                 filteredMesh.referenceVertexIndices.at(i) = sampleVertex.vertexIndex;
 
-                debugDescriptors[debugDescriptorIndex + i] = cleanSampleDescriptors[sampleVertexIndex + i];
+                debugDescriptors[debugDescriptorIndex + 2 * i] = cleanSampleDescriptors[sampleVertexIndex + i];
             }
 
             try {
@@ -252,7 +252,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntry.fractionSurfacePartiality = areaEstimate.subtractiveArea;
                     std::cout << "Result: " << areaEstimate.addedAdrea << ", " << areaEstimate.subtractiveArea << ", " << imageIndex << std::endl;
 
-                    debugDescriptors[debugDescriptorIndex + i + 1] = filteredPointDescriptor;
+                    debugDescriptors[debugDescriptorIndex + 2 * i + 1] = filteredPointDescriptor;
                 }
 
                 ShapeDescriptor::free(combinedMesh);
