@@ -15,7 +15,8 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
     const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::listDirectoryAndSubdirectories(originalDatasetDirectory);
 
     nlohmann::json datasetCache = {};
-    if(std::filesystem::exists(metadataFile)) {
+    bool previousCacheFound = std::filesystem::exists(metadataFile);
+    if(previousCacheFound) {
         std::cout << "Loading dataset cache.. (found " << datasetFiles.size() << " files)" << std::endl;
         std::ifstream inputStream{metadataFile};
         datasetCache = nlohmann::json::parse(inputStream);
@@ -42,15 +43,17 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
     unsigned int pointCloudCount = 0;
     unsigned int hashMismatches = 0;
     size_t processedMeshCount = 0;
+    bool newMeshesLoaded = false;
 
     std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
 
-    #pragma omp parallel for schedule(dynamic) default(none) shared(hashMismatches, processedMeshCount, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
+    #pragma omp parallel for schedule(dynamic) default(none) shared(hashMismatches, processedMeshCount, newMeshesLoaded, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
     for(size_t i = 0; i < datasetFiles.size(); i++) {
 
 
         // Skip if this entry has been processed before
         if(!datasetCache["files"].at(i).contains("isPointCloud")) {
+            newMeshesLoaded = true;
             nlohmann::json datasetEntry;
             datasetEntry["id"] = i;
             std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)),
@@ -160,16 +163,25 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
             if(processedMeshCount % 100 == 99 || processedMeshCount + 1 == datasetFiles.size()) {
                 std::cout << "\r     ";
                 ShapeBench::drawProgressBar(processedMeshCount + 1, datasetFiles.size());
-                std::cout << " " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%), found " << pointCloudCount << " point clouds, " << hashMismatches << " mismatched hashes" << std::flush;
+                std::cout << " " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%)";
+                if(newMeshesLoaded) {
+                    std::cout << ", found " << pointCloudCount << " point clouds, " << hashMismatches << " mismatched hashes";
+                }
+                std::cout << std::flush;
             }
         }
     }
     std::cout << std::endl;
 
     std::chrono::time_point<std::chrono::steady_clock> endTime = std::chrono::steady_clock::now();
-    std::cout << "    Compressed dataset was successfully computed. Total duration: ";
-    ShapeBench::printDuration(endTime - startTime);
-    std::cout << std::endl;
+    if(newMeshesLoaded) {
+        std::cout << "    Compressed dataset was successfully computed. Total duration: ";
+        ShapeBench::printDuration(endTime - startTime);
+        std::cout << std::endl;
+    } else {
+        std::cout << "    Dataset cache loaded successfully" << std::endl;
+    }
+
 
     std::ofstream outCacheStream {metadataFile};
     outCacheStream << datasetCache.dump(4);

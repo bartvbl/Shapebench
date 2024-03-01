@@ -96,6 +96,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
     } else {
         std::cout << "    Loading cached " + name + " descriptors.." << std::endl;
         referenceDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile, 8);
+        std::cout << "    Successfully loaded " << referenceDescriptors.length << " descriptors" << std::endl;
     }
     return referenceDescriptors;
 }
@@ -151,7 +152,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     std::cout << "Initialising filter caches.." << std::endl;
     ShapeBench::AdditiveNoiseCache additiveCache;
     ShapeBench::loadAdditiveNoiseCache(additiveCache, configuration);
-    std::cout << "    Loaded Additive Noise filter cache" << std::endl;
+    std::cout << "    Loaded Additive Noise filter cache (" << additiveCache.entryCount() << " entries)" << std::endl;
 
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();
@@ -264,7 +265,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 experimentResult.vertexResults.push_back(resultsEntry);
 
                 // 1. DONE - Compute sample descriptor on clean mesh
-                // 2. Compute modified descriptor based on filtered mesh and its corresponding sample point
+                // 2. DONE - Compute modified descriptor based on filtered mesh and its corresponding sample point
                 // 3. Compute distance from sample -> modified descriptor, and distance from sample -> all descriptors in reference set
                 // 4. Compute rank of sample
                 // Record metadata about "difficulty" of this sample

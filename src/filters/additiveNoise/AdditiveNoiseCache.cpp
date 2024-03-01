@@ -33,3 +33,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::AdditiveNoiseCache::get(uint64_
     }
     return orientations;
 }
+
+long ShapeBench::AdditiveNoiseCache::entryCount() {
+    return startIndexMap.size();
+}

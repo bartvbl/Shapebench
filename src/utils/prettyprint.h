@@ -23,7 +23,7 @@ namespace ShapeBench {
         timeInSeconds -= timeInHours * 3600;
         uint32_t timeInMinutes = timeInSeconds / 60;
         timeInSeconds -= timeInMinutes * 60;
-        std::cout << timeInHours << ":" << timeInMinutes << ":" << timeInSeconds << std::endl;
+        std::cout << timeInHours << ":" << timeInMinutes << ":" << timeInSeconds;
     }
 
 }

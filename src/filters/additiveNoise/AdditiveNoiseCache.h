@@ -23,6 +23,8 @@ namespace ShapeBench {
         // This is a workaround to avoid those problems, as ugly as it might be
         friend inline void loadAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config);
         friend inline void saveAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config);
+
+        long entryCount();
     };
 
     inline void reportNoiseCacheReadError(std::string reason, std::filesystem::path path) {
@@ -60,7 +62,7 @@ namespace ShapeBench {
 
             uint32_t entryCount = 0;
             inputFile.read((char*) &entryCount, sizeof(uint32_t));
-            std::cout << "    Cache has " << entryCount << " entries" << std::endl;
+            //std::cout << "    Cache has " << entryCount << " entries" << std::endl;
 
             cache.objectOrientations.resize(entryCount * cache.objectsPerEntry);
             cache.startIndexMap.reserve(entryCount);
