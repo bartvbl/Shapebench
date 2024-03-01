@@ -36,6 +36,7 @@
 #include "Jolt/Geometry/ConvexHullBuilder.h"
 #include "Jolt/Physics/Collision/Shape/Shape.h"
 #include "benchmarkCore/common-procedures/areaEstimator.h"
+#include "benchmarkCore/common-procedures/meshLoader.h"
 
 static void TraceImpl(const char *inFMT, ...)
 {
@@ -216,13 +217,6 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     subdivider->Release();
 
     return convexHullContainer;
-}
-
-void moveMeshToOriginAndUnitSphere(ShapeDescriptor::cpu::Mesh &mesh, ShapeDescriptor::cpu::float3 sphereCentre, float sphereRadius) {
-    float oneOverSphereRadius = 1.0f/sphereRadius;
-    for(uint32_t i = 0; i < mesh.vertexCount; i++) {
-        mesh.vertices[i] = (mesh.vertices[i] - sphereCentre) * oneOverSphereRadius;
-    }
 }
 
 bool anyBodyActive(JPH::BodyInterface *bodyInterface, const std::vector<JPH::BodyID>& simulatedBodies) {
@@ -460,13 +454,9 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
 //#pragma omp parallel for
     for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
-        std::filesystem::path meshFilePath = datasetRootDir / entry.meshFile;
-        if(!std::filesystem::exists(meshFilePath)) {
-            meshFilePath = datasetRootDir / entry.meshFile.replace_extension(".cm");
-        }
-        meshes.at(i) = ShapeDescriptor::loadMesh(meshFilePath);
-        moveMeshToOriginAndUnitSphere(meshes.at(i), entry.computedObjectCentre, entry.computedObjectRadius);
-
+        meshes.at(i) = ShapeBench::readDatasetMesh(datasetRootDir, entry);
+    }
+    for(uint32_t i = 0; i < meshes.size(); i++) {
         double totalArea = 0;
         for(uint32_t j = 0; j < meshes.at(i).vertexCount; j += 3) {
             double area = ShapeBench::computeSingleTriangleArea(meshes.at(i).vertices[j], meshes.at(i).vertices[j + 1], meshes.at(i).vertices[j + 2]);
@@ -508,9 +498,10 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
         ShapeBench::Orientation orientation = objectOrientations.at(i);
 
         glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(orientation.position.x, orientation.position.y, orientation.position.z));
-        glm::mat4 rotationMatrix = glm::toMat4(glm::qua(orientation.rotation.w, orientation.rotation.x, orientation.rotation.y, orientation.rotation.z));
+        glm::qua rotationDirection = glm::qua(orientation.rotation.w, orientation.rotation.x, orientation.rotation.y, orientation.rotation.z);
+        glm::mat4 rotationMatrix = glm::toMat4(rotationDirection);
         glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;
-        glm::mat4 normalMatrix = glm::inverseTranspose(transformationMatrix);
+        glm::mat3 normalMatrix = glm::toMat3(rotationDirection);
         //std::cout << "Mesh " << i << ": " << orientation.position << ", " << orientation.rotation << std::endl;
 
         if(i == 0) {
@@ -519,7 +510,7 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
                 ShapeDescriptor::cpu::float3 inputVertex = scene.mappedReferenceVertices.at(index).vertex;
                 ShapeDescriptor::cpu::float3 inputNormal = scene.mappedReferenceVertices.at(index).normal;
                 glm::vec4 transformedVertex = transformationMatrix * glm::vec4(inputVertex.x, inputVertex.y, inputVertex.z, 1);
-                glm::vec3 transformedNormal = glm::normalize(glm::vec3(normalMatrix * glm::vec4(inputNormal.x, inputNormal.y, inputNormal.z, 1)));
+                glm::vec3 transformedNormal = glm::normalize(glm::vec3(normalMatrix * glm::vec3(inputNormal.x, inputNormal.y, inputNormal.z)));
                 scene.mappedReferenceVertices.at(index).vertex = ShapeDescriptor::cpu::float3(transformedVertex.x, transformedVertex.y, transformedVertex.z);
                 scene.mappedReferenceVertices.at(index).normal = ShapeDescriptor::cpu::float3(transformedNormal.x, transformedNormal.y, transformedNormal.z);
             }

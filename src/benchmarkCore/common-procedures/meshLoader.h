@@ -5,12 +5,12 @@
 #include "benchmarkCore/Dataset.h"
 
 namespace ShapeBench {
-    inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, const DatasetEntry &datasetEntry) {
+    inline ShapeDescriptor::cpu::Mesh readDatasetMesh(std::filesystem::path compressedDatasetRootDir, const DatasetEntry &datasetEntry) {
         const std::filesystem::path &pathInDataset = datasetEntry.meshFile;
         float computedBoundingSphereRadius = datasetEntry.computedObjectRadius;
         ShapeDescriptor::cpu::float3 computedBoundingSphereCentre = datasetEntry.computedObjectCentre;
 
-        std::filesystem::path datasetBasePath = config.at("compressedDatasetRootDir");
+        std::filesystem::path datasetBasePath = compressedDatasetRootDir;
         std::filesystem::path currentMeshPath = datasetBasePath / pathInDataset;
         // Use compressed mesh file as fallback
         if(!std::filesystem::exists(currentMeshPath)) {
@@ -22,7 +22,14 @@ namespace ShapeBench {
         float scaleFactor = 1.0f / float(computedBoundingSphereRadius);
         for (uint32_t i = 0; i < mesh.vertexCount; i++) {
             mesh.vertices[i] = scaleFactor * (mesh.vertices[i] - computedBoundingSphereCentre);
+            mesh.normals[i] = normalize(mesh.normals[i]);
         }
         return mesh;
+    }
+
+    inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, const DatasetEntry &datasetEntry) {
+        std::filesystem::path datasetBasePath = config.at("compressedDatasetRootDir");
+
+        return readDatasetMesh(datasetBasePath, datasetEntry);
     }
 }

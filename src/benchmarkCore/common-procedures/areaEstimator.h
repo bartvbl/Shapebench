@@ -107,11 +107,10 @@ namespace ShapeBench {
 
         ShapeBench::AreaEstimateSampleCounts sampleCounts = ShapeBench::computeAreaEstimateSampleCounts(config, originalMeshArea, filteredOriginalMeshArea, filteredAdditiveMeshArea);
 
-        uint64_t referenceMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.originalMesh, sampleCountOriginalMesh, pointInOriginalMesh, supportRadius, randomSeed);
-        uint64_t subtractiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredSampleMesh, sampleCountFilteredOriginalMesh, pointInFilteredMesh, supportRadius, randomSeed);
-        uint64_t additiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredAdditiveNoise, sampleCountFilteredAdditiveMesh, pointInFilteredMesh, supportRadius, randomSeed);
-
-
+        uint64_t referenceMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.originalMesh, sampleCounts.originalMesh, pointInOriginalMesh, supportRadius, randomSeed);
+        uint64_t subtractiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredSampleMesh, sampleCounts.filteredOriginalMesh, pointInFilteredMesh, supportRadius, randomSeed);
+        uint64_t additiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredAdditiveNoise, sampleCounts.filteredAdditiveMesh, pointInFilteredMesh, supportRadius, randomSeed);
+        
         AreaEstimate estimate;
         estimate.addedAdrea = double(additiveMeshSamples) / double(referenceMeshSamples);
         estimate.subtractiveArea = double(subtractiveMeshSamples) / double(referenceMeshSamples);
