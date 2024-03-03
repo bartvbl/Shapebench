@@ -69,13 +69,6 @@ namespace ShapeBench {
             throwUnimplementedException();
             return {};
         }
-        static ShapeDescriptor::cpu::array<uint32_t> computeDescriptorRanks(
-                ShapeDescriptor::gpu::array<DescriptorType> needleDescriptors,
-                ShapeDescriptor::gpu::array<DescriptorType> haystackDescriptors
-                ) {
-            throwUnimplementedException();
-            return {};
-        }
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
             throwUnimplementedException();
             return false;
@@ -87,8 +80,4 @@ namespace ShapeBench {
             return {};
         }
     };
-
-
-
-
 }

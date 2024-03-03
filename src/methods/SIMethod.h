@@ -173,11 +173,6 @@ namespace ShapeBench {
             return "SI";
         }
 
-        static ShapeDescriptor::cpu::array<uint32_t> computeDescriptorRanks(
-                ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> needleDescriptors,
-                ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> haystackDescriptors) {
-            return ShapeDescriptor::computeSpinImageSearchResultRanks(needleDescriptors, haystackDescriptors);
-        }
         static nlohmann::json getMetadata() {
             nlohmann::json metadata;
             metadata["resolution"] = spinImageWidthPixels;

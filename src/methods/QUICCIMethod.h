@@ -128,11 +128,6 @@ namespace ShapeBench {
             return isPointInCylindricalVolume(descriptorOrigin, supportRadius, supportRadius, samplePoint);
         }
 
-        static ShapeDescriptor::cpu::array<uint32_t> computeDescriptorRanks(
-                ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> needleDescriptors,
-                ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> haystackDescriptors) {
-            return ShapeDescriptor::computeQUICCImageSearchResultRanks(needleDescriptors, haystackDescriptors);
-        }
         static nlohmann::json getMetadata() {
             nlohmann::json metadata;
             metadata["resolution"] = spinImageWidthPixels;
