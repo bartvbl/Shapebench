@@ -39,7 +39,7 @@ namespace ShapeBench {
                     threadSquaredDistance += binDelta * binDelta;
                 }
 
-                float combinedSquaredDistance = warpAllReduceSum(threadSquaredDistance);
+                float combinedSquaredDistance = ShapeDescriptor::warpAllReduceSum(threadSquaredDistance);
 
                 if (threadIdx.x == 0) {
                     squaredSums[sliceOffset] = combinedSquaredDistance;
@@ -50,7 +50,7 @@ namespace ShapeBench {
             // the highest possible value so that any other value will be lower
             float threadValue = threadIdx.x < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT ?
                                 squaredSums[threadIdx.x] : FLT_MAX;
-            float lowestDistance = std::sqrt(warpAllReduceMin(threadValue));
+            float lowestDistance = std::sqrt(ShapeDescriptor::warpAllReduceMin(threadValue));
 
             return lowestDistance;
 #else
