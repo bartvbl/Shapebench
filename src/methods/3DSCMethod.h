@@ -8,9 +8,11 @@
 #include <cfloat>
 
 namespace ShapeBench {
+    static float minSupportRadiusFactor;
+    static float pointDensityRadius;
+
     struct ShapeContextMethod : public ShapeBench::Method<ShapeDescriptor::ShapeContextDescriptor> {
-        static float minSupportRadiusFactor;
-        static float pointDensityRadius;
+
         static constexpr uint32_t elementsPerShapeContextDescriptor
             = SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT;
 
