@@ -25,6 +25,10 @@ namespace ShapeBench {
             throw std::runtime_error("This method does not support this method");
         }
     public:
+        static void init(const nlohmann::json& config) {
+
+        }
+
         static bool usesMeshInput() {
             throwUnimplementedException();
             return false;

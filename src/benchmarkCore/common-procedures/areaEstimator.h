@@ -1,7 +1,7 @@
 #pragma once
 
 #include <shapeDescriptor/shapeDescriptor.h>
-#include <barrier>
+//#include <barrier>
 #include <random>
 #include "filters/FilteredMeshPair.h"
 #include "json.hpp"

@@ -105,6 +105,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     std::cout << "Initialising.." << std::endl;
     ShapeBench::randomEngine engine(randomSeed);
     std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
+    DescriptorMethod::init(configuration);
     std::cout << "    Main config file: " << configFileLocation.string() << std::endl;
     std::cout << "    Computed values config file: " << computedConfigFilePath.string() << std::endl;
     ShapeBench::ComputedConfig computedConfig(computedConfigFilePath);
