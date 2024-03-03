@@ -9,7 +9,7 @@
 
 namespace ShapeBench {
     static float minSupportRadiusFactor;
-    static float pointDensityRadius;
+    static float pointDensityRadiusFactor;
 
     struct ShapeContextMethod : public ShapeBench::Method<ShapeDescriptor::ShapeContextDescriptor> {
 
@@ -18,7 +18,7 @@ namespace ShapeBench {
 
         static void init(const nlohmann::json& config) {
             minSupportRadiusFactor = readDescriptorConfigValue<float>(config, "3DSC", "minSupportRadiusFactor");
-            pointDensityRadius = readDescriptorConfigValue<float>(config, "3DSC", "pointDensityRadius");
+            pointDensityRadiusFactor = readDescriptorConfigValue<float>(config, "3DSC", "pointDensityRadiusFactor");
         }
 
 
@@ -125,7 +125,7 @@ namespace ShapeBench {
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
                 float supportRadius) {
-            return ShapeDescriptor::generate3DSCDescriptors(cloud, descriptorOrigins, pointDensityRadius, minSupportRadiusFactor * supportRadius, supportRadius);
+            return ShapeDescriptor::generate3DSCDescriptors(cloud, descriptorOrigins, pointDensityRadiusFactor * supportRadius, minSupportRadiusFactor * supportRadius, supportRadius);
         }
 
         static ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
@@ -142,7 +142,7 @@ namespace ShapeBench {
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
                 float supportRadius) {
-            return ShapeDescriptor::generate3DSCDescriptors(cloud, descriptorOrigins, pointDensityRadius, minSupportRadiusFactor * supportRadius, supportRadius);
+            return ShapeDescriptor::generate3DSCDescriptors(cloud, descriptorOrigins, pointDensityRadiusFactor * supportRadius, minSupportRadiusFactor * supportRadius, supportRadius);
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
@@ -161,7 +161,7 @@ namespace ShapeBench {
             metadata["verticalSliceCount"] = SHAPE_CONTEXT_VERTICAL_SLICE_COUNT;
             metadata["layerCount"] = SHAPE_CONTEXT_LAYER_COUNT;
             metadata["minSupportRadiusScaleFactor"] = minSupportRadiusFactor;
-            metadata["pointDensityRadius"] = pointDensityRadius;
+            metadata["pointDensityRadiusFactor"] = pointDensityRadiusFactor;
             metadata["distanceFunction"] = "Euclidean distance";
             return metadata;
         }

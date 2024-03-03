@@ -81,7 +81,9 @@
         },
         {
             "distanceFunction": "Euclidean Distance",
-            "name": "3DSC"
+            "name": "3DSC",
+            "minSupportRadiusFactor": 0.04,
+            "pointDensityRadiusFactor": 0.08
         },
         {
             "distanceFunction": "Euclidean Distance",
