@@ -9,7 +9,7 @@
 #include "benchmarkCore/ComputedConfig.h"
 #include "filters/additiveNoise/additiveNoiseFilter.h"
 #include "benchmarkCore/experimentRunner.h"
-
+#include "methods/3DSCMethod.h"
 
 
 int main(int argc, const char** argv) {
@@ -85,4 +85,5 @@ int main(int argc, const char** argv) {
     uint64_t randomSeed = configuration.at("randomSeed");
     testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
     testMethod<ShapeBench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    testMethod<ShapeBench::ShapeContextMethod, ShapeDescriptor::ShapeContextDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
 }
