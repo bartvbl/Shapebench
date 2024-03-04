@@ -218,13 +218,13 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     const nlohmann::json &filterConfig = experimentConfig.at("filters").at(filterStepIndex);
                     const std::string &filterType = filterConfig.at("type");
                     if (filterType == "additive-noise") {
-                        ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed,additiveCache);
+                        ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed, additiveCache);
                     } else if (filterType == "subtractive-noise") {
                         ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                     } else if (filterType == "repeated-capture") {
                         ShapeBench::remesh(filteredMesh);
                     } else if (filterType == "normal-noise") {
-                        ShapeBench::applyNormalNoiseFilter(filteredMesh);
+                        ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);
                     }
                 }
 
@@ -235,7 +235,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
-//                writeFilteredMesh<DescriptorMethod>(filteredMesh, DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentInstanceRandomSeed) + ".obj", filteredMesh.mappedReferenceVertices.at(0), supportRadius, true);
+                //writeFilteredMesh<DescriptorMethod>(filteredMesh, DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentInstanceRandomSeed) + ".obj", filteredMesh.mappedReferenceVertices.at(0), supportRadius, true);
 
                 for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntry.sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
