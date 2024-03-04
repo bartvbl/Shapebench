@@ -92,12 +92,7 @@ namespace ShapeBench {
                 const ShapeDescriptor::ShapeContextDescriptor& descriptor,
                 const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor) {
             // Adapter such that the distance function satisfies the "higher distance is worse" criterion
-            float correlation = computeEuclideanDistance(descriptor, otherDescriptor);
-
-            // Pearson correlation varies between -1 and 1
-            // This makes it such that 0 = best and 2 = worst
-            float adjustedCorrelation = 1 - correlation;
-            return adjustedCorrelation;
+            return computeEuclideanDistance(descriptor, otherDescriptor);
         }
 
         static bool usesMeshInput() {
