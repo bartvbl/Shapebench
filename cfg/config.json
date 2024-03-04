@@ -13,7 +13,7 @@
     "commonExperimentSettings": {
         "verticesToTestPerSampleObject": 10,
         "memoryCleanupFrequency": 1000,
-        "sampleSetSize": 100000,
+        "sampleSetSize": 30000,
         "representativeSetSize": 1000000,
         "pointSampleDensity": 1000000,
         "intermediateSaveFrequency": 5000
@@ -22,7 +22,7 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "additive-noise"}
             ]
@@ -32,6 +32,13 @@
             "enabled": false,
             "filters": [
                 {"type": "subtractive-noise"}
+            ]
+        },
+        {
+            "name": "normal-noise-only",
+            "enabled": true,
+            "filters": [
+                {"type": "normal-noise"}
             ]
         }
     ],
@@ -60,8 +67,7 @@
             "vertexDisplacementStep": 0.0001
         },
         "normalVectorNoise": {
-            "angleDeviationStepDegrees": 1,
-            "maxAngleDeviationDegrees": 10
+            "maxAngleDeviationDegrees": 30
         }
     },
 
