@@ -443,7 +443,9 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     return orientations;
 }
 
-void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache) {
+ShapeBench::AdditiveNoiseOutput ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache) {
+    ShapeBench::AdditiveNoiseOutput output;
+
     std::filesystem::path datasetRootDir = settings.compressedDatasetRootDir;
     uint32_t clutterObjectCount = settings.addedClutterObjectCount;
     std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount, 1);
@@ -514,6 +516,9 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
                 glm::vec3 transformedNormal = glm::normalize(glm::vec3(normalMatrix * glm::vec3(inputNormal.x, inputNormal.y, inputNormal.z)));
                 scene.mappedReferenceVertices.at(index).vertex = ShapeDescriptor::cpu::float3(transformedVertex.x, transformedVertex.y, transformedVertex.z);
                 scene.mappedReferenceVertices.at(index).normal = ShapeDescriptor::cpu::float3(transformedNormal.x, transformedNormal.y, transformedNormal.z);
+
+                output.metadata["additive-noise-transformed-vertices"].push_back({transformedVertex.x, transformedVertex.y, transformedVertex.z});
+                output.metadata["additive-noise-transformed-normals"].push_back({transformedNormal.x, transformedNormal.y, transformedNormal.z});
             }
         }
 
@@ -542,4 +547,6 @@ void ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, Sh
     for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeDescriptor::free(meshes.at(i));
     }
+
+    return output;
 }

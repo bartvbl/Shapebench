@@ -22,11 +22,14 @@ nlohmann::json toJSON(ShapeDescriptor::cpu::float3 in) {
     return out;
 }
 
-void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputDirectory) {
+void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputBaseDirectory, bool isFinalResult) {
 
-    // Dump: CPU + GPU info
+    // 1: Initial version
+    // 1.1: Added information about each filter
+
+
     nlohmann::json jsonOutput;
-    jsonOutput["version"] = "1";
+    jsonOutput["version"] = "1.1";
 
     jsonOutput["buildinfo"] = {};
     jsonOutput["buildinfo"]["commit"] = GitMetadata::CommitSHA1();
@@ -58,6 +61,7 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
         entryJson["filteredNormal"] = toJSON(entry.filteredVertexLocation.normal);
         entryJson["meshID"] = entry.sourceVertex.meshID;
         entryJson["vertexIndex"] = entry.sourceVertex.vertexIndex;
+        entryJson["filterOutput"] = entry.filterOutput;
 
         jsonOutput["results"].push_back(entryJson);
     }
@@ -65,6 +69,11 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
     std::string experimentName = results.usedConfiguration.at("experimentsToRun").at(results.experimentIndex).at("name");
     std::string uniqueString = ShapeDescriptor::generateUniqueFilenameString();
     std::string fileName = experimentName + "-" + results.methodName + "-" + uniqueString + ".json";
+    std::filesystem::path outputDirectory = outputBaseDirectory / experimentName;
+    if(!isFinalResult) {
+        outputDirectory /= "intermediate";
+    }
+    std::filesystem::create_directories(outputDirectory);
     std::filesystem::path outputFilePath = outputDirectory / fileName;
 
     std::ofstream outputStream(outputFilePath);

@@ -212,24 +212,28 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 debugDescriptors[debugDescriptorIndex + 2 * i] = cleanSampleDescriptors[sampleVertexIndex + i];
             }
 
+            ShapeBench::ExperimentResultsEntry resultsEntry;
+
+
             try {
                 for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
                     uint64_t filterRandomSeed = experimentInstanceRandomEngine();
                     const nlohmann::json &filterConfig = experimentConfig.at("filters").at(filterStepIndex);
                     const std::string &filterType = filterConfig.at("type");
                     if (filterType == "additive-noise") {
-                        ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed, additiveCache);
+                        ShapeBench::AdditiveNoiseOutput output = ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed, additiveCache);
+                        resultsEntry.filterOutput.merge_patch(output.metadata);
                     } else if (filterType == "subtractive-noise") {
                         ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                     } else if (filterType == "repeated-capture") {
                         ShapeBench::remesh(filteredMesh);
                     } else if (filterType == "normal-noise") {
-                        ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);
+                        ShapeBench::NormalNoiseFilterOutput output = ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);
+                        resultsEntry.filterOutput.merge_patch(output.metadata);
                     }
                 }
 
                 // Collect data here
-                ShapeBench::ExperimentResultsEntry resultsEntry;
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
                 const uint64_t pointCloudSamplingSeed = experimentInstanceRandomEngine();
 
@@ -285,12 +289,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 std::cout << std::endl << "    Writing caches.." << std::endl;
                 ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
                 //ShapeDescriptor::writeDescriptorImages(debugDescriptors, "debugimages-" + DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".png", false, 50, 2000);
-                writeExperimentResults(experimentResult, resultsDirectory);
+                writeExperimentResults(experimentResult, resultsDirectory, false);
             }
         }
 
         std::cout << "Writing experiment results file.." << std::endl;
-        writeExperimentResults(experimentResult, resultsDirectory);
+        writeExperimentResults(experimentResult, resultsDirectory, true);
         std::cout << "Experiment complete." << std::endl;
     }
 

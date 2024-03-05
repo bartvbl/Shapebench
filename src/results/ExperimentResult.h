@@ -14,6 +14,7 @@ namespace ShapeBench {
         ShapeDescriptor::OrientedPoint filteredVertexLocation;
         float fractionAddedNoise = 0;
         float fractionSurfacePartiality = 0;
+        nlohmann::json filterOutput;
     };
 
     struct ExperimentResult {

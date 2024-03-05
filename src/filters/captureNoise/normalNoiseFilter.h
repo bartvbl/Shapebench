@@ -4,5 +4,9 @@
 #include "json.hpp"
 
 namespace ShapeBench {
-    void applyNormalNoiseFilter(const nlohmann::json& config, FilteredMeshPair& filteredMesh, uint64_t randomSeed);
+    struct NormalNoiseFilterOutput {
+        nlohmann::json metadata;
+    };
+
+    NormalNoiseFilterOutput applyNormalNoiseFilter(const nlohmann::json& config, FilteredMeshPair& filteredMesh, uint64_t randomSeed);
 }
