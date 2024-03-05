@@ -246,6 +246,9 @@ void ShapeBench::initPhysics() {
 
 std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
                                                                       const std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
+    static std::mutex onlyAllowSingleThreadToRunPhysicsLock;
+    std::unique_lock<std::mutex> physicsLock{onlyAllowSingleThreadToRunPhysicsLock};
+
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
     JPH::TempAllocatorImpl temp_allocator(settings.tempAllocatorSizeBytes);
@@ -458,7 +461,7 @@ ShapeBench::AdditiveNoiseOutput ShapeBench::runAdditiveNoiseFilter(AdditiveNoise
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
         meshes.at(i) = ShapeBench::readDatasetMesh(datasetRootDir, entry);
     }
-    for(uint32_t i = 1; i < meshes.size(); i++) {
+    /*for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
         double totalArea = 0;
         for(uint32_t j = 0; j < meshes.at(i).vertexCount; j += 3) {
@@ -467,7 +470,7 @@ ShapeBench::AdditiveNoiseOutput ShapeBench::runAdditiveNoiseFilter(AdditiveNoise
         }
         //std::cout << "    Mesh " << i << " - total area: " << totalArea << " " << entry.computedObjectRadius << " " << entry.meshFile.string() << std::endl;
         //ShapeDescriptor::writeOBJ(meshes.at(i), meshFilePath.filename().replace_extension(".obj").string());
-    }
+    }*/
 
     // Compute orientations by doing a physics simulation or using a cached result
     std::vector<ShapeBench::Orientation> objectOrientations;
@@ -517,8 +520,10 @@ ShapeBench::AdditiveNoiseOutput ShapeBench::runAdditiveNoiseFilter(AdditiveNoise
                 scene.mappedReferenceVertices.at(index).vertex = ShapeDescriptor::cpu::float3(transformedVertex.x, transformedVertex.y, transformedVertex.z);
                 scene.mappedReferenceVertices.at(index).normal = ShapeDescriptor::cpu::float3(transformedNormal.x, transformedNormal.y, transformedNormal.z);
 
-                output.metadata["additive-noise-transformed-vertices"].push_back({transformedVertex.x, transformedVertex.y, transformedVertex.z});
-                output.metadata["additive-noise-transformed-normals"].push_back({transformedNormal.x, transformedNormal.y, transformedNormal.z});
+                nlohmann::json metadataEntry;
+                metadataEntry["additive-noise-transformed-vertices"] = {transformedVertex.x, transformedVertex.y, transformedVertex.z};
+                metadataEntry["additive-noise-transformed-normals"] = {transformedNormal.x, transformedNormal.y, transformedNormal.z};
+                output.metadata.push_back(metadataEntry);
             }
         }
 

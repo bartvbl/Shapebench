@@ -163,7 +163,7 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
             if(processedMeshCount % 100 == 99 || processedMeshCount + 1 == datasetFiles.size()) {
                 std::cout << "\r     ";
                 ShapeBench::drawProgressBar(processedMeshCount + 1, datasetFiles.size());
-                std::cout << " " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%)";
+                std::cout << " " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%)      ";
                 if(newMeshesLoaded) {
                     std::cout << ", found " << pointCloudCount << " point clouds, " << hashMismatches << " mismatched hashes";
                 }

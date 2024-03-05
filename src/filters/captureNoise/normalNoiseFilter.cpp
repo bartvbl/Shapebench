@@ -48,8 +48,10 @@ ShapeBench::NormalNoiseFilterOutput ShapeBench::applyNormalNoiseFilter(const nlo
         float deviationAngleDegrees = deviationAngleDistribution(engine);
         float rotationAngleDegrees = rotationAngleDistribution(engine);
         normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
-        meta.metadata["normal-noise-deviationAngle"].push_back(deviationAngleDegrees);
-        meta.metadata["normal-noise-rotationAngle"].push_back(rotationAngleDegrees);
+        nlohmann::json metadataEntry;
+        metadataEntry["normal-noise-deviationAngle"] = deviationAngleDegrees;
+        metadataEntry["normal-noise-rotationAngle"] = rotationAngleDegrees;
+        meta.metadata.push_back(metadataEntry);
     }
 
     // Displace mesh normals

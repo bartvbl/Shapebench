@@ -8,6 +8,7 @@
 
 namespace ShapeBench {
     struct ExperimentResultsEntry {
+        bool included = false;
         ShapeBench::VertexInDataset sourceVertex;
         uint32_t filteredDescriptorRank = 0;
         ShapeDescriptor::OrientedPoint originalVertexLocation;

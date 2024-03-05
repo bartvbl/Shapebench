@@ -52,6 +52,11 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
     for(uint32_t i = 0; i < results.vertexResults.size(); i++) {
         nlohmann::json entryJson;
         const ShapeBench::ExperimentResultsEntry& entry = results.vertexResults.at(i);
+
+        if(!entry.included) {
+            continue;
+        }
+
         entryJson["fractionAddedNoise"] = entry.fractionAddedNoise;
         entryJson["fractionSurfacePartiality"] = entry.fractionSurfacePartiality;
         entryJson["filteredDescriptorRank"] = entry.filteredDescriptorRank;
