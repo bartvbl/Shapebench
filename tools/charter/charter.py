@@ -28,12 +28,8 @@ def processSingleFile(jsonContent, mode):
     for result in jsonContent["results"]:
         chartDataSequence["y"].append(result['filteredDescriptorRank'])
         if mode == "normalDeviation":
-            if jsonContent["version"] == "1":
-                originalNormal = result['originalNormal']
-                filteredNormal = result['filteredNormal']
-                angle = np.degrees(np.arccos(np.dot(originalNormal, filteredNormal) / (np.linalg.norm(originalNormal) * np.linalg.norm(filteredNormal))))
-                chartDataSequence["x"].append(angle)
-                print(result['filteredNormal'], result['originalNormal'], '->', angle)
+            if jsonContent["version"] == "1.1":
+                chartDataSequence["x"].append(result['filterOutput']['normal-noise-deviationAngle'])
             else:
                 raise IOError
         elif mode == "additiveArea":

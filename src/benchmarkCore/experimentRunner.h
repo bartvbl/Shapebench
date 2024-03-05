@@ -312,7 +312,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 if (sampleVertexIndex % intermediateSaveFrequency == 0) {
                     std::cout << std::endl << "    Writing caches.." << std::endl;
                     ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
-                    //ShapeDescriptor::writeDescriptorImages(debugDescriptors, "debugimages-" + DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".png", false, 50, 2000);
                     writeExperimentResults(experimentResult, resultsDirectory, false);
                 }
             }
