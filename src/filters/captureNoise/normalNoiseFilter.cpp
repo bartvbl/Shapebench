@@ -5,24 +5,30 @@
 
 ShapeDescriptor::cpu::float3 computeDeviatedNormal(ShapeDescriptor::cpu::float3 inputNormal, float deviationAngleDegrees, float rotationAngleDegrees) {
     glm::vec3 originalNormal {inputNormal.x, inputNormal.y, inputNormal.z};
-    glm::vec3 deviatedNormal {0, 0, 1};
-    if(originalNormal.x == 0 && originalNormal.y == 0 && originalNormal.z < 0) {
-        deviatedNormal = {0, 0, -1};
-    }
+    glm::vec3 xAxis {1, 0, 0};
+    glm::vec3 zAxis {0, 0, 1};
 
-    glm::mat3 deviationRotation = glm::rotate(glm::mat4(1.0), glm::radians(deviationAngleDegrees), glm::vec3(1, 0, 0));
-    glm::mat3 directionRotation = glm::rotate(glm::mat4(1.0), glm::radians(rotationAngleDegrees), glm::vec3(0, 0, 1));
-    deviatedNormal = (directionRotation * deviationRotation) * deviatedNormal;
+    glm::mat3 deviationRotation = glm::rotate(glm::mat4(1.0), glm::radians(deviationAngleDegrees), xAxis);
+    glm::mat3 directionRotation = glm::rotate(glm::mat4(1.0), glm::radians(rotationAngleDegrees), zAxis);
+    glm::vec3 unalignedDeviatedNormal = (directionRotation * deviationRotation) * zAxis;
 
-    if(originalNormal.x == 0 && originalNormal.y == 0 && originalNormal.z > 0) {
-        return normalize(ShapeDescriptor::cpu::float3(deviatedNormal.x, deviatedNormal.y, deviatedNormal.z));
+    // Avoids a zero division when computing the cross product
+    // This can either happen when the original normal is the z-axis, or the negative z-axis
+    if(originalNormal.x == 0 && originalNormal.y == 0) {
+        if(originalNormal.z > 0) {
+            return normalize(ShapeDescriptor::cpu::float3(unalignedDeviatedNormal.x, unalignedDeviatedNormal.y, unalignedDeviatedNormal.z));
+        } else if(originalNormal.z < 0) {
+            return normalize(ShapeDescriptor::cpu::float3(-unalignedDeviatedNormal.x, -unalignedDeviatedNormal.y, -unalignedDeviatedNormal.z));
+        } else {
+            throw std::runtime_error("Zero or invalid normal vector detected: " + std::to_string(originalNormal.x) + ", " + std::to_string(originalNormal.y) + ", " + std::to_string(originalNormal.z));
+        }
     }
 
     // Align deviated normal with
-    glm::vec3 orthogonalDirection = glm::cross(originalNormal, deviatedNormal);
-    float angle = glm::acos(glm::dot(originalNormal, deviatedNormal));
-    glm::mat3 rotationMatrix = glm::rotate(glm::mat4(1.0), angle, orthogonalDirection);
-    deviatedNormal = rotationMatrix * originalNormal;
+    glm::vec3 orthogonalDirection = glm::cross(originalNormal, zAxis);
+    float angle = glm::acos(glm::dot(originalNormal, zAxis));
+    glm::mat3 rotationMatrix = glm::rotate(glm::mat4(1.0), -angle, orthogonalDirection);
+    glm::vec3 deviatedNormal = rotationMatrix * unalignedDeviatedNormal;
 
     return normalize(ShapeDescriptor::cpu::float3(deviatedNormal.x, deviatedNormal.y, deviatedNormal.z));
 }
@@ -49,7 +55,9 @@ ShapeBench::NormalNoiseFilterOutput ShapeBench::applyNormalNoiseFilter(const nlo
     // Displace mesh normals
     for(uint32_t i = 0; i < filteredMesh.filteredSampleMesh.vertexCount; i++) {
         ShapeDescriptor::cpu::float3& normal = filteredMesh.filteredSampleMesh.normals[i];
-        normal = computeDeviatedNormal(normal, deviationAngleDistribution(engine), rotationAngleDistribution(engine));
+        float deviationAngleDegrees = deviationAngleDistribution(engine);
+        float rotationAngleDegrees = rotationAngleDistribution(engine);
+        normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
     }
 
     return meta;
