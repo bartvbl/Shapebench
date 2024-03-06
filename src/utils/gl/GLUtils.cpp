@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include "glad/gl.h"
 #include "GLUtils.h"
 
@@ -9,7 +10,7 @@ static void glfwErrorCallback(int error, const char *description)
     fprintf(stderr, "GLFW returned an error:\n\t%s (%i)\n", description, error);
 }
 
-GLFWwindow* ShapeBench::GLinitialise()
+GLFWwindow* ShapeBench::GLinitialise(uint32_t windowWidth, uint32_t windowHeight)
 {
     // Initialise GLFW
     if (!glfwInit())
@@ -34,7 +35,7 @@ GLFWwindow* ShapeBench::GLinitialise()
     const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
     // Create window using GLFW
-    GLFWwindow* window = glfwCreateWindow(1920, 1080, "Symmetry", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "Symmetry", nullptr, nullptr);
 
     // Ensure the window is set up correctly
     if (!window)
@@ -57,7 +58,7 @@ GLFWwindow* ShapeBench::GLinitialise()
     // Print various OpenGL information to stdout
     //printf("%s: %s\n", glGetString(GL_VENDOR), glGetString(GL_RENDERER));
     //printf("GLFW\t %s\n", glfwGetVersionString());
-    //printf("OpenGL\t %s\n", glGetString(GL_VERSION));
+    std::cout << "    Created OpenGL context: " << glGetString(GL_VERSION) << std::endl;
     //printf("GLSL\t %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     glClearColor(0.3, 0.3, 0.3, 1.0);

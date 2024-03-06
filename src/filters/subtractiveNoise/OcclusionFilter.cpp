@@ -189,6 +189,7 @@ void ShapeBench::OccludedSceneGenerator::init() {
     window = GLinitialise();
     objectIDShader = loadShader("res/shaders/", "objectIDShader");
     fullscreenQuadShader = loadShader("res/shaders/", "fullscreenquad");
+    window = GLinitialise(700, 700);
 
     std::vector<ShapeDescriptor::cpu::float3> screenQuadVertices = {{0, 0, 0},
                                                                     {1, 0, 0},
