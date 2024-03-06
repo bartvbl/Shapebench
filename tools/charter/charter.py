@@ -19,6 +19,9 @@ def determineProcessingMode(mode, fileContents):
         return "additiveArea"
 
 
+
+
+
 def processSingleFile(jsonContent, mode):
     chartDataSequence = {}
     chartDataSequence["name"] = jsonContent["method"]["name"]
@@ -33,7 +36,7 @@ def processSingleFile(jsonContent, mode):
             else:
                 raise IOError
         elif mode == "additiveArea":
-            chartDataSequence['x'].append(result['fractionAddedNoise'])
+            chartDataSequence['x'].append(result['fractionSurfacePartiality'])
     return chartDataSequence
 
 

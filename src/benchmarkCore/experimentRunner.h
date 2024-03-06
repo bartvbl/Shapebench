@@ -232,20 +232,22 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             filteredMesh.mappedReferenceVertices.resize(verticesPerSampleObject);
             filteredMesh.originalReferenceVertices.resize(verticesPerSampleObject);
             filteredMesh.referenceVertexIndices.resize(verticesPerSampleObject);
+            filteredMesh.mappedVertexIncluded.resize(verticesPerSampleObject);
             for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                 ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                 filteredMesh.originalReferenceVertices.at(i).vertex = filteredMesh.originalMesh.vertices[sampleVertex.vertexIndex];
                 filteredMesh.originalReferenceVertices.at(i).normal = filteredMesh.originalMesh.normals[sampleVertex.vertexIndex];
                 filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
                 filteredMesh.referenceVertexIndices.at(i) = sampleVertex.vertexIndex;
+                filteredMesh.mappedVertexIncluded.at(i) = true;
             }
 
             std::vector<ShapeBench::ExperimentResultsEntry> resultsEntries(verticesPerSampleObject);
 
             try {
                 nlohmann::json filterMetadata;
-                for (uint32_t filterStepIndex = 0;
-                     filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+
+                for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
                     uint64_t filterRandomSeed = experimentInstanceRandomEngine();
                     const nlohmann::json &filterConfig = experimentConfig.at("filters").at(filterStepIndex);
                     const std::string &filterType = filterConfig.at("type");
@@ -291,7 +293,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntries.at(i).filteredDescriptorRank = imageIndex;
                     resultsEntries.at(i).fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntries.at(i).fractionSurfacePartiality = areaEstimate.subtractiveArea;
-                    resultsEntries.at(i).included = true;
+                    resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
                 }
 
                 ShapeDescriptor::free(combinedMesh);
