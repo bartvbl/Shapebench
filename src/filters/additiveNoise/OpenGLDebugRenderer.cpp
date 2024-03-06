@@ -106,7 +106,7 @@ inline void printGLError() {
 
 
 ShapeBench::OpenGLDebugRenderer::OpenGLDebugRenderer() {
-    window = GLinitialise();
+    window = GLinitialise(1920, 1080);
     printGLError();
 
     shader = loadShader("../res/shaders", "phong");

@@ -100,6 +100,16 @@ ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
     return referenceDescriptors;
 }
 
+bool experimentContainsSubtractiveFilter(const nlohmann::json& experimentConfig) {
+    for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+        std::string filterType = experimentConfig.at("filters").at(filterStepIndex).at("type");
+        if(filterType == "subtractive-noise") {
+            return true;
+        }
+    }
+    return false;
+}
+
 template<typename DescriptorMethod, typename DescriptorType>
 void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
     std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
@@ -143,8 +153,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     // Compute reference descriptors, or load them from a cache file
     std::cout << "Computing reference descriptor set.." << std::endl;
-    std::vector<ShapeBench::VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize,
-                                                                                        1);
+    std::vector<ShapeBench::VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize, 1);
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
 
     // Computing sample descriptors, or load them from a cache file
@@ -196,6 +205,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         }
         for (uint32_t i = 0; i < sampleSetSize; i++) {
             experimentResult.vertexResults.at(i).included = false;
+        }
+        if(experimentContainsSubtractiveFilter(experimentConfig)) {
+            uint32_t visibilityImageWidth = configuration.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(0);
+            uint32_t visibilityImageHeight = configuration.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(1);
+            ShapeBench::occlusionSceneGeneratorInstance.init(visibilityImageWidth, visibilityImageHeight);
         }
 
         #pragma omp parallel for schedule(dynamic)
@@ -320,6 +334,10 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         std::cout << "Writing experiment results file.." << std::endl;
         writeExperimentResults(experimentResult, resultsDirectory, true);
         std::cout << "Experiment complete." << std::endl;
+
+        if(experimentContainsSubtractiveFilter(experimentConfig)) {
+            ShapeBench::occlusionSceneGeneratorInstance.destroy();
+        }
     }
 
     std::cout << std::endl << "    Writing caches.." << std::endl;
