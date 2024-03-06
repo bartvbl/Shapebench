@@ -10,10 +10,8 @@
 #include "benchmarkCore/randomEngine.h"
 #include <random>
 
-ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight) {
-    offscreenTextureWidth = visibilityImageWidth;
-    offscreenTextureHeight = visibilityImageHeight;
-    init();
+ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator() {
+
 }
 
 ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
@@ -21,15 +19,13 @@ ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
 }
 
 // Mesh is assumed to be fit inside unit sphere
-void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
-    // Handle other events
-    glfwPollEvents();
-
+void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
     ShapeBench::randomEngine randomEngine(seed);
 
+    std::vector<unsigned char> localFramebufferCopy(3 * offscreenTextureWidth * offscreenTextureHeight);
     const uint32_t totalVertexCount = scene.filteredSampleMesh.vertexCount + scene.filteredAdditiveNoise.vertexCount;
     std::vector<ShapeDescriptor::cpu::float3> vertexColours(totalVertexCount);
-    for(unsigned int triangle = 0; triangle < totalVertexCount / 3; triangle++) {
+    for (unsigned int triangle = 0; triangle < totalVertexCount / 3; triangle++) {
         float red = float((triangle & 0x00FF0000U) >> 16U) / 255.0f;
         float green = float((triangle & 0x0000FF00U) >> 8U) / 255.0f;
         float blue = float((triangle & 0x000000FFU) >> 0U) / 255.0f;
@@ -39,57 +35,102 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Filtere
         vertexColours.at(3 * triangle + 2) = {red, green, blue};
     }
 
-    GeometryBuffer sampleMeshBuffers = generateVertexArray(scene.filteredSampleMesh.vertices,
-                                                           scene.filteredSampleMesh.normals,
-                                                           vertexColours.data(),
-                                                           scene.filteredSampleMesh.vertexCount);
-    GeometryBuffer additiveNoiseBuffers = generateVertexArray(scene.filteredAdditiveNoise.vertices,
-                                                              scene.filteredAdditiveNoise.normals,
-                                                              vertexColours.data() + scene.filteredSampleMesh.vertexCount,
-                                                              scene.filteredAdditiveNoise.vertexCount);
-
-    objectIDShader.use();
-
     std::uniform_real_distribution<float> distribution(0, 1);
     float yaw = float(distribution(randomEngine) * 2.0 * M_PI);
     float pitch = float((distribution(randomEngine) - 0.5) * M_PI);
     float roll = float(distribution(randomEngine) * 2.0 * M_PI);
 
-    glm::mat4 objectProjection = glm::perspective(1.57f, (float) offscreenTextureWidth / (float) offscreenTextureHeight, 1.0f, 10000.0f);
-    glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -200.0f));
+    float nearPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("nearPlaneDistance");
+    float farPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("farPlaneDistance");
+    float fovy = config.at("filterSettings").at("subtractiveNoise").at("fovYAngleRadians");
+    float objectDistanceFromCamera = config.at("filterSettings").at("subtractiveNoise").at("objectDistanceFromCamera");
+
+    glm::mat4 objectProjection = glm::perspective(fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, nearPlaneDistance, farPlaneDistance);
+    glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -objectDistanceFromCamera));
     positionTransformation *= glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1));
     positionTransformation *= glm::rotate(glm::mat4(1.0), yaw, glm::vec3(1, 0, 0));
     positionTransformation *= glm::rotate(glm::mat4(1.0), pitch, glm::vec3(0, 1, 0));
     glm::mat4 objectTransformation = objectProjection * positionTransformation;
-    glUniformMatrix4fv(16, 1, false, glm::value_ptr(objectTransformation));
 
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-    glViewport(0, 0, offscreenTextureWidth, offscreenTextureHeight);
-    glClearColor(1.0, 1.0, 1.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    {
+        std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
+        glfwMakeContextCurrent(window);
 
-    glEnable(GL_DEPTH_TEST);
-    glBindVertexArray(sampleMeshBuffers.vaoID);
-    glDrawElements(GL_TRIANGLES, scene.filteredSampleMesh.vertexCount, GL_UNSIGNED_INT, nullptr);
-    glBindVertexArray(additiveNoiseBuffers.vaoID);
-    glDrawElements(GL_TRIANGLES, scene.filteredAdditiveNoise.vertexCount, GL_UNSIGNED_INT, nullptr);
+        // Handle other events
+        glfwPollEvents();
+        GeometryBuffer sampleMeshBuffers = generateVertexArray(scene.filteredSampleMesh.vertices,
+                                                               scene.filteredSampleMesh.normals,
+                                                               vertexColours.data(),
+                                                               scene.filteredSampleMesh.vertexCount);
+        GeometryBuffer additiveNoiseBuffers = generateVertexArray(scene.filteredAdditiveNoise.vertices,
+                                                                  scene.filteredAdditiveNoise.normals,
+                                                                  vertexColours.data() +
+                                                                  scene.filteredSampleMesh.vertexCount,
+                                                                  scene.filteredAdditiveNoise.vertexCount);
+        objectIDShader.use();
+        glUniformMatrix4fv(16, 1, false, glm::value_ptr(objectTransformation));
 
-    // Do visibility testing
+        glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
+        glViewport(0, 0, offscreenTextureWidth, offscreenTextureHeight);
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBindTexture(GL_TEXTURE_2D, renderTextureID);
-    glReadPixels(0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_RGB, GL_UNSIGNED_BYTE, localFramebufferCopy.data());
+        glEnable(GL_DEPTH_TEST);
+        glBindVertexArray(sampleMeshBuffers.vaoID);
+        glDrawElements(GL_TRIANGLES, scene.filteredSampleMesh.vertexCount, GL_UNSIGNED_INT, nullptr);
+        glBindVertexArray(additiveNoiseBuffers.vaoID);
+        glDrawElements(GL_TRIANGLES, scene.filteredAdditiveNoise.vertexCount, GL_UNSIGNED_INT, nullptr);
 
+        // Do visibility testing
+
+        glBindTexture(GL_TEXTURE_2D, renderTextureID);
+        glReadPixels(0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_RGB, GL_UNSIGNED_BYTE,
+                     localFramebufferCopy.data());
+
+        // Draw visible version
+
+        int windowWidth, windowHeight;
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, windowWidth, windowHeight);
+        glClearColor(0.5, 0.5, 0.5, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        fullscreenQuadShader.use();
+
+        glBindVertexArray(screenQuadVAO.vaoID);
+        glDisable(GL_DEPTH_TEST);
+        glBindTextureUnit(0, renderTextureID);
+
+        glm::mat4 fullscreenProjection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+
+        glUniformMatrix4fv(16, 1, false, glm::value_ptr(fullscreenProjection));
+
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+        sampleMeshBuffers.destroy();
+        additiveNoiseBuffers.destroy();
+
+        // Flip buffers
+        glfwSwapBuffers(window);
+
+        // Allow other threads to take control of the context
+        glfwMakeContextCurrent(nullptr);
+    }
+
+    // We are now done with the OpenGL part, so we can allow other threads to run that part
 
     std::vector<bool> triangleAppearsInImage(totalVertexCount / 3);
 
-    for(size_t pixel = 0; pixel < offscreenTextureWidth * offscreenTextureHeight; pixel++) {
+    for (size_t pixel = 0; pixel < offscreenTextureWidth * offscreenTextureHeight; pixel++) {
         unsigned int triangleIndex =
                 (((unsigned int) localFramebufferCopy.at(3 * pixel + 0)) << 16U) |
                 (((unsigned int) localFramebufferCopy.at(3 * pixel + 1)) << 8U) |
                 (((unsigned int) localFramebufferCopy.at(3 * pixel + 2)) << 0U);
 
         // Test if pixel is background
-        if(triangleIndex == 0x00FFFFFF) {
+        if (triangleIndex == 0x00FFFFFF) {
             continue;
         }
 
@@ -98,9 +139,9 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Filtere
 
     uint32_t visibleSampleMeshVertexCount = 0;
     uint32_t visibleAdditiveNoiseVertexCount = 0;
-    for(unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
-        if(triangleAppearsInImage.at(triangle)) {
-            if(3 * triangle < scene.filteredSampleMesh.vertexCount) {
+    for (unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
+        if (triangleAppearsInImage.at(triangle)) {
+            if (3 * triangle < scene.filteredSampleMesh.vertexCount) {
                 visibleSampleMeshVertexCount += 3;
             } else {
                 visibleAdditiveNoiseVertexCount += 3;
@@ -112,10 +153,14 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Filtere
     ShapeDescriptor::cpu::Mesh occludedAdditiveNoiseMesh(visibleAdditiveNoiseVertexCount);
 
     uint32_t nextVisibleVertexIndex = 0;
-    for(unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
+    for(uint32_t i = 0; i < scene.mappedVertexIncluded.size(); i++) {
+        scene.mappedVertexIncluded.at(i) = false;
+    }
+
+    for (unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
         uint32_t targetIndex = nextVisibleVertexIndex % visibleSampleMeshVertexCount;
-        if(triangleAppearsInImage.at(triangle)) {
-            if(3 * triangle < scene.filteredSampleMesh.vertexCount) {
+        if (triangleAppearsInImage.at(triangle)) {
+            if (3 * triangle < scene.filteredSampleMesh.vertexCount) {
                 occludedSampleMesh.vertices[targetIndex + 0] = scene.filteredSampleMesh.vertices[3 * triangle + 0];
                 occludedSampleMesh.vertices[targetIndex + 1] = scene.filteredSampleMesh.vertices[3 * triangle + 1];
                 occludedSampleMesh.vertices[targetIndex + 2] = scene.filteredSampleMesh.vertices[3 * triangle + 2];
@@ -123,6 +168,12 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Filtere
                 occludedSampleMesh.normals[targetIndex + 0] = scene.filteredSampleMesh.normals[3 * triangle + 0];
                 occludedSampleMesh.normals[targetIndex + 1] = scene.filteredSampleMesh.normals[3 * triangle + 1];
                 occludedSampleMesh.normals[targetIndex + 2] = scene.filteredSampleMesh.normals[3 * triangle + 2];
+
+                for(uint32_t i = 0; i < scene.mappedVertexIncluded.size(); i++) {
+                    if(scene.referenceVertexIndices.at(i) >= 3 * triangle && 3 * triangle + 2 <= scene.referenceVertexIndices.at(i)) {
+                        scene.mappedVertexIncluded.at(i) = true;
+                    }
+                }
             } else {
                 uint32_t baseIndex = 3 * triangle - scene.filteredSampleMesh.vertexCount;
 
@@ -143,34 +194,6 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Filtere
     ShapeDescriptor::free(scene.filteredAdditiveNoise);
     scene.filteredSampleMesh = occludedSampleMesh;
     scene.filteredAdditiveNoise = occludedAdditiveNoiseMesh;
-
-    // Draw visible version
-
-    int windowWidth, windowHeight;
-    glfwGetWindowSize(window, &windowWidth, &windowHeight);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, windowWidth, windowHeight);
-    glClearColor(0.5, 0.5, 0.5, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    fullscreenQuadShader.use();
-
-    glBindVertexArray(screenQuadVAO.vaoID);
-    glDisable(GL_DEPTH_TEST);
-    glBindTextureUnit(0, renderTextureID);
-
-    glm::mat4 fullscreenProjection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-
-    glUniformMatrix4fv(16, 1, false, glm::value_ptr(fullscreenProjection));
-
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-
-    sampleMeshBuffers.destroy();
-    additiveNoiseBuffers.destroy();
-
-    // Flip buffers
-    glfwSwapBuffers(window);
 }
 
 void ShapeBench::OccludedSceneGenerator::destroy() {
@@ -185,11 +208,13 @@ void ShapeBench::OccludedSceneGenerator::destroy() {
     isDestroyed = true;
 }
 
-void ShapeBench::OccludedSceneGenerator::init() {
-    window = GLinitialise();
-    objectIDShader = loadShader("res/shaders/", "objectIDShader");
-    fullscreenQuadShader = loadShader("res/shaders/", "fullscreenquad");
+void ShapeBench::OccludedSceneGenerator::init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight) {
+    offscreenTextureWidth = visibilityImageWidth;
+    offscreenTextureHeight = visibilityImageHeight;
+
     window = GLinitialise(700, 700);
+    objectIDShader = loadShader("../res/shaders/", "objectIDShader");
+    fullscreenQuadShader = loadShader("../res/shaders/", "fullscreenquad");
 
     std::vector<ShapeDescriptor::cpu::float3> screenQuadVertices = {{0, 0, 0},
                                                                     {1, 0, 0},
@@ -227,5 +252,6 @@ void ShapeBench::OccludedSceneGenerator::init() {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, offscreenTextureWidth, offscreenTextureHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferID);
 
-    localFramebufferCopy.resize(3 * offscreenTextureWidth * offscreenTextureHeight);
+
+    glfwMakeContextCurrent(nullptr);
 }

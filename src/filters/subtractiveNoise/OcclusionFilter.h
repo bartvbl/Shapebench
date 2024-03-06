@@ -1,6 +1,7 @@
 #pragma once
 
 #include <shapeDescriptor/shapeDescriptor.h>
+#include <mutex>
 #include "json.hpp"
 #include "benchmarkCore/ComputedConfig.h"
 #include "benchmarkCore/Dataset.h"
@@ -18,25 +19,24 @@ namespace ShapeBench {
         uint32_t frameBufferID = 0;
         uint32_t renderBufferID = 0;
         uint32_t renderTextureID = 0;
-        std::vector<unsigned char> localFramebufferCopy;
         GeometryBuffer screenQuadVAO;
         uint32_t offscreenTextureWidth = 0;
         uint32_t offscreenTextureHeight = 0;
+        std::mutex occlusionFilterLock;
 
     public:
-        explicit OccludedSceneGenerator(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
+        explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
-        void computeOccludedMesh(ShapeBench::FilteredMeshPair &scene, uint64_t seed);
-        void init();
+        void computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
+        void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };
 
+    static OccludedSceneGenerator occlusionSceneGeneratorInstance;
+
+
+
     inline void applyOcclusionFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, uint64_t seed) {
-        uint32_t visibilityImageWidth = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(0);
-        uint32_t visibilityImageHeight = config.at("experiments").at("subtractiveNoise").at("visibilityImageResolution").at(1);
-        OccludedSceneGenerator generator(visibilityImageWidth, visibilityImageHeight);
-        generator.init();
-        generator.computeOccludedMesh(scene, seed);
-        generator.destroy();
+        occlusionSceneGeneratorInstance.computeOccludedMesh(config, scene, seed);
     }
 }
