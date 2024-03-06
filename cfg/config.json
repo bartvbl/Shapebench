@@ -29,14 +29,14 @@
         },
         {
             "name": "subtractive-noise-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
         },
         {
             "name": "normal-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "normal-noise"}
             ]
@@ -59,7 +59,11 @@
             "floorFriction": 0.5
         },
         "subtractiveNoise": {
-            "visibilityImageResolution": [25000, 25000]
+            "visibilityImageResolution": [25000, 25000],
+            "nearPlaneDistance": 0.02,
+            "farPlaneDistance": 10.0,
+            "fovYAngleRadians": 1.57,
+            "objectDistanceFromCamera": 2.0
         },
         "alternateTriangulation": {
             "vertexDisplacementMax": 0.005,
