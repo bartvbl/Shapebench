@@ -263,8 +263,10 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 }
 
                 // Collect data here
-                for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
-                    resultsEntries.at(i).filterOutput.merge_patch(filterMetadata.at(i));
+                if(!filterMetadata.empty()) {
+                    for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                        resultsEntries.at(i).filterOutput.merge_patch(filterMetadata.at(i));
+                    }
                 }
 
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
