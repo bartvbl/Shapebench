@@ -22,14 +22,14 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "additive-noise"}
             ]
         },
         {
             "name": "subtractive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
