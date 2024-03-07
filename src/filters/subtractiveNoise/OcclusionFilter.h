@@ -11,6 +11,10 @@
 #include "filters/FilteredMeshPair.h"
 
 namespace ShapeBench {
+    struct SubtractiveNoiseOutput {
+        nlohmann::json metadata;
+    };
+
     class OccludedSceneGenerator {
         GLFWwindow* window = nullptr;
         bool isDestroyed = false;
@@ -27,7 +31,7 @@ namespace ShapeBench {
     public:
         explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
-        void computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
+        SubtractiveNoiseOutput computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };
@@ -36,7 +40,7 @@ namespace ShapeBench {
 
 
 
-    inline void applyOcclusionFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, uint64_t seed) {
-        occlusionSceneGeneratorInstance.computeOccludedMesh(config, scene, seed);
+    inline SubtractiveNoiseOutput applyOcclusionFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, uint64_t seed) {
+        return occlusionSceneGeneratorInstance.computeOccludedMesh(config, scene, seed);
     }
 }

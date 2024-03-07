@@ -19,8 +19,9 @@ ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
 }
 
 // Mesh is assumed to be fit inside unit sphere
-void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
+ShapeBench::SubtractiveNoiseOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
     ShapeBench::randomEngine randomEngine(seed);
+    ShapeBench::SubtractiveNoiseOutput output;
 
     std::vector<unsigned char> localFramebufferCopy(3 * offscreenTextureWidth * offscreenTextureHeight);
     const uint32_t totalVertexCount = scene.filteredSampleMesh.vertexCount + scene.filteredAdditiveNoise.vertexCount;
@@ -39,6 +40,10 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::jso
     float yaw = float(distribution(randomEngine) * 2.0 * M_PI);
     float pitch = float((distribution(randomEngine) - 0.5) * M_PI);
     float roll = float(distribution(randomEngine) * 2.0 * M_PI);
+
+    output.metadata["subtractive-noise-pitch"] = pitch;
+    output.metadata["subtractive-noise-yaw"] = yaw;
+    output.metadata["subtractive-noise-roll"] = roll;
 
     float nearPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("nearPlaneDistance");
     float farPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("farPlaneDistance");
@@ -194,6 +199,8 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::jso
     ShapeDescriptor::free(scene.filteredAdditiveNoise);
     scene.filteredSampleMesh = occludedSampleMesh;
     scene.filteredAdditiveNoise = occludedAdditiveNoiseMesh;
+
+    return output;
 }
 
 void ShapeBench::OccludedSceneGenerator::destroy() {
