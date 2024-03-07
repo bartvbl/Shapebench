@@ -174,8 +174,13 @@ ShapeBench::SubtractiveNoiseOutput ShapeBench::OccludedSceneGenerator::computeOc
                 occludedSampleMesh.normals[targetIndex + 1] = scene.filteredSampleMesh.normals[3 * triangle + 1];
                 occludedSampleMesh.normals[targetIndex + 2] = scene.filteredSampleMesh.normals[3 * triangle + 2];
 
+                // We just need to make sure that the vertex position itself is on a triangle that exists
+                // There is no need to also compare the normal
                 for(uint32_t i = 0; i < scene.mappedVertexIncluded.size(); i++) {
-                    if(scene.referenceVertexIndices.at(i) >= 3 * triangle && 3 * triangle + 2 <= scene.referenceVertexIndices.at(i)) {
+                    ShapeDescriptor::cpu::float3 mappedVertex = scene.mappedReferenceVertices.at(i).vertex;
+                    if(mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 0]
+                    || mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 1]
+                    || mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 2]) {
                         scene.mappedVertexIncluded.at(i) = true;
                     }
                 }
