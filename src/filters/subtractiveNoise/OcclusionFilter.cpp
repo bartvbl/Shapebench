@@ -41,9 +41,13 @@ ShapeBench::SubtractiveNoiseOutput ShapeBench::OccludedSceneGenerator::computeOc
     float pitch = float((distribution(randomEngine) - 0.5) * M_PI);
     float roll = float(distribution(randomEngine) * 2.0 * M_PI);
 
-    output.metadata["subtractive-noise-pitch"] = pitch;
-    output.metadata["subtractive-noise-yaw"] = yaw;
-    output.metadata["subtractive-noise-roll"] = roll;
+    nlohmann::json entry;
+    entry["subtractive-noise-pitch"] = pitch;
+    entry["subtractive-noise-yaw"] = yaw;
+    entry["subtractive-noise-roll"] = roll;
+    for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+        output.metadata.push_back(entry);
+    }
 
     float nearPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("nearPlaneDistance");
     float farPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("farPlaneDistance");
