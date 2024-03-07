@@ -280,6 +280,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 //writeFilteredMesh<DescriptorMethod>(filteredMesh, DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + ".obj", filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
 
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                    resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
+                    if(!resultsEntries.at(i).included) {
+                        continue;
+                    }
+
                     resultsEntries.at(i).sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                     resultsEntries.at(i).filteredDescriptorRank = 0;
                     resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
@@ -294,7 +299,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntries.at(i).filteredDescriptorRank = imageIndex;
                     resultsEntries.at(i).fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntries.at(i).fractionSurfacePartiality = areaEstimate.subtractiveArea;
-                    resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
+
                 }
 
                 ShapeDescriptor::free(combinedMesh);
@@ -303,7 +308,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     std::unique_lock<std::mutex> writeLock{resultWriteLock};
                     for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                         experimentResult.vertexResults.at(sampleVertexIndex + i) = resultsEntries.at(i);
-                        std::cout << "Result: " << resultsEntries.at(i).fractionAddedNoise << ", " << resultsEntries.at(i).fractionSurfacePartiality << ", " << resultsEntries.at(i).filteredDescriptorRank << std::endl;
+                        if(resultsEntries.at(i).included) {
+                            std::cout << "Result: " << resultsEntries.at(i).fractionAddedNoise << ", " << resultsEntries.at(i).fractionSurfacePartiality << ", " << resultsEntries.at(i).filteredDescriptorRank << std::endl;
+                        }
                     }
                 };
 
