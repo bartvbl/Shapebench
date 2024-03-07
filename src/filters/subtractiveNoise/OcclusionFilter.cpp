@@ -158,18 +158,22 @@ ShapeBench::SubtractiveNoiseOutput ShapeBench::OccludedSceneGenerator::computeOc
         }
     }
 
+    //std::cout << "Visible sample: " << visibleSampleMeshVertexCount << ", additive: " << visibleAdditiveNoiseVertexCount << ", total: " << totalVertexCount << std::endl;
     ShapeDescriptor::cpu::Mesh occludedSampleMesh(visibleSampleMeshVertexCount);
     ShapeDescriptor::cpu::Mesh occludedAdditiveNoiseMesh(visibleAdditiveNoiseVertexCount);
 
-    uint32_t nextVisibleVertexIndex = 0;
+    uint32_t nextSampleMeshTargetIndex = 0;
+    uint32_t nextAdditiveNoiseMeshTargetIndex = 0;
     for(uint32_t i = 0; i < scene.mappedVertexIncluded.size(); i++) {
         scene.mappedVertexIncluded.at(i) = false;
     }
 
     for (unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
-        uint32_t targetIndex = nextVisibleVertexIndex % visibleSampleMeshVertexCount;
         if (triangleAppearsInImage.at(triangle)) {
             if (3 * triangle < scene.filteredSampleMesh.vertexCount) {
+                uint32_t targetIndex = nextSampleMeshTargetIndex;
+                nextSampleMeshTargetIndex += 3;
+
                 occludedSampleMesh.vertices[targetIndex + 0] = scene.filteredSampleMesh.vertices[3 * triangle + 0];
                 occludedSampleMesh.vertices[targetIndex + 1] = scene.filteredSampleMesh.vertices[3 * triangle + 1];
                 occludedSampleMesh.vertices[targetIndex + 2] = scene.filteredSampleMesh.vertices[3 * triangle + 2];
@@ -191,6 +195,9 @@ ShapeBench::SubtractiveNoiseOutput ShapeBench::OccludedSceneGenerator::computeOc
             } else {
                 uint32_t baseIndex = 3 * triangle - scene.filteredSampleMesh.vertexCount;
 
+                uint32_t targetIndex = nextAdditiveNoiseMeshTargetIndex;
+                nextAdditiveNoiseMeshTargetIndex += 3;
+
                 occludedAdditiveNoiseMesh.vertices[targetIndex + 0] = scene.filteredAdditiveNoise.vertices[baseIndex + 0];
                 occludedAdditiveNoiseMesh.vertices[targetIndex + 1] = scene.filteredAdditiveNoise.vertices[baseIndex + 1];
                 occludedAdditiveNoiseMesh.vertices[targetIndex + 2] = scene.filteredAdditiveNoise.vertices[baseIndex + 2];
@@ -199,15 +206,17 @@ ShapeBench::SubtractiveNoiseOutput ShapeBench::OccludedSceneGenerator::computeOc
                 occludedAdditiveNoiseMesh.normals[targetIndex + 1] = scene.filteredAdditiveNoise.normals[baseIndex + 1];
                 occludedAdditiveNoiseMesh.normals[targetIndex + 2] = scene.filteredAdditiveNoise.normals[baseIndex + 2];
             }
-
-            nextVisibleVertexIndex += 3;
         }
     }
+
+    //std::cout << "Added to mesh sample: " << nextSampleMeshTargetIndex << ", additive: " << nextAdditiveNoiseMeshTargetIndex << ", total: " << totalVertexCount << std::endl;
 
     ShapeDescriptor::free(scene.filteredSampleMesh);
     ShapeDescriptor::free(scene.filteredAdditiveNoise);
     scene.filteredSampleMesh = occludedSampleMesh;
     scene.filteredAdditiveNoise = occludedAdditiveNoiseMesh;
+
+    //std::cout << "Output count: " << scene.filteredSampleMesh.vertexCount << ", " << scene.filteredAdditiveNoise.vertexCount << std::endl;
 
     return output;
 }

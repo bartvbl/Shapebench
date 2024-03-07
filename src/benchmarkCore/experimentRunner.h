@@ -277,7 +277,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
-                //writeFilteredMesh<DescriptorMethod>(filteredMesh, DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentInstanceRandomSeed) + ".obj", filteredMesh.mappedReferenceVertices.at(0), supportRadius, true);
+                //writeFilteredMesh<DescriptorMethod>(filteredMesh, DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + ".obj", filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
 
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntries.at(i).sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
