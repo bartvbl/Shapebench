@@ -15,6 +15,7 @@ namespace ShapeBench {
     };
 
     void initPhysics();
+    void destroyPhysics();
     std::vector<ShapeBench::Orientation> runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings, const std::vector<ShapeDescriptor::cpu::Mesh>& meshes);
     AdditiveNoiseOutput runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache);
 

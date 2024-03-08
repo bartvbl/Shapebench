@@ -80,8 +80,6 @@ int main(int argc, const char** argv) {
 
     ShapeBench::Dataset dataset = ShapeBench::Dataset::computeOrLoadCached(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
 
-    ShapeBench::initPhysics();
-
     uint64_t randomSeed = configuration.at("randomSeed");
     testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
     testMethod<ShapeBench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);

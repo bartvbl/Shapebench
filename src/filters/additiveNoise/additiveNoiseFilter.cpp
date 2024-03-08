@@ -244,10 +244,19 @@ void ShapeBench::initPhysics() {
     JPH::RegisterTypes();
 }
 
+void ShapeBench::destroyPhysics() {
+    // Unregisters all types with the factory and cleans up the default material
+    JPH::UnregisterTypes();
+
+    // Destroy the factory
+    delete JPH::Factory::sInstance;
+    JPH::Factory::sInstance = nullptr;
+}
+
 std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
                                                                       const std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
-    static std::mutex onlyAllowSingleThreadToRunPhysicsLock;
-    std::unique_lock<std::mutex> physicsLock{onlyAllowSingleThreadToRunPhysicsLock};
+    //static std::mutex onlyAllowSingleThreadToRunPhysicsLock;
+    //std::unique_lock<std::mutex> physicsLock{onlyAllowSingleThreadToRunPhysicsLock};
 
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
@@ -256,7 +265,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     // We need a job system that will execute physics jobs on multiple threads. Typically
     // you would implement the JobSystem interface yourself and let Jolt Physics run on top
     // of your own job scheduler. JobSystemThreadPool is an example implementation.
-    JPH::JobSystemThreadPool job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
+    JPH::JobSystemThreadPool job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, 1 /*std::thread::hardware_concurrency() - 1*/);
 
     std::vector<JPH::TriangleList> joltMeshes(meshes.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());
@@ -436,12 +445,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     body_interface.RemoveBody(floor->GetID());
     body_interface.DestroyBody(floor->GetID());
 
-    // Unregisters all types with the factory and cleans up the default material
-    JPH::UnregisterTypes();
 
-    // Destroy the factory
-    delete JPH::Factory::sInstance;
-    JPH::Factory::sInstance = nullptr;
 
     return orientations;
 }

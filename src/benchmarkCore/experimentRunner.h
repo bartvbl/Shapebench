@@ -167,6 +167,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     ShapeBench::AdditiveNoiseCache additiveCache;
     ShapeBench::loadAdditiveNoiseCache(additiveCache, configuration);
     std::cout << "    Loaded Additive Noise filter cache (" << additiveCache.entryCount() << " entries)" << std::endl;
+    ShapeBench::initPhysics();
 
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();
@@ -333,6 +334,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     std::cout << "\r    ";
                     ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
                     std::cout << " " << (sampleVertexIndex + 1) << "/" << sampleSetSize << std::flush;
+                    malloc_trim(0);
                 }
 
                 if (sampleVertexIndex % intermediateSaveFrequency == 0) {
@@ -356,6 +358,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
 
     std::cout << "Cleaning up.." << std::endl;
+    ShapeBench::destroyPhysics();
     ShapeDescriptor::free(referenceDescriptors);
     ShapeDescriptor::free(cleanSampleDescriptors);
 
