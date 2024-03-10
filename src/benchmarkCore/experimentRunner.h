@@ -218,7 +218,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
 // Enable for debugging
-//if(sampleVertexIndex < 444) {continue;}
+if(sampleVertexIndex < 46300) {continue;}
 
             std::cout << "Vertex " + std::to_string(sampleVertexIndex) + "\n";
 
@@ -321,6 +321,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 // 4. Compute rank of sample
                 // Record metadata about "difficulty" of this sample
             } catch (const std::exception &e) {
+                std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
+            } catch(const std::runtime_error &e) {
                 std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
             }
 
