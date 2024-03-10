@@ -52,8 +52,7 @@ static void TraceImpl(const char *inFMT, ...)
 // Callback for asserts, connect this to your own assert handler if you have one
 static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine)
 {
-    std::cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr? inMessage : "") << std::endl;
-    return true;
+    throw std::runtime_error("Physics simulation failed: " + std::string(inExpression) + ", " + std::string(inMessage) + ", in file " + std::string(inFile) + ", line " + std::to_string(inLine));
 };
 #endif // JPH_ENABLE_ASSERTS
 
@@ -255,8 +254,11 @@ void ShapeBench::destroyPhysics() {
 
 std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
                                                                       const std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
-    //static std::mutex onlyAllowSingleThreadToRunPhysicsLock;
-    //std::unique_lock<std::mutex> physicsLock{onlyAllowSingleThreadToRunPhysicsLock};
+    {
+        static std::mutex onlyAllowSingleThreadToRunPhysicsLock;
+        std::unique_lock<std::mutex> physicsLock{onlyAllowSingleThreadToRunPhysicsLock};
+        JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = AssertFailedImpl;)
+    }
 
     // We need a temp allocator for temporary allocations during the physics update. We're
     // pre-allocating 10 MB to avoid having to do allocations during the physics update.
