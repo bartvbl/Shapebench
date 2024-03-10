@@ -37,6 +37,7 @@
 #include "Jolt/Physics/Collision/Shape/Shape.h"
 #include "benchmarkCore/common-procedures/areaEstimator.h"
 #include "benchmarkCore/common-procedures/meshLoader.h"
+#include "Jolt/Core/JobSystemSingleThreaded.h"
 
 static void TraceImpl(const char *inFMT, ...)
 {
@@ -271,7 +272,8 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     // We need a job system that will execute physics jobs on multiple threads. Typically
     // you would implement the JobSystem interface yourself and let Jolt Physics run on top
     // of your own job scheduler. JobSystemThreadPool is an example implementation.
-    JPH::JobSystemThreadPool job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, 1 /*std::thread::hardware_concurrency() - 1*/);
+    JPH::JobSystemSingleThreaded job_system(JPH::cMaxPhysicsJobs);
+    //JPH::JobSystemThreadPool job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, 1 /*std::thread::hardware_concurrency() - 1*/);
 
     std::vector<JPH::TriangleList> joltMeshes(meshes.size());
     std::vector<JPH::StaticCompoundShapeSettings*> meshHullReplacements(meshes.size());

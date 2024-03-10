@@ -322,8 +322,6 @@ if(sampleVertexIndex < 46300) {continue;}
                 // Record metadata about "difficulty" of this sample
             } catch (const std::exception &e) {
                 std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
-            } catch(const std::runtime_error &e) {
-                std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
             }
 
             ShapeDescriptor::free(originalSampleMesh);
