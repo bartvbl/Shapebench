@@ -52,7 +52,11 @@ static void TraceImpl(const char *inFMT, ...)
 // Callback for asserts, connect this to your own assert handler if you have one
 static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine)
 {
-    throw std::runtime_error("Physics simulation failed: " + std::string(inExpression) + ", " + std::string(inMessage) + ", in file " + std::string(inFile) + ", line " + std::to_string(inLine));
+    std::string explanation = inExpression != nullptr ? std::string(inExpression) : "[none]";
+    std::string message = inMessage != nullptr ? std::string(inMessage) : "[none]";
+    std::string file = inFile != nullptr ? std::string(inFile) : "[unknown]";
+
+    throw std::runtime_error("Physics simulation failed: " + explanation + ", " + message + ", in file " + file + ", line " + std::to_string(inLine));
 };
 #endif // JPH_ENABLE_ASSERTS
 
