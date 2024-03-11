@@ -13,7 +13,7 @@
     "commonExperimentSettings": {
         "verticesToTestPerSampleObject": 10,
         "memoryCleanupFrequency": 1000,
-        "sampleSetSize": 30000,
+        "sampleSetSize": 50000,
         "representativeSetSize": 1000000,
         "pointSampleDensity": 1000000,
         "intermediateSaveFrequency": 5000
