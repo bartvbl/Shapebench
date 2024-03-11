@@ -76,6 +76,9 @@
         },
         "supportRadiusDeviation": {
             "maxRadiusDeviation": 0.25
+        },
+        "meshResolutionDeviation": {
+            "minVertexCountFactor": 0.75
         }
     },
 
