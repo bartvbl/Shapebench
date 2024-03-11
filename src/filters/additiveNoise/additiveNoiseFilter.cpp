@@ -392,7 +392,12 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
         const int cCollisionSteps = 1;
 
         // Step the world
+        if(physics_system.GetNumActiveBodies(JPH::EBodyType::RigidBody) == 0) {
+            throw std::runtime_error("No active bodies were found in scene. Skipping.");
+        }
+
         physics_system.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
+
 
         if(settings.enableDebugRenderer) {
             JPH::BodyManager::DrawSettings settings;
