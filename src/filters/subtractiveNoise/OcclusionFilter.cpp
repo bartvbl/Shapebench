@@ -225,6 +225,9 @@ void ShapeBench::OccludedSceneGenerator::destroy() {
     if(isDestroyed) {
         return;
     }
+    if(!isCreated) {
+        return;
+    }
     screenQuadVAO.destroy();
     glDeleteFramebuffers(1, &frameBufferID);
     glDeleteRenderbuffers(1, &renderBufferID);
@@ -279,4 +282,5 @@ void ShapeBench::OccludedSceneGenerator::init(uint32_t visibilityImageWidth, uin
 
 
     glfwMakeContextCurrent(nullptr);
+    isCreated = true;
 }

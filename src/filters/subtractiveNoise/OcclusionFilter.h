@@ -18,6 +18,7 @@ namespace ShapeBench {
     class OccludedSceneGenerator {
         GLFWwindow* window = nullptr;
         bool isDestroyed = false;
+	    bool isCreated = false;
         Shader objectIDShader;
         Shader fullscreenQuadShader;
         uint32_t frameBufferID = 0;
