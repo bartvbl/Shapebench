@@ -93,7 +93,7 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
     ShapeBench::RemeshingFilterOutput output;
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         nlohmann::json entry;
-        entry["remeshing-vertex-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
+        entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
         output.metadata.push_back(entry);
     }
 

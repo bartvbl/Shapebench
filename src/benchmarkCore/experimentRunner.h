@@ -10,7 +10,7 @@
 #include "supportRadiusEstimation/SupportRadiusEstimation.h"
 #include "utils/prettyprint.h"
 #include "filters/subtractiveNoise/OcclusionFilter.h"
-#include "filters/captureNoise/remeshingFilter.h"
+#include "filters/triangleShift/remeshingFilter.h"
 #include "filters/captureNoise/normalNoiseFilter.h"
 #include "filters/additiveNoise/AdditiveNoiseCache.h"
 #include "results/ExperimentResult.h"
