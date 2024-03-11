@@ -39,7 +39,7 @@ ShapeDescriptor::cpu::Mesh convertPMPMeshToSD(const pmp::SurfaceMesh& mesh) {
     return outMesh;
 }
 
-void ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene) {
+ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene) {
     // Convert to PMP Mesh
     pmp::SurfaceMesh sampleMesh = convertSDMeshToPMP(scene.filteredSampleMesh);
     pmp::SurfaceMesh additiveNoiseMesh = convertSDMeshToPMP(scene.filteredAdditiveNoise);
@@ -69,4 +69,33 @@ void ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene) {
 
     scene.filteredSampleMesh = convertPMPMeshToSD(sampleMesh);
     scene.filteredAdditiveNoise = convertPMPMeshToSD(additiveNoiseMesh);
+
+    // Update reference points
+
+
+    std::vector<float> bestDistances(scene.mappedReferenceVertices.size(), std::numeric_limits<float>::max());
+    std::vector<ShapeDescriptor::OrientedPoint> originalReferenceVertices = scene.mappedReferenceVertices;
+
+    for(uint32_t meshVertexIndex = 0; meshVertexIndex < scene.filteredSampleMesh.vertexCount; meshVertexIndex++) {
+        ShapeDescriptor::cpu::float3 meshVertex = scene.filteredSampleMesh.vertices[meshVertexIndex];
+        for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+            ShapeDescriptor::OrientedPoint referencePoint = scene.mappedReferenceVertices.at(i);
+            ShapeDescriptor::cpu::float3 referenceVertex = referencePoint.vertex;
+            float distanceToReferenceVertex = length(referenceVertex - meshVertex);
+            if(distanceToReferenceVertex < bestDistances.at(i)) {
+                bestDistances.at(i) = distanceToReferenceVertex;
+                scene.mappedReferenceVertices.at(i).vertex = meshVertex;
+                scene.mappedReferenceVertexIndices.at(i) = meshVertexIndex;
+            }
+        }
+    }
+
+    ShapeBench::RemeshingFilterOutput output;
+    for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+        nlohmann::json entry;
+        entry["remeshing-vertex-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
+        output.metadata.push_back(entry);
+    }
+
+    return output;
 }

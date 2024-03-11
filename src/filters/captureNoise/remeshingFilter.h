@@ -2,8 +2,13 @@
 
 #include <shapeDescriptor/containerTypes.h>
 #include "filters/FilteredMeshPair.h"
+#include "json.hpp"
 
 
 namespace ShapeBench {
-    void remesh(ShapeBench::FilteredMeshPair &scene);
+    struct RemeshingFilterOutput {
+        nlohmann::json metadata;
+    };
+
+    RemeshingFilterOutput remesh(ShapeBench::FilteredMeshPair &scene);
 }

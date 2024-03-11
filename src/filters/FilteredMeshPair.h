@@ -8,7 +8,7 @@ namespace ShapeBench {
         ShapeDescriptor::cpu::Mesh filteredSampleMesh;
         ShapeDescriptor::cpu::Mesh filteredAdditiveNoise;
 
-        std::vector<uint32_t> referenceVertexIndices;
+        std::vector<uint32_t> mappedReferenceVertexIndices;
         std::vector<ShapeDescriptor::OrientedPoint> originalReferenceVertices;
         std::vector<ShapeDescriptor::OrientedPoint> mappedReferenceVertices;
         std::vector<bool> mappedVertexIncluded;
