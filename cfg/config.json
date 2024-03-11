@@ -73,6 +73,9 @@
         },
         "normalVectorNoise": {
             "maxAngleDeviationDegrees": 30
+        },
+        "supportRadiusDeviation": {
+            "maxRadiusDeviation": 0.25
         }
     },
 
