@@ -12,12 +12,13 @@ namespace ShapeBench {
         float initialObjectSeparation = 2.1;
         uint32_t simulationFrameRate = 165;
         uint32_t simulationStepLimit = 2500;
-        uint32_t tempAllocatorSizeBytes = 10 * 1024 * 1024;
+        uint32_t tempAllocatorSizeBytes = 100 * 1024 * 1024;
         uint32_t maxConvexHulls = 64;
         uint32_t convexHullGenerationResolution = 400000;
         uint32_t convexHullGenerationRecursionDepth = 64;
         uint32_t convexHullGenerationMaxVerticesPerHull = 256;
         float floorFriction = 0.5;
+        float minRequiredObjectVolume = 0.000000001;
     };
 
     inline AdditiveNoiseFilterSettings readAdditiveNoiseFilterSettings(const nlohmann::json &config, const nlohmann::json &filterSettings) {
@@ -35,6 +36,7 @@ namespace ShapeBench {
         settings.convexHullGenerationRecursionDepth = filterSettings.at("convexHullGenerationRecursionDepth");
         settings.convexHullGenerationMaxVerticesPerHull = filterSettings.at("convexHullGenerationMaxVerticesPerHull");
         settings.floorFriction = filterSettings.at("floorFriction");
+        settings.minRequiredObjectVolume = filterSettings.at("minRequiredObjectVolume");
         return settings;
     }
 }

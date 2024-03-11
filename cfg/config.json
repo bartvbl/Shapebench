@@ -56,7 +56,8 @@
             "convexHullGenerationResolution": 400000,
             "convexHullGenerationRecursionDepth": 64,
             "convexHullGenerationMaxVerticesPerHull": 256,
-            "floorFriction": 0.5
+            "floorFriction": 0.5,
+            "minRequiredObjectVolume": 0.00000000001
         },
         "subtractiveNoise": {
             "visibilityImageResolution": [25000, 25000],

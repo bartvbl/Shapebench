@@ -218,7 +218,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
 // Enable for debugging
-if(sampleVertexIndex < 46300) {continue;}
+// if(sampleVertexIndex < 46310) {continue;}
 
             std::cout << "Vertex " + std::to_string(sampleVertexIndex) + "\n";
 
