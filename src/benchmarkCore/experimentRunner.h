@@ -11,12 +11,14 @@
 #include "utils/prettyprint.h"
 #include "filters/subtractiveNoise/OcclusionFilter.h"
 #include "filters/triangleShift/remeshingFilter.h"
-#include "filters/captureNoise/normalNoiseFilter.h"
 #include "filters/additiveNoise/AdditiveNoiseCache.h"
 #include "results/ExperimentResult.h"
 #include "benchmarkCore/common-procedures/areaEstimator.h"
 #include "benchmarkCore/common-procedures/referenceIndexer.h"
 #include "results/ResultDumper.h"
+#include "filters/normalVectorDeviation/normalNoiseFilter.h"
+#include "filters/supportRadiusDeviation/supportRadiusNoise.h"
+#include "filters/meshResolutionDeviation/simplificationFilter.h"
 
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -259,9 +261,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         ShapeBench::SubtractiveNoiseOutput output = ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                         filterMetadata = output.metadata;
                     } else if (filterType == "repeated-capture") {
-                        ShapeBench::remesh(filteredMesh);
+                        ShapeBench::RemeshingFilterOutput output = ShapeBench::remesh(filteredMesh);
+                        filterMetadata = output.metadata;
                     } else if (filterType == "normal-noise") {
                         ShapeBench::NormalNoiseFilterOutput output = ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);
+                        filterMetadata = output.metadata;
+                    } else if (filterType == "support-radius-deviation") {
+                        ShapeBench::SupportRadiusDeviationOutput output = ShapeBench::applySupportRadiusNoise(filteredMesh, configuration, filterRandomSeed);
+                        filterMetadata = output.metadata;
+                    } else if (filterType == "mesh-resolution-deviation") {
+                        ShapeBench::MeshSimplificationFilterOutput output = ShapeBench::simplifyMesh(filteredMesh, configuration, filterRandomSeed);
                         filterMetadata = output.metadata;
                     }
                 }
