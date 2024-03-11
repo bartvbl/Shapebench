@@ -62,5 +62,12 @@ ShapeBench::NormalNoiseFilterOutput ShapeBench::applyNormalNoiseFilter(const nlo
         normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
     }
 
+    for(uint32_t i = 0; i < filteredMesh.filteredAdditiveNoise.vertexCount; i++) {
+        ShapeDescriptor::cpu::float3& normal = filteredMesh.filteredAdditiveNoise.normals[i];
+        float deviationAngleDegrees = deviationAngleDistribution(engine);
+        float rotationAngleDegrees = rotationAngleDistribution(engine);
+        normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
+    }
+
     return meta;
 }
