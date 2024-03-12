@@ -41,10 +41,14 @@ set(OVERRIDE_CXX_FLAGS OFF)
 add_definitions(-DJPH_ENABLE_ASSERTS)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
+add_subdirectory(lib/isotropicremesher)
+
+
+
+# sudo apt install libflann-dev libvtk9-dev libboost1.74-all-dev qtbase5-dev
+#add_subdirectory(lib/pcl)
 
 add_subdirectory(lib/pmp-library)
-
-
 #
 # Set include paths
 #
@@ -57,6 +61,7 @@ include_directories (
     lib/JoltPhysics
     lib/v-hacd/include
     lib/glad/include
+    lib/isotropicremesher/src
     lib/pmp-library/src
     lib/pmp-library/external/eigen-3.4.0
     lib/cmake-git
@@ -80,7 +85,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo) # lsan
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo isotropicremesher) # lsan
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand
