@@ -66,7 +66,7 @@ IsotropicHalfedgeMesh::IsotropicHalfedgeMesh(const std::vector<Vector3> &vertice
     for (size_t faceIndex = 0; faceIndex < faces.size(); ++faceIndex) {
         const auto &indices = faces[faceIndex];
         if (3 != indices.size()) {
-            std::cerr << "Found non-triangle, face count:" << indices.size() << std::endl;
+            //std::cerr << "Found non-triangle, face count:" << indices.size() << std::endl;
             continue;
         }
         std::vector<Halfedge *> halfedges(indices.size());
@@ -93,7 +93,7 @@ IsotropicHalfedgeMesh::IsotropicHalfedgeMesh(const std::vector<Vector3> &vertice
             
             auto insertResult = halfedgeMap.insert({makeHalfedgeKey(first, second), halfedge});
             if (!insertResult.second) {
-                std::cerr << "Found repeated halfedge:" << first << "," << second << std::endl;
+                //std::cerr << "Found repeated halfedge:" << first << "," << second << std::endl;
             }
         }
         linkFaceHalfedges(halfedges);
