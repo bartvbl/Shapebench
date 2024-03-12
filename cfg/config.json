@@ -22,7 +22,7 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "additive-noise"}
             ]
@@ -39,6 +39,27 @@
             "enabled": false,
             "filters": [
                 {"type": "normal-noise"}
+            ]
+        },
+        {
+            "name": "repeated-capture-only",
+            "enabled": true,
+            "filters": [
+                {"type": "repeated-capture"}
+            ]
+        },
+        {
+            "name": "support-radius-deviation-only",
+            "enabled": true,
+            "filters": [
+                {"type": "support-radius-deviation"}
+            ]
+        },
+        {
+            "name": "mesh-resolution-deviation-only",
+            "enabled": true,
+            "filters": [
+                {"type": "mesh-resolution-deviation"}
             ]
         }
     ],
@@ -67,9 +88,7 @@
             "objectDistanceFromCamera": 2.0
         },
         "alternateTriangulation": {
-            "vertexDisplacementMax": 0.005,
-            "vertexDisplacementMin": 0.001,
-            "vertexDisplacementStep": 0.0001
+            "remeshIterationCount": 3
         },
         "normalVectorNoise": {
             "maxAngleDeviationDegrees": 30
@@ -78,7 +97,7 @@
             "maxRadiusDeviation": 0.25
         },
         "meshResolutionDeviation": {
-            "minVertexCountFactor": 0.75
+            "minVertexCountFactor": 0.50
         }
     },
 
