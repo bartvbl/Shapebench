@@ -1,6 +1,6 @@
 #include <shapeDescriptor/shapeDescriptor.h>
+#include <malloc.h>
 #include "remeshingFilter.h"
-#include "isotropicremesher.h"
 
 ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config) {
     ShapeDescriptor::cpu::Mesh remeshedMesh = internal::remeshMesh(scene.filteredSampleMesh, config);
@@ -39,22 +39,27 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
         output.metadata.push_back(entry);
     }
 
+    malloc_trim(0);
+
     return output;
 }
 
 ShapeDescriptor::cpu::Mesh ShapeBench::internal::remeshMesh(const ShapeDescriptor::cpu::Mesh& mesh, const nlohmann::json &config) {
-    std::vector<Vector3> convertedVertices_sampleMesh;
+
+
+
+    /*std::vector<Vector3> convertedVertices_sampleMesh;
     std::vector<std::vector<size_t>> convertedIndices_sampleMesh;
     internal::createRemeshingMesh(mesh, convertedVertices_sampleMesh, convertedIndices_sampleMesh);
     IsotropicRemesher isotropicRemesher(&convertedVertices_sampleMesh, &convertedIndices_sampleMesh);
 
     isotropicRemesher.setTargetTriangleCount(mesh.vertexCount);
     uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
-    isotropicRemesher.remesh(iterationCount);
-    ShapeDescriptor::cpu::Mesh remeshedMesh = internal::convertRemeshingToSDMesh(isotropicRemesher.remeshedHalfedgeMesh());
+    isotropicRemesher.remesh(iterationCount);*/
+    ShapeDescriptor::cpu::Mesh remeshedMesh;// = internal::convertRemeshingToSDMesh(isotropicRemesher.remeshedHalfedgeMesh());
     return remeshedMesh;
 }
-
+/*
 ShapeDescriptor::cpu::Mesh ShapeBench::internal::convertRemeshingToSDMesh(IsotropicHalfedgeMesh *halfedgeMesh) {
     std::vector<ShapeDescriptor::cpu::float3> vertices;
     std::vector<uint32_t> indices;
@@ -112,3 +117,4 @@ void ShapeBench::internal::createRemeshingMesh(const ShapeDescriptor::cpu::Mesh 
 
     //std::cout << mesh.vertexCount << " -> " << output_indices.size() << ", " << output_vertices.size() << std::endl;
 }
+*/

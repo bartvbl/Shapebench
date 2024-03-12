@@ -218,9 +218,17 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
         std::vector<uint32_t> threadActivity;
 
-        #pragma omp parallel for schedule(dynamic)
+        uint32_t threadsToLaunch = omp_get_max_threads();
+        if(experimentConfig.contains("threadLimit")) {
+            threadsToLaunch = experimentConfig.at("threadLimit");
+        }
+
+        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch)
         for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject) {
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
+
+            ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
+            const ShapeBench::DatasetEntry &entry = dataset.at(firstSampleVertex.meshID);
 
             {
                 std::unique_lock<std::mutex> writeLock{resultWriteLock};
@@ -229,7 +237,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     threadActivity.resize(omp_get_num_threads());
                 }
                 threadActivity.at(omp_get_thread_num()) = sampleVertexIndex;
-                std::cout << "Processing " << sampleVertexIndex << "/" << sampleSetSize << " - Threads: (";
+                std::cout << "Processing " << sampleVertexIndex << "/" << sampleSetSize << " - " << entry.vertexCount << " - Threads: (";
                 for(uint32_t i = 0; i < threadActivity.size(); i++) {
                     std::cout << threadActivity.at(i) << (i + 1 < threadActivity.size() ? ", " : "");
                 }
@@ -239,8 +247,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 // Enable for debugging
 //if(sampleVertexIndex < 36200) {continue;}
 
-            ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
-            const ShapeBench::DatasetEntry &entry = dataset.at(firstSampleVertex.meshID);
+
 
             ShapeDescriptor::cpu::Mesh originalSampleMesh = ShapeBench::readDatasetMesh(configuration, entry);
 
