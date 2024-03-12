@@ -4,6 +4,7 @@
 #include <random>
 #include <iostream>
 #include <mutex>
+#include <omp.h>
 #include "json.hpp"
 #include "Dataset.h"
 #include "ComputedConfig.h"
@@ -215,17 +216,32 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             ShapeBench::occlusionSceneGeneratorInstance.init(visibilityImageWidth, visibilityImageHeight);
         }
 
+        std::vector<uint32_t> threadActivity;
+
         #pragma omp parallel for schedule(dynamic)
         for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject) {
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
-// Enable for debugging
-// if(sampleVertexIndex < 46310) {continue;}
+            {
+                std::unique_lock<std::mutex> writeLock{resultWriteLock};
 
-            std::cout << "Vertex " + std::to_string(sampleVertexIndex) + "\n";
+                if (threadActivity.empty()) {
+                    threadActivity.resize(omp_get_num_threads());
+                }
+                threadActivity.at(omp_get_thread_num()) = sampleVertexIndex;
+                std::cout << "Processing " << sampleVertexIndex << "/" << sampleSetSize << " - Threads: (";
+                for(uint32_t i = 0; i < threadActivity.size(); i++) {
+                    std::cout << threadActivity.at(i) << (i + 1 < threadActivity.size() ? ", " : "");
+                }
+                std::cout << ")" << std::endl;
+            }
+
+// Enable for debugging
+//if(sampleVertexIndex < 36200) {continue;}
 
             ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
             const ShapeBench::DatasetEntry &entry = dataset.at(firstSampleVertex.meshID);
+
             ShapeDescriptor::cpu::Mesh originalSampleMesh = ShapeBench::readDatasetMesh(configuration, entry);
 
             ShapeBench::FilteredMeshPair filteredMesh;
@@ -342,7 +358,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 if (sampleVertexIndex % 100 == 0 || isLastVertexIndex) {
                     std::cout << "\r    ";
                     ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
-                    std::cout << " " << (sampleVertexIndex + 1) << "/" << sampleSetSize << std::flush;
+                    std::cout << " " << (sampleVertexIndex + 1) << "/" << sampleSetSize << std::endl;
                     malloc_trim(0);
                 }
 
