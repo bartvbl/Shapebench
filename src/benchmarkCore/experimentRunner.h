@@ -277,7 +277,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         ShapeBench::SubtractiveNoiseOutput output = ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                         filterMetadata = output.metadata;
                     } else if (filterType == "repeated-capture") {
-                        ShapeBench::RemeshingFilterOutput output = ShapeBench::remesh(filteredMesh);
+                        ShapeBench::RemeshingFilterOutput output = ShapeBench::remesh(filteredMesh, configuration);
                         filterMetadata = output.metadata;
                     } else if (filterType == "normal-noise") {
                         ShapeBench::NormalNoiseFilterOutput output = ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);

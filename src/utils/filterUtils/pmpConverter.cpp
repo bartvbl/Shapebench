@@ -34,5 +34,16 @@ ShapeDescriptor::cpu::Mesh ShapeBench::convertPMPMeshToSD(const pmp::SurfaceMesh
             nextVertexIndex++;
         }
     }
+
+    for(uint32_t i = 0; i < outMesh.vertexCount; i += 3) {
+        ShapeDescriptor::cpu::float3 vertex0 = outMesh.vertices[i];
+        ShapeDescriptor::cpu::float3 vertex1 = outMesh.vertices[i + 1];
+        ShapeDescriptor::cpu::float3 vertex2 = outMesh.vertices[i + 2];
+        ShapeDescriptor::cpu::float3 normal = ShapeDescriptor::computeTriangleNormal(vertex0, vertex1, vertex2);
+        outMesh.normals[i] = normal;
+        outMesh.normals[i + 1] = normal;
+        outMesh.normals[i + 2] = normal;
+    }
+
     return outMesh;
 }
