@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <vector>
+#include <fstream>
 #include "utils/Orientation.h"
 #include "json.hpp"
 #include "AdditiveNoiseFilterSettings.h"

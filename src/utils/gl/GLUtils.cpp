@@ -35,7 +35,7 @@ GLFWwindow* ShapeBench::GLinitialise(uint32_t windowWidth, uint32_t windowHeight
     const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
     // Create window using GLFW
-    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "Symmetry", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "ShapeBench", nullptr, nullptr);
 
     // Ensure the window is set up correctly
     if (!window)

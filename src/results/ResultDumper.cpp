@@ -1,6 +1,6 @@
 #include "ResultDumper.h"
-#include <cuda_runtime.h>
 #include <git.h>
+#include <cuda_runtime_api.h>
 
 nlohmann::json getGPUInfo() {
     cudaDeviceProp device_information;
