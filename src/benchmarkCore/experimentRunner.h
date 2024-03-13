@@ -291,7 +291,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         ShapeBench::NormalNoiseFilterOutput output = ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);
                         filterMetadata = output.metadata;
                     } else if (filterType == "support-radius-deviation") {
-                        ShapeBench::SupportRadiusDeviationOutput output = ShapeBench::applySupportRadiusNoise(filteredMesh, configuration, filterRandomSeed);
+                        ShapeBench::SupportRadiusDeviationOutput output = ShapeBench::applySupportRadiusNoise(filteredMesh, filterRandomSeed, configuration);
                         filterMetadata = output.metadata;
                     } else if (filterType == "mesh-resolution-deviation") {
                         ShapeBench::MeshSimplificationFilterOutput output = ShapeBench::simplifyMesh(filteredMesh, configuration, filterRandomSeed);
