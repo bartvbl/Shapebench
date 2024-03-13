@@ -43,7 +43,8 @@
         },
         {
             "name": "repeated-capture-only",
-            "enabled": true,
+            "enabled": false,
+            "threadLimit": 10,
             "filters": [
                 {"type": "repeated-capture"}
             ]
@@ -57,7 +58,7 @@
         },
         {
             "name": "mesh-resolution-deviation-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "mesh-resolution-deviation"}
             ]
@@ -88,7 +89,7 @@
             "objectDistanceFromCamera": 2.0
         },
         "alternateTriangulation": {
-            "remeshIterationCount": 3
+            "remeshIterationCount": 1
         },
         "normalVectorNoise": {
             "maxAngleDeviationDegrees": 30
