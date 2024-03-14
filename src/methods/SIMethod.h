@@ -136,7 +136,8 @@ namespace ShapeBench {
                 ShapeDescriptor::gpu::Mesh mesh,
                 ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
@@ -144,7 +145,8 @@ namespace ShapeBench {
                 const ShapeDescriptor::gpu::PointCloud cloud,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             float supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
             return ShapeDescriptor::generateSpinImages(cloud, descriptorOrigins, supportRadius, supportAngleDegrees);
         }
@@ -152,7 +154,8 @@ namespace ShapeBench {
                 ShapeDescriptor::cpu::Mesh mesh,
                 ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
@@ -160,7 +163,8 @@ namespace ShapeBench {
                 const ShapeDescriptor::cpu::PointCloud cloud,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             float supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
             return ShapeDescriptor::generateSpinImages(cloud, descriptorOrigins, supportRadius, supportAngleDegrees);
         }

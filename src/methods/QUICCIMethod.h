@@ -94,14 +94,16 @@ namespace ShapeBench {
                 ShapeDescriptor::gpu::Mesh mesh,
                 ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             return ShapeDescriptor::generatePartialityResistantQUICCImages(mesh, descriptorOrigins, supportRadius);
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::PointCloud cloud,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
@@ -109,14 +111,16 @@ namespace ShapeBench {
                 ShapeDescriptor::cpu::Mesh mesh,
                 ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             return ShapeDescriptor::generatePartialityResistantQUICCImages(mesh, descriptorOrigins, supportRadius);
         }
         static ShapeDescriptor::cpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::PointCloud cloud,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius) {
+                float supportRadius,
+                uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }

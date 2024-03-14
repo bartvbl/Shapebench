@@ -40,7 +40,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
         ShapeDescriptor::cpu::Mesh mesh = ShapeBench::readDatasetMesh(config, entry);
         descriptorOrigin.vertex = mesh.vertices[vertex.vertexIndex];
         descriptorOrigin.normal = mesh.normals[vertex.vertexIndex];
-        representativeDescriptors[i] = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, descriptorOrigin, config, supportRadius, randomSeeds.at(i));
+        representativeDescriptors[i] = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, descriptorOrigin, config, supportRadius, randomSeeds.at(i), randomSeeds.at(i));
         ShapeDescriptor::free(mesh);
 
         #pragma omp atomic
@@ -308,6 +308,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
                 const uint64_t pointCloudSamplingSeed = experimentInstanceRandomEngine();
+                const uint64_t sampleDescriptorGenerationSeed = experimentInstanceRandomEngine();
 
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
@@ -326,7 +327,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                     ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
 
-                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, resultsEntries.at(i).filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed);
+                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, resultsEntries.at(i).filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
 
                     uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredPointDescriptor, referenceDescriptors);
 

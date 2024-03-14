@@ -13,12 +13,13 @@ namespace ShapeBench {
                                  const ShapeDescriptor::cpu::PointCloud& pointCloud,
                                  ShapeDescriptor::OrientedPoint descriptorOrigin,
                                  const nlohmann::json &config,
-                                 float supportRadius) {
+                                 float supportRadius,
+                                 uint64_t randomSeed) {
         ShapeDescriptor::cpu::array<DescriptorType> descriptors;
         if (DescriptorMethod::usesPointCloudInput()) {
-            descriptors = DescriptorMethod::computeDescriptors(pointCloud, {1, &descriptorOrigin}, config, supportRadius);
+            descriptors = DescriptorMethod::computeDescriptors(pointCloud, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
         } else {
-            descriptors = DescriptorMethod::computeDescriptors(mesh, {1, &descriptorOrigin}, config, supportRadius);
+            descriptors = DescriptorMethod::computeDescriptors(mesh, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
         }
 
         DescriptorType descriptor = descriptors.content[0];
@@ -33,13 +34,14 @@ namespace ShapeBench {
                                            ShapeDescriptor::OrientedPoint descriptorOrigin,
                                            const nlohmann::json &config,
                                            float supportRadius,
-                                           uint64_t pointCloudSamplingSeed) {
+                                           uint64_t pointCloudSamplingSeed,
+                                           uint64_t descriptorRandomSeed) {
         ShapeDescriptor::cpu::PointCloud pointCloud;
         if (DescriptorMethod::usesPointCloudInput()) {
             pointCloud = computePointCloud(mesh, config, pointCloudSamplingSeed);
         }
 
-        DescriptorType descriptor = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, descriptorOrigin, config, supportRadius);
+        DescriptorType descriptor = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, descriptorOrigin, config, supportRadius, descriptorRandomSeed);
 
         if(DescriptorMethod::usesPointCloudInput()) {
             ShapeDescriptor::free(pointCloud);
@@ -54,6 +56,7 @@ namespace ShapeBench {
             const ShapeDescriptor::cpu::Mesh& mesh,
             const ShapeDescriptor::cpu::PointCloud& pointCloud,
             const nlohmann::json &config,
+            uint64_t randomSeed,
             const std::vector<float>& supportRadii,
             std::vector<DescriptorType>& outputDescriptors) {
         assert(supportRadii.size() == outputDescriptors.size());
@@ -61,7 +64,7 @@ namespace ShapeBench {
         for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
             uint32_t vertexIndex = vertexToRender.vertexIndex;
             ShapeDescriptor::OrientedPoint originPoint = {mesh.vertices[vertexIndex], mesh.normals[vertexIndex]};
-            outputDescriptors.at(radiusIndex) = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, originPoint, config, supportRadii.at(radiusIndex));
+            outputDescriptors.at(radiusIndex) = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, originPoint, config, supportRadii.at(radiusIndex), randomSeed);
         }
     }
 }

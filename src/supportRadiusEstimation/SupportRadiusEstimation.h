@@ -173,7 +173,7 @@ namespace ShapeBench {
             }
 
             ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
-                    referenceVertex, representativeSetMesh, representativeSetPointCloud, config,
+                    referenceVertex, representativeSetMesh, representativeSetPointCloud, config, referenceDescriptorGenerationSeed,
                     supportRadiiToTry, generatedDescriptors);
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
                 referenceDescriptors.at(representativeSetSize * i + referenceIndex) = generatedDescriptors.at(i);
@@ -206,7 +206,7 @@ namespace ShapeBench {
             }
 
             ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
-                    sampleVertex, sampleSetMesh, sampleSetPointCloud, config,
+                    sampleVertex, sampleSetMesh, sampleSetPointCloud, config, sampleDescriptorGenerationSeed,
                     supportRadiiToTry, generatedDescriptors);
 
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
