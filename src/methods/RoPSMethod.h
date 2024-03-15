@@ -8,14 +8,17 @@
 #include <cfloat>
 
 namespace ShapeBench {
-    static float pointCloudSamplingDensity;
+    static float RoPSPointCloudSamplingDensity;
+    static uint32_t RoPSPointCloudSampleLimit;
 
     struct RoPSMethod : public ShapeBench::Method<ShapeDescriptor::RoPSDescriptor> {
 
         static constexpr int elementsPerRoPSDescriptor = ROPS_NUM_ROTATIONS * 3 * 3 * 5;
 
         static void init(const nlohmann::json& config) {
-            pointCloudSamplingDensity = readDescriptorConfigValue<float>(config, "RoPS", "pointSamplingDensity");
+            RoPSPointCloudSamplingDensity = readDescriptorConfigValue<float>(config, "RoPS", "pointSamplingDensity");
+            RoPSPointCloudSampleLimit = readDescriptorConfigValue<uint32_t>(config, "RoPS", "pointSampleLimit");
+
         }
 
         __host__ __device__ static __inline__ float computeEuclideanDistance(
@@ -90,9 +93,8 @@ namespace ShapeBench {
             return ShapeDescriptor::generateRoPSDescriptors(mesh,
                     descriptorOrigins,
                     supportRadius,
-                    pointCloudSamplingDensity,
-                    randomSeed);
-            return {};
+                    RoPSPointCloudSamplingDensity,
+                    randomSeed, RoPSPointCloudSampleLimit);
         }
 
         static ShapeDescriptor::cpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
@@ -116,7 +118,8 @@ namespace ShapeBench {
             nlohmann::json metadata;
             metadata["rotationCount"] = ROPS_NUM_ROTATIONS;
             metadata["binCount"] = ROPS_HISTOGRAM_BINS;
-            metadata["pointCloudSamplingDensity"] = pointCloudSamplingDensity;
+            metadata["pointCloudSamplingDensity"] = RoPSPointCloudSamplingDensity;
+            metadata["pointCloudSampleLimit"] = RoPSPointCloudSampleLimit;
             metadata["distanceFunction"] = "Euclidean distance";
             return metadata;
         }

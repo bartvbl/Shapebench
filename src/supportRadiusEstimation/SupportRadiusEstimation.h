@@ -131,16 +131,6 @@ namespace ShapeBench {
         float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");
         uint32_t numberOfSupportRadiiToTry = supportRadiusConfig.at("numberOfSupportRadiiToTry");
 
-        uint32_t referenceBatchSizeLimit =
-                config.contains("limits") && config.at("limits").contains("representativeSetBatchSizeLimit")
-                ? uint32_t(config.at("limits").at("representativeSetBatchSizeLimit"))
-                : representativeSetSize;
-        uint32_t sampleBatchSizeLimit =
-                config.contains("limits") && config.at("limits").contains("sampleSetBatchSizeLimit")
-                ? uint32_t(config.at("limits").at("sampleSetBatchSizeLimit"))
-                : sampleDescriptorSetSize;
-        std::cout << "    Batch sizes: representative -> " << referenceBatchSizeLimit << ", sample -> " << sampleBatchSizeLimit << std::endl;
-
         std::vector<DescriptorType> sampleDescriptors(representativeSetSize * numberOfSupportRadiiToTry);
         std::vector<DescriptorType> referenceDescriptors(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
 

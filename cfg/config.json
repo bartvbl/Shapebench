@@ -123,7 +123,8 @@
         },
         {
             "name": "RoPS",
-            "pointSamplingDensity": 100000
+            "pointSamplingDensity": 100000,
+            "pointSampleLimit": 100000
         }
     ],
 
