@@ -172,9 +172,14 @@ namespace ShapeBench {
                 representativeSetPointCloud = computePointCloud(representativeSetMesh, config, referencePointCloudSamplingSeed);
             }
 
-            ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
-                    referenceVertex, representativeSetMesh, representativeSetPointCloud, config, referenceDescriptorGenerationSeed,
-                    supportRadiiToTry, generatedDescriptors);
+            try {
+                ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
+                        referenceVertex, representativeSetMesh, representativeSetPointCloud, config,
+                        referenceDescriptorGenerationSeed,
+                        supportRadiiToTry, generatedDescriptors);
+            } catch(const std::exception& e) {
+                throw std::runtime_error("Failed to generate descriptor with index " + std::to_string(referenceIndex) + ": " + e.what());
+            }
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
                 referenceDescriptors.at(representativeSetSize * i + referenceIndex) = generatedDescriptors.at(i);
             }
