@@ -220,8 +220,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             continue;
         }
 
+        std::string experimentName = experimentConfig.at("name");
         std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": "
-                  << experimentConfig.at("name") << std::endl;
+                  << experimentName << std::endl;
 
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
         uint32_t testedObjectCount = sampleSetSize / verticesPerSampleObject;
@@ -339,7 +340,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
                 if(enableIllustrationGenerationMode) {
-                    std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + ".obj";
+                    std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + "_" + experimentName + ".obj";
                     std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
                     ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile, filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
                 }
