@@ -341,7 +341,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 if(enableIllustrationGenerationMode) {
                     std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + ".obj";
                     std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
-                    writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile, filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
+                    ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile, filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
                 }
 
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
@@ -353,7 +353,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, resultsEntries.at(i).filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
 
                     if(enableIllustrationGenerationMode) {
-                        illustrationImages.content[sampleVertexIndex + i] = filteredPointDescriptor;
+                        if(DescriptorMethod::getName() == "QUICCI") {
+                            illustrationImages.content[sampleVertexIndex + i] = filteredPointDescriptor;
+                        }
                         continue;
                     }
 
@@ -441,7 +443,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     ShapeBench::destroyPhysics();
     ShapeDescriptor::free(referenceDescriptors);
     ShapeDescriptor::free(cleanSampleDescriptors);
-    if(enableIllustrationGenerationMode) {
+    if(enableIllustrationGenerationMode && DescriptorMethod::getName() == "QUICCI") {
         ShapeDescriptor::free(illustrationImages);
     }
 
