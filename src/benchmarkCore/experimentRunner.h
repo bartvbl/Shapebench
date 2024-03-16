@@ -13,6 +13,7 @@
 #include "filters/subtractiveNoise/OcclusionFilter.h"
 #include "filters/triangleShift/remeshingFilter.h"
 #include "filters/additiveNoise/AdditiveNoiseCache.h"
+#include "filters/FilteredMeshPair.h"
 #include "results/ExperimentResult.h"
 #include "benchmarkCore/common-procedures/areaEstimator.h"
 #include "benchmarkCore/common-procedures/referenceIndexer.h"
