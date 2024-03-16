@@ -21,11 +21,7 @@ namespace ShapeBench {
     template<typename DescriptorMethod>
     void writeFilteredMesh(FilteredMeshPair& filteredMesh, std::filesystem::path outputFile, ShapeDescriptor::OrientedPoint referencePoint = {{0, 0, 0}, {0, 0, 0}}, float supportRadius = 0, bool onlyIncludeSupportVolume = false) {
         uint32_t numberOfIndicators = 0; //filteredMesh.mappedReferenceVertices.size()
-        ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.filteredSampleMesh.clone();
-        ShapeDescriptor::cpu::Mesh extendedMesh(combinedMesh.vertexCount + 3 * numberOfIndicators);
-        std::copy(combinedMesh.vertices, combinedMesh.vertices + combinedMesh.vertexCount, extendedMesh.vertices);
-        std::copy(combinedMesh.normals, combinedMesh.normals + combinedMesh.vertexCount, extendedMesh.normals);
-        ShapeDescriptor::free(combinedMesh);
+        ShapeDescriptor::cpu::Mesh extendedMesh = filteredMesh.combinedFilteredMesh();
 
         const float arrowSize = 0.1;
         for(uint32_t i = 0; i < numberOfIndicators; i++) {
@@ -35,12 +31,12 @@ namespace ShapeBench {
             ShapeDescriptor::cpu::float3 vertex2 = baseVertex.vertex + baseVertex.normal + ShapeDescriptor::cpu::float3(-arrowSize / 2.0f, 0, 0);
             ShapeDescriptor::cpu::float3 normal = ShapeDescriptor::cpu::float3(0, 0, -1);
 
-            extendedMesh.vertices[combinedMesh.vertexCount + 3 * i + 0] = vertex0;
-            extendedMesh.vertices[combinedMesh.vertexCount + 3 * i + 1] = vertex1;
-            extendedMesh.vertices[combinedMesh.vertexCount + 3 * i + 2] = vertex2;
-            extendedMesh.normals[combinedMesh.vertexCount + 3 * i + 0] = normal;
-            extendedMesh.normals[combinedMesh.vertexCount + 3 * i + 1] = normal;
-            extendedMesh.normals[combinedMesh.vertexCount + 3 * i + 2] = normal;
+            extendedMesh.vertices[filteredMesh.filteredSampleMesh.vertexCount + 3 * i + 0] = vertex0;
+            extendedMesh.vertices[filteredMesh.filteredSampleMesh.vertexCount + 3 * i + 1] = vertex1;
+            extendedMesh.vertices[filteredMesh.filteredSampleMesh.vertexCount + 3 * i + 2] = vertex2;
+            extendedMesh.normals[filteredMesh.filteredSampleMesh.vertexCount + 3 * i + 0] = normal;
+            extendedMesh.normals[filteredMesh.filteredSampleMesh.vertexCount + 3 * i + 1] = normal;
+            extendedMesh.normals[filteredMesh.filteredSampleMesh.vertexCount + 3 * i + 2] = normal;
         }
 
         uint32_t removedTriangleCount = 0;
