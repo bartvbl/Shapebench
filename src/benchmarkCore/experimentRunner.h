@@ -50,6 +50,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
             std::cout << "\r    ";
             ShapeBench::drawProgressBar(completedCount, representativeSet.size());
             std::cout << " " << completedCount << "/" << representativeSet.size() << std::flush;
+            malloc_trim(0);
         }
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
