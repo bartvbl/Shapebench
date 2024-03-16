@@ -124,7 +124,7 @@
         {
             "name": "RoPS",
             "pointSamplingDensity": 100000,
-            "pointSampleLimit": 10000000
+            "pointSampleLimit": 5000000
         }
     ],
 
@@ -139,10 +139,16 @@
     },
 
     "limits": {
-        "computeDescriptorsOnGPUThreshold": 50,
-        "representativeSetBatchSizeLimit": 100,
-        "sampleSetBatchSizeLimit": 100,
         "minPointSampleCount": 1000000,
         "maxPointSampleCount": 5000000
+    },
+
+    "illustrationDataGenerationOverride": {
+        "enableIllustrationDataGeneration": true,
+        "illustrationObjectIndex": 0,
+        "objectLimit": 10,
+        "outputDirectory": "illustrations_data",
+        "referenceDescriptorStartIndex": 0,
+        "referenceDescriptorCount": 500
     }
 }

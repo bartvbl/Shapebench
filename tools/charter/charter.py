@@ -65,7 +65,7 @@ def computeStackedHistogram(rawResults, config, mode):
     if mode == "normal":
         histogramMax = config['filterSettings']['normalVectorNoise']['maxAngleDeviationDegrees']
     if mode == "additive":
-        histogramMax = 200
+        histogramMax = 10
 
     binCount = 100
     delta = (histogramMax - histogramMin) / binCount
@@ -90,6 +90,8 @@ def computeStackedHistogram(rawResults, config, mode):
 
     removedCount = 0
     for rawResult in rawResults:
+        if rawResult[0] is None:
+            rawResult[0] = 0
         if rawResult[0] < histogramMin or rawResult[0] > histogramMax:
             removedCount += 1
             continue
@@ -98,7 +100,7 @@ def computeStackedHistogram(rawResults, config, mode):
         histogram[binIndexY][binIndexX] += 1
 
     # Time to normalise
-    MIN_COUNT_PER_BIN = 0
+    MIN_COUNT_PER_BIN = 25
     for i in range(binCount + 1):
         stepSum = 0
         for j in range(stepsPerBin):

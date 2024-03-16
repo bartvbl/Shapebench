@@ -20,7 +20,7 @@ namespace ShapeBench {
 
     template<typename DescriptorMethod>
     void writeFilteredMesh(FilteredMeshPair& filteredMesh, std::filesystem::path outputFile, ShapeDescriptor::OrientedPoint referencePoint = {{0, 0, 0}, {0, 0, 0}}, float supportRadius = 0, bool onlyIncludeSupportVolume = false) {
-        uint32_t numberOfIndicators = 1; //filteredMesh.mappedReferenceVertices.size()
+        uint32_t numberOfIndicators = 0; //filteredMesh.mappedReferenceVertices.size()
         ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.filteredSampleMesh.clone();
         ShapeDescriptor::cpu::Mesh extendedMesh(combinedMesh.vertexCount + 3 * numberOfIndicators);
         std::copy(combinedMesh.vertices, combinedMesh.vertices + combinedMesh.vertexCount, extendedMesh.vertices);

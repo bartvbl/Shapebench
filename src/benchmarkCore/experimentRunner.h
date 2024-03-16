@@ -182,6 +182,26 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             "intermediateSaveFrequency");
     std::mutex resultWriteLock;
 
+    bool enableIllustrationGenerationMode = configuration.at("illustrationDataGenerationOverride").at("enableIllustrationDataGeneration");
+    uint32_t illustrativeObjectLimit = 0;
+    std::filesystem::path illustrativeObjectOutputDirectory;
+    ShapeDescriptor::cpu::array<DescriptorType> illustrationImages;
+    if(enableIllustrationGenerationMode) {
+        std::cout << "    Illustration object generation mode is active, result generation is disabled." << std::endl;
+        illustrativeObjectLimit = configuration.at("illustrationDataGenerationOverride").at("objectLimit");
+        illustrativeObjectOutputDirectory = std::string(configuration.at("illustrationDataGenerationOverride").at("outputDirectory"));
+        if(!std::filesystem::exists(illustrativeObjectOutputDirectory)) {
+            std::filesystem::create_directories(illustrativeObjectOutputDirectory);
+        }
+        if(DescriptorMethod::getName() == "QUICCI") {
+            std::filesystem::path imageFile = illustrativeObjectOutputDirectory / "descriptors.png";
+            uint32_t startIndex = configuration.at("illustrationDataGenerationOverride").at("referenceDescriptorStartIndex");
+            uint32_t count = configuration.at("illustrationDataGenerationOverride").at("referenceDescriptorCount");
+            ShapeDescriptor::writeDescriptorImages({count, reinterpret_cast<ShapeDescriptor::QUICCIDescriptor*>(referenceDescriptors.content) + startIndex}, imageFile, false);
+            illustrationImages = ShapeDescriptor::cpu::array<DescriptorType>(count);
+        }
+    }
+
     for (uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
         ShapeBench::ExperimentResult experimentResult;
         experimentResult.methodName = DescriptorMethod::getName();
@@ -243,6 +263,10 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     std::cout << threadActivity.at(i) << (i + 1 < threadActivity.size() ? ", " : "");
                 }
                 std::cout << ")" << std::endl;
+            }
+
+            if(enableIllustrationGenerationMode && sampleVertexIndex >= illustrativeObjectLimit) {
+                continue;
             }
 
 // Enable for debugging
@@ -313,7 +337,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
-                //writeFilteredMesh<DescriptorMethod>(filteredMesh, DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + ".obj", filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
+                if(enableIllustrationGenerationMode) {
+                    std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + ".obj";
+                    std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
+                    writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile, filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
+                }
 
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
@@ -321,26 +349,30 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         continue;
                     }
 
+                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, resultsEntries.at(i).filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
+
+                    if(enableIllustrationGenerationMode) {
+                        illustrationImages.content[sampleVertexIndex + i] = filteredPointDescriptor;
+                        continue;
+                    }
+
+                    uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredPointDescriptor, referenceDescriptors);
+
+                    ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
+
                     resultsEntries.at(i).sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                     resultsEntries.at(i).filteredDescriptorRank = 0;
                     resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
                     resultsEntries.at(i).filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
-
-                    ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
-
-                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, resultsEntries.at(i).filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
-
-                    uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredPointDescriptor, referenceDescriptors);
-
                     resultsEntries.at(i).filteredDescriptorRank = imageIndex;
                     resultsEntries.at(i).fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntries.at(i).fractionSurfacePartiality = areaEstimate.subtractiveArea;
-
                 }
+
 
                 ShapeDescriptor::free(combinedMesh);
 
-                {
+                if(!enableIllustrationGenerationMode) {
                     std::unique_lock<std::mutex> writeLock{resultWriteLock};
                     for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                         experimentResult.vertexResults.at(sampleVertexIndex + i) = resultsEntries.at(i);
@@ -372,7 +404,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     malloc_trim(0);
                 }
 
-                if (sampleVertexIndex % intermediateSaveFrequency == 0) {
+                if (sampleVertexIndex % intermediateSaveFrequency == 0 && !enableIllustrationGenerationMode) {
                     std::cout << std::endl << "    Writing caches.." << std::endl;
                     ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
                     writeExperimentResults(experimentResult, resultsDirectory, false);
@@ -380,22 +412,37 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             }
         }
 
-        std::cout << "Writing experiment results file.." << std::endl;
-        writeExperimentResults(experimentResult, resultsDirectory, true);
-        std::cout << "Experiment complete." << std::endl;
+        if(!enableIllustrationGenerationMode) {
+            std::cout << "Writing experiment results file.." << std::endl;
+            writeExperimentResults(experimentResult, resultsDirectory, true);
+            std::cout << "Experiment complete." << std::endl;
+        } else {
+            std::string fileName = "descriptors_" + DescriptorMethod::getName() + "_" + ShapeDescriptor::generateUniqueFilenameString() + "_" + std::string(experimentConfig.at("name")) + ".png";
+            std::filesystem::path outputFilePath = illustrativeObjectOutputDirectory / fileName;
+            if(DescriptorMethod::getName() == "QUICCI") {
+                ShapeDescriptor::writeDescriptorImages({illustrationImages.length, reinterpret_cast<ShapeDescriptor::QUICCIDescriptor*>(illustrationImages.content)}, outputFilePath, false);
+            }
+        }
 
         if(experimentContainsSubtractiveFilter(experimentConfig)) {
             ShapeBench::occlusionSceneGeneratorInstance.destroy();
         }
     }
 
-    std::cout << std::endl << "    Writing caches.." << std::endl;
-    ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
+    if(!enableIllustrationGenerationMode) {
+        std::cout << std::endl << "    Writing caches.." << std::endl;
+        ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
+    }
+
+
 
     std::cout << "Cleaning up.." << std::endl;
     ShapeBench::destroyPhysics();
     ShapeDescriptor::free(referenceDescriptors);
     ShapeDescriptor::free(cleanSampleDescriptors);
+    if(enableIllustrationGenerationMode) {
+        ShapeDescriptor::free(illustrationImages);
+    }
 
     std::cout << "Experiments completed." << std::endl;
 }
