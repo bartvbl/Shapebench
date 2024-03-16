@@ -190,7 +190,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     if(enableIllustrationGenerationMode) {
         std::cout << "    Illustration object generation mode is active, result generation is disabled." << std::endl;
         illustrativeObjectLimit = configuration.at("illustrationDataGenerationOverride").at("objectLimit");
-        illustrativeObjectOutputDirectory = std::string(configuration.at("illustrationDataGenerationOverride").at("outputDirectory"));
+        illustrativeObjectOutputDirectory = resultsDirectory / std::string(configuration.at("illustrationDataGenerationOverride").at("outputDirectory"));
         if(!std::filesystem::exists(illustrativeObjectOutputDirectory)) {
             std::filesystem::create_directories(illustrativeObjectOutputDirectory);
         }
