@@ -41,6 +41,10 @@ namespace ShapeBench {
             throwUnimplementedException();
             return false;
         }
+        static bool shouldUseGPUKernel() {
+            throwUnimplementedException();
+            return false;
+        }
         static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
                 ShapeDescriptor::gpu::Mesh mesh,
                 ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,

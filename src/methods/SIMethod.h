@@ -132,6 +132,9 @@ namespace ShapeBench {
         static bool hasGPUKernels() {
             return true;
         }
+        static bool shouldUseGPUKernel() {
+            return false;
+        }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
                 ShapeDescriptor::gpu::Mesh mesh,
                 ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,

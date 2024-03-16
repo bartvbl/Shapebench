@@ -17,9 +17,31 @@ namespace ShapeBench {
                                  uint64_t randomSeed) {
         ShapeDescriptor::cpu::array<DescriptorType> descriptors;
         if (DescriptorMethod::usesPointCloudInput()) {
-            descriptors = DescriptorMethod::computeDescriptors(pointCloud, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
+            if(DescriptorMethod::shouldUseGPUKernel()) {
+                ShapeDescriptor::gpu::PointCloud gpuCloud = ShapeDescriptor::copyToGPU(pointCloud);
+                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray {1, &descriptorOrigin};
+                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(originArray);
+                ShapeDescriptor::gpu::array<DescriptorType> gpuDescriptors = DescriptorMethod::computeDescriptors(gpuCloud, gpuOrigins, config, supportRadius, randomSeed);
+                descriptors = ShapeDescriptor::copyToCPU(gpuDescriptors);
+                ShapeDescriptor::free(gpuDescriptors);
+                ShapeDescriptor::free(gpuOrigins);
+                ShapeDescriptor::free(gpuCloud);
+            } else {
+                descriptors = DescriptorMethod::computeDescriptors(pointCloud, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
+            }
         } else {
-            descriptors = DescriptorMethod::computeDescriptors(mesh, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
+            if(DescriptorMethod::shouldUseGPUKernel()) {
+                ShapeDescriptor::gpu::Mesh gpuMesh = ShapeDescriptor::copyToGPU(mesh);
+                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray {1, &descriptorOrigin};
+                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(originArray);
+                ShapeDescriptor::gpu::array<DescriptorType> gpuDescriptors = DescriptorMethod::computeDescriptors(gpuMesh, gpuOrigins, config, supportRadius, randomSeed);
+                descriptors = ShapeDescriptor::copyToCPU(gpuDescriptors);
+                ShapeDescriptor::free(gpuDescriptors);
+                ShapeDescriptor::free(gpuOrigins);
+                ShapeDescriptor::free(gpuMesh);
+            } else {
+                descriptors = DescriptorMethod::computeDescriptors(mesh, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
+            }
         }
 
         DescriptorType descriptor = descriptors.content[0];

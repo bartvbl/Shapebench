@@ -21,7 +21,6 @@ namespace ShapeBench {
             pointDensityRadiusFactor = readDescriptorConfigValue<float>(config, "3DSC", "pointDensityRadiusFactor");
         }
 
-
         __host__ __device__ static __inline__ float computeEuclideanDistance(
                 const ShapeDescriptor::ShapeContextDescriptor& descriptor,
                 const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor) {
@@ -104,6 +103,10 @@ namespace ShapeBench {
         }
 
         static bool hasGPUKernels() {
+            return true;
+        }
+
+        static bool shouldUseGPUKernel() {
             return true;
         }
 
