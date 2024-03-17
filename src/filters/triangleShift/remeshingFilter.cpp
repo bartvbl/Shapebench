@@ -1,19 +1,51 @@
+#include <iostream>
 #include <shapeDescriptor/shapeDescriptor.h>
-#include <malloc.h>
 #include "remeshingFilter.h"
+#include "pmp/surface_mesh.h"
+#include "pmp/algorithms/remeshing.h"
+#include "utils/filterUtils/pmpConverter.h"
+
 
 ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config) {
-    /*ShapeDescriptor::cpu::Mesh remeshedMesh = internal::remeshMesh(scene.filteredSampleMesh, config);
-    ShapeDescriptor::free(scene.filteredSampleMesh);
-    scene.filteredSampleMesh = remeshedMesh;
+    // Convert to PMP Mesh
+    pmp::SurfaceMesh sampleMesh;
+    ShapeBench::convertSDMeshToPMP(scene.filteredSampleMesh, sampleMesh);
+    pmp::SurfaceMesh additiveNoiseMesh;
+    ShapeBench::convertSDMeshToPMP(scene.filteredAdditiveNoise, additiveNoiseMesh);
 
-    if(scene.filteredAdditiveNoise.vertexCount > 0) {
-        ShapeDescriptor::cpu::Mesh remeshedAdditiveMesh = internal::remeshMesh(scene.filteredAdditiveNoise, config);
-        ShapeDescriptor::free(scene.filteredAdditiveNoise);
-        scene.filteredAdditiveNoise = remeshedAdditiveMesh;
-    }
+    // Using the same approach as PMP library's remeshing tool
+    // We calculate the average of both meshes combined
+    double averageEdgeLength;
+    uint32_t edgeIndex;
+    internal::calculateAverageEdgeLength(scene.filteredSampleMesh, averageEdgeLength, edgeIndex);
+    internal::calculateAverageEdgeLength(scene.filteredAdditiveNoise, averageEdgeLength, edgeIndex);
+    //averageEdgeLength = 0.05;
+    //averageEdgeLength *= 1.5;
+
+    // Mario Botsch and Leif Kobbelt. A remeshing approach to multiresolution modeling. In Proceedings of Eurographics Symposium on Geometry Processing, pages 189–96, 2004.
+    //pmp::uniform_remeshing(sampleMesh, averageEdgeLength);
+    //pmp::uniform_remeshing(additiveNoiseMesh, averageEdgeLength);
+
+    float minEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLengthFactor");
+    float maxEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("maxEdgeLengthFactor");
+    float maxErrorFactor = config.at("filterSettings").at("alternateTriangulation").at("maxErrorFactor");
+    uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
+
+    pmp::adaptive_remeshing(sampleMesh, minEdgeLengthRatio * float(averageEdgeLength),
+                            maxEdgeLengthRatio * float(averageEdgeLength),
+                            maxErrorFactor * float(averageEdgeLength),
+                            iterationCount);
+
+    // Convert back to original format
+    ShapeDescriptor::free(scene.filteredSampleMesh);
+    ShapeDescriptor::free(scene.filteredAdditiveNoise);
+
+    scene.filteredSampleMesh = ShapeBench::convertPMPMeshToSD(sampleMesh);
+    scene.filteredAdditiveNoise = ShapeBench::convertPMPMeshToSD(additiveNoiseMesh);
 
     // Update reference points
+
+
     std::vector<float> bestDistances(scene.mappedReferenceVertices.size(), std::numeric_limits<float>::max());
     std::vector<ShapeDescriptor::OrientedPoint> originalReferenceVertices = scene.mappedReferenceVertices;
 
@@ -35,11 +67,28 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
     ShapeBench::RemeshingFilterOutput output;
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         nlohmann::json entry;
-        entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertices.at(i).vertex - originalReferenceVertices.at(i).vertex);
+        entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
         output.metadata.push_back(entry);
     }
 
-    malloc_trim(0);
+    ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "remeshed.obj");
 
-    return output;*/
+    return output;
+}
+
+void ShapeBench::internal::calculateAverageEdgeLength(const ShapeDescriptor::cpu::Mesh& mesh, double &averageEdgeLength,uint32_t &edgeIndex) {
+    for (uint32_t triangleBaseIndex = 0; triangleBaseIndex < mesh.vertexCount; triangleBaseIndex += 3) {
+        ShapeDescriptor::cpu::float3& vertex0 = mesh.vertices[triangleBaseIndex];
+        ShapeDescriptor::cpu::float3& vertex1 = mesh.vertices[triangleBaseIndex + 1];
+        ShapeDescriptor::cpu::float3& vertex2 = mesh.vertices[triangleBaseIndex + 2];
+        float length10 = length(vertex1 - vertex0);
+        float length21 = length(vertex2 - vertex1);
+        float length02 = length(vertex0 - vertex2);
+        averageEdgeLength += (length10 - averageEdgeLength) / double(edgeIndex + 1);
+        edgeIndex++;
+        averageEdgeLength += (length21 - averageEdgeLength) / double(edgeIndex + 1);
+        edgeIndex++;
+        averageEdgeLength += (length02 - averageEdgeLength) / double(edgeIndex + 1);
+        edgeIndex++;
+    }
 }

@@ -8,7 +8,7 @@
 namespace ShapeBench {
     namespace internal {
 
-        ShapeDescriptor::cpu::Mesh remeshMesh(const ShapeDescriptor::cpu::Mesh& mesh, const nlohmann::basic_json<> &config);
+        void calculateAverageEdgeLength(const ShapeDescriptor::cpu::Mesh& mesh, double &averageEdgeLength, uint32_t &edgeIndex);
     }
 
     struct RemeshingFilterOutput {

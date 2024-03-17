@@ -89,7 +89,10 @@
             "objectDistanceFromCamera": 2.0
         },
         "alternateTriangulation": {
-            "remeshIterationCount": 1
+            "remeshIterationCount": 1,
+            "minEdgeLengthFactor": 0.03,
+            "maxEdgeLengthFactor": 5.0,
+            "maxErrorFactor": 0.25
         },
         "normalVectorNoise": {
             "maxAngleDeviationDegrees": 30
