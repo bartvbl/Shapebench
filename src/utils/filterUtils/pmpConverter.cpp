@@ -29,6 +29,13 @@ void ShapeBench::convertSDMeshToPMP(const ShapeDescriptor::cpu::Mesh& mesh, pmp:
 
     uint32_t numComplaints = 0;
     for(uint32_t i = 0; i < vertexIndexBuffer.size(); i += 3) {
+        ShapeDescriptor::cpu::float3 vertex0 = condensedVertices.at(vertexIndexBuffer.at(i));
+        ShapeDescriptor::cpu::float3 vertex1 = condensedVertices.at(vertexIndexBuffer.at(i + 1));
+        ShapeDescriptor::cpu::float3 vertex2 = condensedVertices.at(vertexIndexBuffer.at(i + 2));
+        if(ShapeDescriptor::computeTriangleArea(vertex0, vertex1, vertex2) == 0) {
+            continue;
+        }
+
         vertices.clear();
         vertices.emplace_back(vertexIndexBuffer.at(i));
         vertices.emplace_back(vertexIndexBuffer.at(i + 1));
