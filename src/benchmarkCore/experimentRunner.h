@@ -297,7 +297,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 filteredMesh.mappedVertexIncluded.at(i) = true;
             }
 
-            if(enableIllustrationGenerationMode) {
+            if(enableIllustrationGenerationMode && experimentIndex == 0) {
                 std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + "_" + experimentName + "_unaltered.obj";
                 std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
                 ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile);
