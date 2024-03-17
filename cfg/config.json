@@ -22,28 +22,28 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "additive-noise"}
             ]
         },
         {
             "name": "subtractive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
         },
         {
             "name": "normal-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "normal-noise"}
             ]
         },
         {
             "name": "repeated-capture-only",
-            "enabled": true,
+            "enabled": false,
             "threadLimit": 10,
             "filters": [
                 {"type": "repeated-capture"}
@@ -51,7 +51,7 @@
         },
         {
             "name": "support-radius-deviation-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "support-radius-deviation"}
             ]
