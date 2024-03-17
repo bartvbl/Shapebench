@@ -400,6 +400,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 // 3. Compute distance from sample -> modified descriptor, and distance from sample -> all descriptors in reference set
                 // 4. Compute rank of sample
                 // Record metadata about "difficulty" of this sample
+            } catch(const std::out_of_range& e) {
+                std::cout << "Caught fatal exception: " << e.what() << std::endl;
+                throw e;
             } catch (const std::exception &e) {
                 std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
             }
