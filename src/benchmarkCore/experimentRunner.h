@@ -402,7 +402,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 // Record metadata about "difficulty" of this sample
             } catch(const std::out_of_range& e) {
                 std::cout << "Caught fatal exception: " << e.what() << std::endl;
-                throw e;
+                //throw e;
             } catch (const std::exception &e) {
                 std::cout << "    Failed to process vertex " << sampleVertexIndex << ": " << e.what() << std::endl;
             }
