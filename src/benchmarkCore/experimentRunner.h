@@ -351,6 +351,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         continue;
                     }
 
+                    resultsEntries.at(i).sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
+                    resultsEntries.at(i).filteredDescriptorRank = 0;
+                    resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
+                    resultsEntries.at(i).filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
+
                     DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, resultsEntries.at(i).filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
 
                     if(enableIllustrationGenerationMode) {
@@ -364,10 +369,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                     ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
 
-                    resultsEntries.at(i).sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
-                    resultsEntries.at(i).filteredDescriptorRank = 0;
-                    resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
-                    resultsEntries.at(i).filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
+
                     resultsEntries.at(i).filteredDescriptorRank = imageIndex;
                     resultsEntries.at(i).fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntries.at(i).fractionSurfacePartiality = areaEstimate.subtractiveArea;
