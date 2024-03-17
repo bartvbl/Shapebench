@@ -195,10 +195,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             std::filesystem::create_directories(illustrativeObjectOutputDirectory);
         }
         if(DescriptorMethod::getName() == "QUICCI") {
-            std::filesystem::path imageFile = illustrativeObjectOutputDirectory / "descriptors.png";
+            std::filesystem::path referenceImageFile = illustrativeObjectOutputDirectory / "reference_descriptors.png";
+            std::filesystem::path sampleImageFile = illustrativeObjectOutputDirectory / "sample_descriptors.png";
             uint32_t startIndex = configuration.at("illustrationDataGenerationOverride").at("referenceDescriptorStartIndex");
             uint32_t count = configuration.at("illustrationDataGenerationOverride").at("referenceDescriptorCount");
-            ShapeDescriptor::writeDescriptorImages({count, reinterpret_cast<ShapeDescriptor::QUICCIDescriptor*>(referenceDescriptors.content) + startIndex}, imageFile, false);
+            ShapeDescriptor::writeDescriptorImages({count, reinterpret_cast<ShapeDescriptor::QUICCIDescriptor*>(referenceDescriptors.content) + startIndex}, referenceImageFile, false);
+            ShapeDescriptor::writeDescriptorImages({count, reinterpret_cast<ShapeDescriptor::QUICCIDescriptor*>(cleanSampleDescriptors.content) + startIndex}, sampleImageFile, false);
             illustrationImages = ShapeDescriptor::cpu::array<DescriptorType>(count);
         }
     }
