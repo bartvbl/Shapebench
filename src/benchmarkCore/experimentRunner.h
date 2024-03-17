@@ -298,7 +298,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             }
 
             if(enableIllustrationGenerationMode && experimentIndex == 0) {
-                std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + "_" + experimentName + "_unaltered.obj";
+                std::string filename = DescriptorMethod::getName() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + "-" + ShapeDescriptor::generateUniqueFilenameString()  + "_" + experimentName + "_unaltered.obj";
                 std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
                 ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile);
             }
@@ -348,7 +348,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 ShapeDescriptor::cpu::Mesh combinedMesh = filteredMesh.combinedFilteredMesh();
 
                 if(enableIllustrationGenerationMode) {
-                    std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + "_" + experimentName + ".obj";
+                    std::string filename = DescriptorMethod::getName() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject))+ "-" + ShapeDescriptor::generateUniqueFilenameString() + "_" + experimentName + ".obj";
                     std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
                     ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile, filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
                 }
