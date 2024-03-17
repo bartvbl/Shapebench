@@ -23,10 +23,10 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
     //averageEdgeLength *= 1.5;
 
     // Mario Botsch and Leif Kobbelt. A remeshing approach to multiresolution modeling. In Proceedings of Eurographics Symposium on Geometry Processing, pages 189–96, 2004.
-    //pmp::uniform_remeshing(sampleMesh, averageEdgeLength);
-    //pmp::uniform_remeshing(additiveNoiseMesh, averageEdgeLength);
+    pmp::uniform_remeshing(sampleMesh, averageEdgeLength);
+    pmp::uniform_remeshing(additiveNoiseMesh, averageEdgeLength);
 
-    float minEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLengthFactor");
+   /* float minEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLengthFactor");
     float maxEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("maxEdgeLengthFactor");
     float maxErrorFactor = config.at("filterSettings").at("alternateTriangulation").at("maxErrorFactor");
     uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
@@ -35,7 +35,7 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
                             maxEdgeLengthRatio * float(averageEdgeLength),
                             maxErrorFactor * float(averageEdgeLength),
                             iterationCount);
-
+*/
     // Convert back to original format
     ShapeDescriptor::free(scene.filteredSampleMesh);
     ShapeDescriptor::free(scene.filteredAdditiveNoise);
