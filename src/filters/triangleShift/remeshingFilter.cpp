@@ -19,7 +19,8 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
     uint32_t edgeIndex;
     internal::calculateAverageEdgeLength(scene.filteredSampleMesh, averageEdgeLength, edgeIndex);
     internal::calculateAverageEdgeLength(scene.filteredAdditiveNoise, averageEdgeLength, edgeIndex);
-    //averageEdgeLength = 0.05;
+    std::cout << "Average length: " << averageEdgeLength << std::endl;
+//averageEdgeLength = 0.05;
     //averageEdgeLength *= 1.5;
 
     // Mario Botsch and Leif Kobbelt. A remeshing approach to multiresolution modeling. In Proceedings of Eurographics Symposium on Geometry Processing, pages 189–96, 2004.
