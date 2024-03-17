@@ -71,7 +71,7 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
         output.metadata.push_back(entry);
     }
 
-    ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "remeshed.obj");
+    //ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "remeshed.obj");
 
     return output;
 }
