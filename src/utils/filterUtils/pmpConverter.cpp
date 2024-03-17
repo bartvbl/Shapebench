@@ -1,21 +1,51 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "pmpConverter.h"
 #include "pmp/surface_mesh.h"
+#include "pmp/io/read_obj.h"
 
-pmp::SurfaceMesh ShapeBench::convertSDMeshToPMP(const ShapeDescriptor::cpu::Mesh& mesh) {
-    pmp::SurfaceMesh pmpMesh;
-    for(uint32_t i = 0; i < mesh.vertexCount; i += 3) {
-        ShapeDescriptor::cpu::float3 sourceVertex0 = mesh.vertices[i + 0];
-        ShapeDescriptor::cpu::float3 sourceVertex1 = mesh.vertices[i + 1];
-        ShapeDescriptor::cpu::float3 sourceVertex2 = mesh.vertices[i + 2];
+void ShapeBench::convertSDMeshToPMP(const ShapeDescriptor::cpu::Mesh& mesh, pmp::SurfaceMesh& pmpMesh, uint32_t* removedCount) {
+    std::vector<pmp::Vertex> vertices(3);
 
-        pmp::Vertex vertex0 = pmpMesh.add_vertex(pmp::Point(sourceVertex0.x, sourceVertex0.y, sourceVertex0.z));
-        pmp::Vertex vertex1 = pmpMesh.add_vertex(pmp::Point(sourceVertex1.x, sourceVertex1.y, sourceVertex1.z));
-        pmp::Vertex vertex2 = pmpMesh.add_vertex(pmp::Point(sourceVertex2.x, sourceVertex2.y, sourceVertex2.z));
+    std::vector<ShapeDescriptor::cpu::float3> condensedVertices;
+    std::vector<unsigned int> vertexIndexBuffer(mesh.vertexCount);
 
-        pmpMesh.add_triangle(vertex0, vertex1, vertex2);
+    condensedVertices.reserve(mesh.vertexCount);
+    std::unordered_map<ShapeDescriptor::cpu::float3, unsigned int> seenVerticesIndex;
+
+    for(unsigned int i = 0; i < mesh.vertexCount; i++) {
+        const ShapeDescriptor::cpu::float3 vertex = mesh.vertices[i];
+        if(!seenVerticesIndex.contains(vertex)) {
+            // Vertex has not been seen before
+            seenVerticesIndex.insert({vertex, condensedVertices.size()});
+            condensedVertices.push_back(vertex);
+        }
+        vertexIndexBuffer.at(i) = seenVerticesIndex.at(vertex);
     }
-    return pmpMesh;
+
+    for(uint32_t i = 0; i < condensedVertices.size(); i++) {
+        ShapeDescriptor::cpu::float3 vertex = condensedVertices.at(i);
+        pmpMesh.add_vertex(pmp::Point(vertex.x, vertex.y, vertex.z));
+    }
+
+    uint32_t numComplaints = 0;
+    for(uint32_t i = 0; i < vertexIndexBuffer.size(); i += 3) {
+        vertices.clear();
+        vertices.emplace_back(vertexIndexBuffer.at(i));
+        vertices.emplace_back(vertexIndexBuffer.at(i + 1));
+        vertices.emplace_back(vertexIndexBuffer.at(i + 2));
+        try {
+            pmpMesh.add_face(vertices);
+        } catch(const pmp::TopologyException& e) {
+            // ignore
+            numComplaints++;
+        }
+    }
+
+    if(removedCount != nullptr) {
+        *removedCount = numComplaints;
+    }
+    //std::cout << "Complaint count: " << numComplaints << std::endl;
+    //std::cout << "Reduced index buffer from " << mesh.vertexCount << " to " << condensedVertices.size() << std::endl;
 }
 
 ShapeDescriptor::cpu::Mesh ShapeBench::convertPMPMeshToSD(const pmp::SurfaceMesh& mesh) {
