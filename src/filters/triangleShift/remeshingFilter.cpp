@@ -1,5 +1,6 @@
 #include <iostream>
 #include <shapeDescriptor/shapeDescriptor.h>
+#include <malloc.h>
 #include "remeshingFilter.h"
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/remeshing.h"
@@ -72,6 +73,8 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
     }
 
     //ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "remeshed.obj");
+
+    malloc_trim(0);
 
     return output;
 }
