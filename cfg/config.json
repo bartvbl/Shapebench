@@ -147,9 +147,9 @@
     },
 
     "illustrationDataGenerationOverride": {
-        "enableIllustrationDataGeneration": true,
+        "enableIllustrationDataGeneration": false,
         "illustrationObjectIndex": 0,
-        "objectLimit": 10,
+        "objectLimit": 500,
         "outputDirectory": "illustrations_data",
         "referenceDescriptorStartIndex": 0,
         "referenceDescriptorCount": 500
