@@ -280,12 +280,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
             ShapeDescriptor::cpu::Mesh originalSampleMesh = ShapeBench::readDatasetMesh(configuration, entry);
 
-            if(enableIllustrationGenerationMode) {
-                std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + "_" + experimentName + "_unaltered.obj";
-                std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
-                ShapeBench::writeFilteredMesh<DescriptorMethod>(originalSampleMesh, outputFile);
-            }
-
             ShapeBench::FilteredMeshPair filteredMesh;
             filteredMesh.originalMesh = originalSampleMesh.clone();
             filteredMesh.filteredSampleMesh = originalSampleMesh.clone();
@@ -301,6 +295,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
                 filteredMesh.mappedReferenceVertexIndices.at(i) = sampleVertex.vertexIndex;
                 filteredMesh.mappedVertexIncluded.at(i) = true;
+            }
+
+            if(enableIllustrationGenerationMode) {
+                std::string filename = DescriptorMethod::getName() + "-" + ShapeDescriptor::generateUniqueFilenameString() + "-" + std::to_string(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject)) + "_" + experimentName + "_unaltered.obj";
+                std::filesystem::path outputFile = illustrativeObjectOutputDirectory / filename;
+                ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile);
             }
 
             std::vector<ShapeBench::ExperimentResultsEntry> resultsEntries(verticesPerSampleObject);
