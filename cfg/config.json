@@ -29,7 +29,7 @@
         },
         {
             "name": "subtractive-noise-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
@@ -43,7 +43,7 @@
         },
         {
             "name": "repeated-capture-only",
-            "enabled": false,
+            "enabled": true,
             "threadLimit": 10,
             "filters": [
                 {"type": "repeated-capture"}
@@ -147,7 +147,7 @@
     },
 
     "illustrationDataGenerationOverride": {
-        "enableIllustrationDataGeneration": false,
+        "enableIllustrationDataGeneration": true,
         "illustrationObjectIndex": 0,
         "objectLimit": 500,
         "outputDirectory": "illustrations_data",
