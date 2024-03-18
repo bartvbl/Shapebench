@@ -16,22 +16,24 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
 
     // Using the same approach as PMP library's remeshing tool
     // We calculate the average of both meshes combined
-    double averageEdgeLength;
-    uint32_t edgeIndex;
+    double averageEdgeLength = 0;
+    uint32_t edgeIndex = 0;
     internal::calculateAverageEdgeLength(scene.filteredSampleMesh, averageEdgeLength, edgeIndex);
     internal::calculateAverageEdgeLength(scene.filteredAdditiveNoise, averageEdgeLength, edgeIndex);
-    std::cout << "Average length: " << averageEdgeLength << std::endl;
-//averageEdgeLength = 0.05;
+    //std::cout << "Average length: " << averageEdgeLength << std::endl;
+    //averageEdgeLength = 0.05;
     //averageEdgeLength *= 1.5;
 
-    // Mario Botsch and Leif Kobbelt. A remeshing approach to multiresolution modeling. In Proceedings of Eurographics Symposium on Geometry Processing, pages 189–96, 2004.
-    pmp::uniform_remeshing(sampleMesh, averageEdgeLength);
-    pmp::uniform_remeshing(additiveNoiseMesh, averageEdgeLength);
-
-   /* float minEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLengthFactor");
+    float minEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLengthFactor");
     float maxEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("maxEdgeLengthFactor");
     float maxErrorFactor = config.at("filterSettings").at("alternateTriangulation").at("maxErrorFactor");
     uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
+
+    // Mario Botsch and Leif Kobbelt. A remeshing approach to multiresolution modeling. In Proceedings of Eurographics Symposium on Geometry Processing, pages 189–96, 2004.
+    pmp::uniform_remeshing(sampleMesh, averageEdgeLength, iterationCount, true);
+    pmp::uniform_remeshing(additiveNoiseMesh, averageEdgeLength, iterationCount, true);
+
+   /*
 
     pmp::adaptive_remeshing(sampleMesh, minEdgeLengthRatio * float(averageEdgeLength),
                             maxEdgeLengthRatio * float(averageEdgeLength),
@@ -85,14 +87,18 @@ void ShapeBench::internal::calculateAverageEdgeLength(const ShapeDescriptor::cpu
         ShapeDescriptor::cpu::float3& vertex0 = mesh.vertices[triangleBaseIndex];
         ShapeDescriptor::cpu::float3& vertex1 = mesh.vertices[triangleBaseIndex + 1];
         ShapeDescriptor::cpu::float3& vertex2 = mesh.vertices[triangleBaseIndex + 2];
-        float length10 = length(vertex1 - vertex0);
-        float length21 = length(vertex2 - vertex1);
-        float length02 = length(vertex0 - vertex2);
+        double length10 = length(vertex1 - vertex0);
+        double length21 = length(vertex2 - vertex1);
+        double length02 = length(vertex0 - vertex2);
+        //std::cout << vertex0 << ", " << vertex1 << ", " << vertex2 << " - " << length10 << ", " << length21 << ", " << length02 << " - " << averageEdgeLength << std::endl;
         averageEdgeLength += (length10 - averageEdgeLength) / double(edgeIndex + 1);
         edgeIndex++;
+        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
         averageEdgeLength += (length21 - averageEdgeLength) / double(edgeIndex + 1);
         edgeIndex++;
+        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
         averageEdgeLength += (length02 - averageEdgeLength) / double(edgeIndex + 1);
         edgeIndex++;
+        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
     }
 }
