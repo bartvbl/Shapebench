@@ -101,7 +101,7 @@
             "maxRadiusDeviation": 0.25
         },
         "meshResolutionDeviation": {
-            "minVertexCountFactor": 0.50
+            "minVertexCountFactor": 0.10
         }
     },
 
