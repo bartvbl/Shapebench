@@ -44,6 +44,9 @@ add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
 add_subdirectory(lib/pmp-library)
 
+# sudo apt install libcgal-dev
+find_package(CGAL REQUIRED)
+
 
 #
 # Set include paths
@@ -80,7 +83,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo) # lsan
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo CGAL::CGAL) # lsan
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand
