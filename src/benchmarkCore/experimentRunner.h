@@ -255,7 +255,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
             const ShapeBench::DatasetEntry &entry = dataset.at(firstSampleVertex.meshID);
 
-            {
+            if(!enableIllustrationGenerationMode){
                 std::unique_lock<std::mutex> writeLock{resultWriteLock};
 
                 if (threadActivity.empty()) {
