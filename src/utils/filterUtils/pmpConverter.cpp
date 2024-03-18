@@ -62,14 +62,36 @@ ShapeDescriptor::cpu::Mesh ShapeBench::convertPMPMeshToSD(const pmp::SurfaceMesh
     pmp::VertexProperty<pmp::Point> points = mesh.get_vertex_property<pmp::Point>("v:point");
 
     uint32_t nextVertexIndex = 0;
+    uint32_t removedFaceCount = 0;
     for (auto f : mesh.faces()) {
-        for (auto v: mesh.vertices(f)) {
-            auto idx = v.idx();
-            const pmp::Point p = points.vector().at(idx);
-            assert(nextVertexIndex < vertexCount);
-            outMesh.vertices[nextVertexIndex] = {p.data()[0], p.data()[1], p.data()[2]};
-            nextVertexIndex++;
+        if(f.is_valid()) {
+            // Check whether face is valid, otherwise remove the triangle
+            bool canBeAdded = true;
+            for (auto v: mesh.vertices(f)) {
+                pmp::IndexType idx = v.idx();
+                if(idx >= points.vector().size()) {
+                    canBeAdded = false;
+                    break;
+                }
+            }
+            if(!canBeAdded) {
+                removedFaceCount++;
+                continue;
+            }
+            // Add triangle to the mesh
+            for (auto v: mesh.vertices(f)) {
+                pmp::IndexType idx = v.idx();
+                const pmp::Point p = points.vector().at(idx);
+                assert(nextVertexIndex < vertexCount);
+                outMesh.vertices[nextVertexIndex] = {p.data()[0], p.data()[1], p.data()[2]};
+                nextVertexIndex++;
+            }
         }
+    }
+
+    outMesh.vertexCount -= 3 * removedFaceCount;
+    if(removedFaceCount > 0) {
+        std::cout << "Removed " << removedFaceCount << " faces." << std::endl;
     }
 
     for(uint32_t i = 0; i < outMesh.vertexCount; i += 3) {
