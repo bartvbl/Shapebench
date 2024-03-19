@@ -81,6 +81,8 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
         float maxEdgeLength = config.at("filterSettings").at("alternateTriangulation").at("maxEdgeLength");
         uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
 
+        uint32_t initialVertexCount = scene.filteredSampleMesh.vertexCount;
+
         // Determine target edge length
         double averageEdgeLength = 0;
         uint32_t edgeIndex = 0;
@@ -119,10 +121,10 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
 
         for (uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
             nlohmann::json entry;
-            entry["triangle-shift-displacement-distance"] = length(
-                    scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
+            entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
             entry["triangle-shift-average-edge-length"] = averageEdgeLength;
-            entry["triangle-shift-sample-mesh-vertexcount"] = scene.filteredSampleMesh.vertexCount;
+            entry["triangle-shift-sample-mesh-initial-vertexcount"] = initialVertexCount;
+            entry["triangle-shift-sample-mesh-filtered-vertexcount"] = scene.filteredSampleMesh.vertexCount;
             output.metadata.push_back(entry);
         }
 
