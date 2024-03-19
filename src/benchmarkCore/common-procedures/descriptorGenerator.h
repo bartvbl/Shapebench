@@ -60,7 +60,7 @@ namespace ShapeBench {
                                            uint64_t descriptorRandomSeed) {
         ShapeDescriptor::cpu::PointCloud pointCloud;
         if (DescriptorMethod::usesPointCloudInput()) {
-            pointCloud = computePointCloud(mesh, config, pointCloudSamplingSeed);
+            pointCloud = computePointCloud<DescriptorMethod>(mesh, config, pointCloudSamplingSeed);
         }
 
         DescriptorType descriptor = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, descriptorOrigin, config, supportRadius, descriptorRandomSeed);

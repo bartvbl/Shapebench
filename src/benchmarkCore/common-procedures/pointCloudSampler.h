@@ -1,6 +1,7 @@
 #pragma once
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
+#include "methods/Method.h"
 
 namespace ShapeBench {
     inline uint32_t computeSampleCount(double totalMeshArea, const nlohmann::json& config) {
@@ -35,9 +36,18 @@ namespace ShapeBench {
         return sampleCounts;
     }
 
+    template<typename DescriptorMethod>
     inline ShapeDescriptor::cpu::PointCloud computePointCloud(const ShapeDescriptor::cpu::Mesh& mesh, const nlohmann::json& config, uint32_t randomSeed) {
+
         double totalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(mesh);
         uint32_t sampleCount = computeSampleCount(totalMeshArea, config);
+
+        if(ShapeBench::hasConfigValue(config, DescriptorMethod::getName(), "pointDensityScaleFactor")) {
+            double scaleFactor = ShapeBench::readDescriptorConfigValue<double>(config, DescriptorMethod::getName(), "pointDensityScaleFactor");
+            sampleCount = uint32_t(scaleFactor * double(sampleCount));
+            std::cout << sampleCount << std::endl;
+        }
+
         return ShapeDescriptor::sampleMesh(mesh, sampleCount, randomSeed);
     }
 }

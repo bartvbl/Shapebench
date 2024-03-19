@@ -13,6 +13,14 @@ namespace ShapeBench {
         }
         throw std::runtime_error("Config entry \"" + configEntryName + "\" for method " + methodName + " not found in config file");
     }
+    inline bool hasConfigValue(const nlohmann::json& config, std::string methodName, std::string configEntryName) {
+        for(const nlohmann::json& entry : config.at("methodSettings")) {
+            if(entry.at("name") == methodName) {
+                return entry.contains(configEntryName);
+            }
+        }
+        throw std::runtime_error("Config entry \"" + configEntryName + "\" for method " + methodName + " not found in config file");
+    }
 
     template<typename DescriptorType>
     struct Method {
