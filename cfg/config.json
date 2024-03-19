@@ -43,8 +43,7 @@
         },
         {
             "name": "repeated-capture-only",
-            "enabled": false,
-            "threadLimit": 10,
+            "enabled": true,
             "filters": [
                 {"type": "repeated-capture"}
             ]
@@ -58,7 +57,7 @@
         },
         {
             "name": "mesh-resolution-deviation-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "mesh-resolution-deviation"}
             ]
@@ -90,8 +89,8 @@
         },
         "alternateTriangulation": {
             "remeshIterationCount": 1,
-            "minEdgeLength": 0.03,
-            "maxEdgeLength": 0.1
+            "minEdgeLength": 0.0,
+            "maxEdgeLength": 2.0
         },
         "normalVectorNoise": {
             "maxAngleDeviationDegrees": 30
@@ -118,7 +117,8 @@
         {
             "name": "3DSC",
             "minSupportRadiusFactor": 0.04,
-            "pointDensityRadiusFactor": 0.08
+            "pointDensityRadiusFactor": 0.08,
+            "pointDensityScaleFactor": 0.01
         },
         {
             "name": "FPFH"

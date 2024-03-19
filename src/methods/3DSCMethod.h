@@ -107,7 +107,7 @@ namespace ShapeBench {
         }
 
         static bool shouldUseGPUKernel() {
-            return true;
+            return false;
         }
 
         static ShapeDescriptor::gpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(

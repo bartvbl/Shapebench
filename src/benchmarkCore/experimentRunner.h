@@ -275,7 +275,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
 // Enable for debugging
 //if(sampleVertexIndex < 36200) {continue;}
-
+//if(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject) != 6847108265827174418) {
+//    continue;
+//}
 
 
             ShapeDescriptor::cpu::Mesh originalSampleMesh = ShapeBench::readDatasetMesh(configuration, entry);
