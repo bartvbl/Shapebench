@@ -90,9 +90,8 @@
         },
         "alternateTriangulation": {
             "remeshIterationCount": 1,
-            "minEdgeLengthFactor": 0.03,
-            "maxEdgeLengthFactor": 5.0,
-            "maxErrorFactor": 0.25
+            "minEdgeLength": 0.03,
+            "maxEdgeLength": 0.1
         },
         "normalVectorNoise": {
             "maxAngleDeviationDegrees": 30

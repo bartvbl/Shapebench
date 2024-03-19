@@ -41,12 +41,16 @@ set(OVERRIDE_CXX_FLAGS OFF)
 add_definitions(-DJPH_ENABLE_ASSERTS)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
-
 add_subdirectory(lib/pmp-library)
 
 # sudo apt install libcgal-dev
+# For 5.6.1 I had to install through the debian channel, it's not available yet
+add_definitions(-DCGAL_DISABLE_ROUNDING_MATH_CHECK)
 find_package(CGAL REQUIRED)
-
+#set(CGAL_BINARY_DIR ${CMAKE_BINARY_DIR}/lib/CGAL)
+#set(CGAL_MODULES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/CGAL-5.6.1/cmake/modules)
+#set(CGAL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/CGAL-5.6.1)
+#add_subdirectory(lib/CGAL-5.6.1)
 
 #
 # Set include paths
@@ -85,9 +89,9 @@ file (GLOB_RECURSE PROJECT_SOURCES
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
 target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo CGAL::CGAL) # lsan
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
+target_compile_options(shapebench PRIVATE -frounding-math)
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler>)
-
 # Manually add options required by Jolt. Using the library's original cmake file causes trouble with the cuda compiler.
 #target_compile_options(shapebench PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mbmi,-mpopcnt,-mlzcnt,-mf16c,-DJPH_ENABLE_ASSERTS>) # -fsanitize=leak
