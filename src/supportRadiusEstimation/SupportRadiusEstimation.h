@@ -159,7 +159,7 @@ namespace ShapeBench {
             ShapeDescriptor::cpu::Mesh representativeSetMesh = loadMesh(config, dataset,referenceVertex);
             ShapeDescriptor::cpu::PointCloud representativeSetPointCloud;
             if (DescriptorMethod::usesPointCloudInput()) {
-                representativeSetPointCloud = computePointCloud(representativeSetMesh, config, referencePointCloudSamplingSeed);
+                representativeSetPointCloud = computePointCloud<DescriptorMethod>(representativeSetMesh, config, referencePointCloudSamplingSeed);
             }
 
             try {
@@ -197,7 +197,7 @@ namespace ShapeBench {
             ShapeDescriptor::cpu::Mesh sampleSetMesh = loadMesh(config, dataset, sampleVertex);
             ShapeDescriptor::cpu::PointCloud sampleSetPointCloud;
             if (DescriptorMethod::usesPointCloudInput()) {
-                sampleSetPointCloud = computePointCloud(sampleSetMesh, config, samplePointCloudSamplingSeed);
+                sampleSetPointCloud = computePointCloud<DescriptorMethod>(sampleSetMesh, config, samplePointCloudSamplingSeed);
             }
 
             ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(

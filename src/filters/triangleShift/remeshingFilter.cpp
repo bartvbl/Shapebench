@@ -1,3 +1,5 @@
+//#define CGAL_PMP_REMESHING_VERBOSE
+//#define CGAL_PMP_REMESHING_VERBOSE_PROGRESS
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <malloc.h>
 #include "remeshingFilter.h"
@@ -10,6 +12,10 @@
 #include <CGAL/Polygon_mesh_processing/border.h>
 #include <boost/iterator/function_output_iterator.hpp>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polygon_mesh_processing/detect_features.h>
+#include <CGAL/Polygon_mesh_processing/surface_Delaunay_remeshing.h>
+#include <CGAL/Mesh_constant_domain_field_3.h>
+#include <CGAL/Polygon_mesh_processing/repair.h>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel   CGALK;
 typedef CGAL::Surface_mesh<CGALK::Point_3>                    CGALMesh;
@@ -31,17 +37,33 @@ struct halfedge2edge
 
 void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, double targetEdgeLength, uint32_t iterationCount) {
     CGALMesh mesh = ShapeBench::convertSDMeshToCGAL(meshToRemesh);
-    if(!mesh.is_valid(true)) {
-        std::cout << "Mesh invalid!" << std::endl;
-    }
+
     std::vector<edge_descriptor> border;
     PMP::border_halfedges(faces(mesh), mesh, boost::make_function_output_iterator(halfedge2edge(mesh, border)));
     PMP::split_long_edges(border, targetEdgeLength, mesh);
+    CGAL::Polygon_mesh_processing::remove_isolated_vertices(mesh);
+    CGAL::Polygon_mesh_processing::duplicate_non_manifold_vertices(mesh);
+
+    if(!CGAL::is_valid_polygon_mesh(mesh)) {
+        throw std::runtime_error("Mesh invalid");
+    }
+
     PMP::isotropic_remeshing(faces(mesh), targetEdgeLength, mesh,
                              CGAL::parameters::number_of_iterations(iterationCount)
-                                     .protect_constraints(true)); //i.e. protect border, here
+                                     .protect_constraints(false)); //i.e. protect border, here
 
     mesh.collect_garbage();
+
+    /*
+     * using EIFMap = boost::property_map<CGALMesh, CGAL::edge_is_feature_t>::type;
+    EIFMap eif = get(CGAL::edge_is_feature, mesh);
+    PMP::detect_sharp_edges(mesh, 45, eif);
+     * CGALMesh outmesh = PMP::surface_Delaunay_remeshing(mesh,
+                                                   CGAL::parameters::mesh_edge_size(targetEdgeLength/15.0)
+                                                           .mesh_facet_distance(targetEdgeLength/6.0)
+                                                           .number_of_iterations(iterationCount));
+*/
+    //mesh.collect_garbage();
     ShapeDescriptor::free(meshToRemesh);
     meshToRemesh = ShapeBench::convertCGALMeshToSD(mesh);
 }
@@ -49,57 +71,63 @@ void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, double targetEdgeLengt
 
 
 ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config) {
-    // Determine target edge length
-    double averageEdgeLength = 0;
-    uint32_t edgeIndex = 0;
-    internal::calculateAverageEdgeLength(scene.filteredSampleMesh, averageEdgeLength, edgeIndex);
-    internal::calculateAverageEdgeLength(scene.filteredAdditiveNoise, averageEdgeLength, edgeIndex);
-    averageEdgeLength = std::clamp(averageEdgeLength, 0.02, 0.1);
-
-
-    // Do remeshing
-
-    float minEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLengthFactor");
-    float maxEdgeLengthRatio = config.at("filterSettings").at("alternateTriangulation").at("maxEdgeLengthFactor");
-    float maxErrorFactor = config.at("filterSettings").at("alternateTriangulation").at("maxErrorFactor");
-    uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
-
-    remeshMesh(scene.filteredSampleMesh, averageEdgeLength, iterationCount);
-
-    if(scene.filteredAdditiveNoise.vertexCount != 0) {
-        remeshMesh(scene.filteredAdditiveNoise, averageEdgeLength, iterationCount);
-    }
-
-    // Update corresponding vertices
-
-    std::vector<float> bestDistances(scene.mappedReferenceVertices.size(), std::numeric_limits<float>::max());
-    std::vector<ShapeDescriptor::OrientedPoint> originalReferenceVertices = scene.mappedReferenceVertices;
-
-    for(uint32_t meshVertexIndex = 0; meshVertexIndex < scene.filteredSampleMesh.vertexCount; meshVertexIndex++) {
-        ShapeDescriptor::cpu::float3 meshVertex = scene.filteredSampleMesh.vertices[meshVertexIndex];
-        for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
-            ShapeDescriptor::OrientedPoint referencePoint = scene.mappedReferenceVertices.at(i);
-            ShapeDescriptor::cpu::float3 referenceVertex = referencePoint.vertex;
-            float distanceToReferenceVertex = length(referenceVertex - meshVertex);
-            if(distanceToReferenceVertex < bestDistances.at(i)) {
-                bestDistances.at(i) = distanceToReferenceVertex;
-                scene.mappedReferenceVertices.at(i).vertex = meshVertex;
-                scene.mappedReferenceVertices.at(i).normal = scene.filteredSampleMesh.normals[meshVertexIndex];
-                scene.mappedReferenceVertexIndices.at(i) = meshVertexIndex;
-            }
-        }
-    }
+    /*if(scene.filteredSampleMesh.vertexCount > 1000000) {
+        throw std::runtime_error("Mesh too large!");
+    }*/
 
     ShapeBench::RemeshingFilterOutput output;
-    for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
-        nlohmann::json entry;
-        entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
-        entry["average-edge-length"] = averageEdgeLength;
-        output.metadata.push_back(entry);
+    {
+        float minEdgeLength = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLength");
+        float maxEdgeLength = config.at("filterSettings").at("alternateTriangulation").at("maxEdgeLength");
+        uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
+
+        // Determine target edge length
+        double averageEdgeLength = 0;
+        uint32_t edgeIndex = 0;
+        internal::calculateAverageEdgeLength(scene.filteredSampleMesh, averageEdgeLength, edgeIndex);
+        internal::calculateAverageEdgeLength(scene.filteredAdditiveNoise, averageEdgeLength, edgeIndex);
+        averageEdgeLength = std::clamp<double>(averageEdgeLength, minEdgeLength, maxEdgeLength);
+
+
+        // Do remeshing
+        remeshMesh(scene.filteredSampleMesh, averageEdgeLength, iterationCount);
+
+        if (scene.filteredAdditiveNoise.vertexCount != 0) {
+            remeshMesh(scene.filteredAdditiveNoise, averageEdgeLength, iterationCount);
+        }
+
+        // Update corresponding vertices
+
+        std::vector<float> bestDistances(scene.mappedReferenceVertices.size(), std::numeric_limits<float>::max());
+        std::vector<ShapeDescriptor::OrientedPoint> originalReferenceVertices = scene.mappedReferenceVertices;
+
+        for (uint32_t meshVertexIndex = 0; meshVertexIndex < scene.filteredSampleMesh.vertexCount; meshVertexIndex++) {
+            ShapeDescriptor::cpu::float3 meshVertex = scene.filteredSampleMesh.vertices[meshVertexIndex];
+            for (uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+                ShapeDescriptor::OrientedPoint referencePoint = scene.mappedReferenceVertices.at(i);
+                ShapeDescriptor::cpu::float3 referenceVertex = referencePoint.vertex;
+                float distanceToReferenceVertex = length(referenceVertex - meshVertex);
+                if (distanceToReferenceVertex < bestDistances.at(i)) {
+                    bestDistances.at(i) = distanceToReferenceVertex;
+                    scene.mappedReferenceVertices.at(i).vertex = meshVertex;
+                    scene.mappedReferenceVertices.at(i).normal = scene.filteredSampleMesh.normals[meshVertexIndex];
+                    scene.mappedReferenceVertexIndices.at(i) = meshVertexIndex;
+                }
+            }
+        }
+
+
+        for (uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+            nlohmann::json entry;
+            entry["triangle-shift-displacement-distance"] = length(
+                    scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
+            entry["triangle-shift-average-edge-length"] = averageEdgeLength;
+            entry["triangle-shift-sample-mesh-vertexcount"] = scene.filteredSampleMesh.vertexCount;
+            output.metadata.push_back(entry);
+        }
+
+        //ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "remeshed.obj");
     }
-
-    //ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "remeshed.obj");
-
     malloc_trim(0);
 
     return output;

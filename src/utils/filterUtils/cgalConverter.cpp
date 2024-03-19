@@ -64,7 +64,6 @@ public:
 
 CGALMesh ShapeBench::convertSDMeshToCGAL(const ShapeDescriptor::cpu::Mesh &mesh, uint32_t *removedCount) {
     CGALMesh outputMesh;
-    std::cout << "Converting: " << mesh.vertexCount << std::endl;
 
     std::vector<ShapeDescriptor::cpu::float3> condensedVertices;
     std::vector<unsigned int> vertexIndexBuffer(mesh.vertexCount);
