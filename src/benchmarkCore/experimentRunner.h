@@ -185,11 +185,13 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     bool enableIllustrationGenerationMode = configuration.at("illustrationDataGenerationOverride").at("enableIllustrationDataGeneration");
     uint32_t illustrativeObjectLimit = 0;
+    uint32_t illustrativeObjectStride = 1;
     std::filesystem::path illustrativeObjectOutputDirectory;
     ShapeDescriptor::cpu::array<DescriptorType> illustrationImages;
     if(enableIllustrationGenerationMode) {
         std::cout << "    Illustration object generation mode is active, result generation is disabled." << std::endl;
         illustrativeObjectLimit = configuration.at("illustrationDataGenerationOverride").at("objectLimit");
+        illustrativeObjectStride = configuration.at("illustrationDataGenerationOverride").at("objectStride");
         illustrativeObjectOutputDirectory = resultsDirectory / std::string(configuration.at("illustrationDataGenerationOverride").at("outputDirectory"));
         if(!std::filesystem::exists(illustrativeObjectOutputDirectory)) {
             std::filesystem::create_directories(illustrativeObjectOutputDirectory);
@@ -249,7 +251,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         }
 
         #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch)
-        for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject) {
+        for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject * illustrativeObjectStride) {
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
             ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
@@ -369,7 +371,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                     if(enableIllustrationGenerationMode) {
                         if(DescriptorMethod::getName() == "QUICCI") {
-                            illustrationImages.content[sampleVertexIndex + i] = filteredPointDescriptor;
+                            illustrationImages.content[(sampleVertexIndex/illustrativeObjectStride) + i] = filteredPointDescriptor;
                         }
                         continue;
                     }
