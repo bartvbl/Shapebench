@@ -104,7 +104,7 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
         for (uint32_t meshVertexIndex = 0; meshVertexIndex < scene.filteredSampleMesh.vertexCount; meshVertexIndex++) {
             ShapeDescriptor::cpu::float3 meshVertex = scene.filteredSampleMesh.vertices[meshVertexIndex];
             for (uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
-                ShapeDescriptor::OrientedPoint referencePoint = scene.mappedReferenceVertices.at(i);
+                ShapeDescriptor::OrientedPoint referencePoint = originalReferenceVertices.at(i);
                 ShapeDescriptor::cpu::float3 referenceVertex = referencePoint.vertex;
                 float distanceToReferenceVertex = length(referenceVertex - meshVertex);
                 if (distanceToReferenceVertex < bestDistances.at(i)) {

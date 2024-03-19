@@ -365,7 +365,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
                     resultsEntries.at(i).filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
 
-                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, resultsEntries.at(i).filteredVertexLocation, configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
+                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, filteredMesh.mappedReferenceVertices.at(i), configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
 
                     if(enableIllustrationGenerationMode) {
                         if(DescriptorMethod::getName() == "QUICCI") {
