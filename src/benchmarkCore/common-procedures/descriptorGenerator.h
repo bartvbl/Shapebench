@@ -9,7 +9,7 @@
 
 namespace ShapeBench {
     template<typename DescriptorMethod, typename DescriptorType>
-    DescriptorType computeDescriptors(
+    void computeDescriptors(
             const ShapeDescriptor::cpu::Mesh& mesh,
             const ShapeDescriptor::cpu::PointCloud& pointCloud,
             const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
@@ -44,11 +44,10 @@ namespace ShapeBench {
             }
         }
 
-        DescriptorType descriptor = descriptors.content[0];
+        assert(descriptors.length == outputDescriptors.size());
+        std::copy(descriptors.content, descriptors.content + descriptors.length, outputDescriptors.begin());
 
         ShapeDescriptor::free(descriptors);
-
-        return descriptor;
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
