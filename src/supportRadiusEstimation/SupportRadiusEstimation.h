@@ -13,6 +13,7 @@
 #include "benchmarkCore/common-procedures/pointCloudSampler.h"
 #include "benchmarkCore/common-procedures/meshLoader.h"
 #include "benchmarkCore/randomEngine.h"
+#include "utils/prettyprint.h"
 
 namespace ShapeBench {
     inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const ShapeBench::Dataset& dataset, ShapeBench::VertexInDataset vertex) {
@@ -154,7 +155,9 @@ namespace ShapeBench {
         for(uint32_t referenceIndex = 0; referenceIndex < representativeSetSize; referenceIndex++) {
             #pragma omp atomic
             referenceCountProcessed++;
-            std::cout << "\r        Processing " + std::to_string(referenceCountProcessed) + "/" + std::to_string(representativeSetSize) << std::flush;
+            std::cout << "\r        Processing " + std::to_string(referenceCountProcessed) + "/" + std::to_string(representativeSetSize) << " ";
+            ShapeBench::drawProgressBar(referenceCountProcessed, representativeSetSize);
+            std::cout << std::flush;
             VertexInDataset referenceVertex = representativeSet.at(referenceIndex);
             ShapeDescriptor::cpu::Mesh representativeSetMesh = loadMesh(config, dataset,referenceVertex);
             ShapeDescriptor::cpu::PointCloud representativeSetPointCloud;
@@ -193,7 +196,9 @@ namespace ShapeBench {
         for(uint32_t sampleIndex = 0; sampleIndex < sampleDescriptorSetSize; sampleIndex++) {
             #pragma omp atomic
             sampleCountProcessed++;
-            std::cout << "\r        Processing " + std::to_string(sampleCountProcessed) + "/" + std::to_string(sampleDescriptorSetSize) << std::flush;
+            std::cout << "\r        Processing " + std::to_string(sampleCountProcessed) + "/" + std::to_string(sampleDescriptorSetSize) << " ";
+            ShapeBench::drawProgressBar(sampleCountProcessed, sampleDescriptorSetSize);
+            std::cout << std::flush;
             VertexInDataset sampleVertex = sampleVerticesSet.at(sampleIndex);
             ShapeDescriptor::cpu::Mesh sampleSetMesh = loadMesh(config, dataset, sampleVertex);
             ShapeDescriptor::cpu::PointCloud sampleSetPointCloud;
@@ -255,7 +260,9 @@ namespace ShapeBench {
 
 
         std::chrono::time_point end = std::chrono::steady_clock::now();
-        std::cout << std::endl << "    Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;
+        std::cout << std::endl << "    Time taken: ";
+        ShapeBench::printDuration(end - start);
+        std::cout << std::endl;
 
         float highestMean = 0;
         float highestMeanSupportRadius = 0;
