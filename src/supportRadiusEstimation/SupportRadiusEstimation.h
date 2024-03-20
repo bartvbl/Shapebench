@@ -240,7 +240,12 @@ namespace ShapeBench {
                          << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
         }
         std::string unique = ShapeDescriptor::generateUniqueFilenameString();
-        std::ofstream outputFile("support_radii_meanvariance_" + DescriptorMethod::getName() + "_" + unique + ".txt");
+        std::filesystem::path outputDirectory = std::filesystem::path(std::string(config.at("resultsDirectory"))) / "support_radius_estimation";
+        if(!std::filesystem::exists(outputDirectory)) {
+            std::filesystem::create_directories(outputDirectory);
+        }
+        std::filesystem::path outputPath = outputDirectory / "support_radii_meanvariance_" + DescriptorMethod::getName() + "_" + unique + ".txt";
+        std::ofstream outputFile(outputPath);
         outputFile << outputBuffer.str();
 
         std::cout << std::endl << outputBuffer.str() << std::endl;
