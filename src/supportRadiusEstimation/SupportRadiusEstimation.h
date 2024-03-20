@@ -244,7 +244,7 @@ namespace ShapeBench {
         if(!std::filesystem::exists(outputDirectory)) {
             std::filesystem::create_directories(outputDirectory);
         }
-        std::filesystem::path outputPath = outputDirectory / "support_radii_meanvariance_" + DescriptorMethod::getName() + "_" + unique + ".txt";
+        std::filesystem::path outputPath = outputDirectory / ("support_radii_meanvariance_" + DescriptorMethod::getName() + "_" + unique + ".txt");
         std::ofstream outputFile(outputPath);
         outputFile << outputBuffer.str();
 
