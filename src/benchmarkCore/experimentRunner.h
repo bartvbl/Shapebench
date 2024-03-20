@@ -360,7 +360,17 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile, filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
                 }
 
-                std::vector<DescriptorType> tempDescriptor(1);
+                std::vector<DescriptorType> filteredDescriptors(verticesPerSampleObject);
+                std::vector<float> radii(verticesPerSampleObject, supportRadius);
+                ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
+                        combinedMesh,
+                        {filteredMesh.mappedReferenceVertices.size(), filteredMesh.mappedReferenceVertices.data()},
+                        configuration,
+                        radii,
+                        pointCloudSamplingSeed,
+                        sampleDescriptorGenerationSeed,
+                        filteredDescriptors);
+
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
                     if(!resultsEntries.at(i).included) {
@@ -372,28 +382,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
                     resultsEntries.at(i).filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
 
-                    std::vector<float> radii(1, supportRadius);
-                    ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
-                            combinedMesh,
-                            {1, &filteredMesh.mappedReferenceVertices.at(i)},
-                            configuration,
-                            radii,
-                            pointCloudSamplingSeed,
-                            sampleDescriptorGenerationSeed,
-                            tempDescriptor);
-                    DescriptorType filteredPointDescriptor = tempDescriptor.at(0);
-
                     if(enableIllustrationGenerationMode) {
                         if(DescriptorMethod::getName() == "QUICCI") {
-                            illustrationImages.content[(sampleVertexIndex/illustrativeObjectStride) + i] = filteredPointDescriptor;
+                            illustrationImages.content[(sampleVertexIndex/illustrativeObjectStride) + i] = filteredDescriptors.at(i);
                         }
                         continue;
                     }
 
-                    uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredPointDescriptor, referenceDescriptors);
+                    uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredDescriptors.at(i), referenceDescriptors);
 
                     ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
-
 
                     resultsEntries.at(i).filteredDescriptorRank = imageIndex;
                     resultsEntries.at(i).fractionAddedNoise = areaEstimate.addedAdrea;
