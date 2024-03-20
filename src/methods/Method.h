@@ -54,37 +54,37 @@ namespace ShapeBench {
             return false;
         }
         static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
-                ShapeDescriptor::gpu::Mesh mesh,
-                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
+                const ShapeDescriptor::gpu::Mesh& mesh,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwUnimplementedException();
             return {};
         }
         static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
-                const ShapeDescriptor::gpu::PointCloud cloud,
-                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
+                const ShapeDescriptor::gpu::PointCloud& cloud,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwUnimplementedException();
             return {};
         }
         static ShapeDescriptor::cpu::array<DescriptorType> computeDescriptors(
-                ShapeDescriptor::cpu::Mesh mesh,
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::Mesh& mesh,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwUnimplementedException();
             return {};
         }
         static ShapeDescriptor::cpu::array<DescriptorType> computeDescriptors(
-                const ShapeDescriptor::cpu::PointCloud cloud,
-                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::PointCloud& cloud,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwUnimplementedException();
             return {};

@@ -7,6 +7,12 @@
 
 namespace ShapeBench {
     struct SIMethod : public ShapeBench::Method<ShapeDescriptor::SpinImageDescriptor> {
+        static float supportAngleDegrees;
+
+        static void init(const nlohmann::json& config) {
+            supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
+        }
+
         __host__ __device__ static __inline__ float computePearsonCorrelation(
                 const ShapeDescriptor::SpinImageDescriptor& descriptor,
                 const ShapeDescriptor::SpinImageDescriptor& otherDescriptor) {
@@ -130,46 +136,46 @@ namespace ShapeBench {
             return true;
         }
         static bool hasGPUKernels() {
-            return true;
+            return false;
         }
         static bool shouldUseGPUKernel() {
             return false;
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
-                ShapeDescriptor::gpu::Mesh mesh,
-                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::gpu::Mesh& mesh,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
-                const ShapeDescriptor::gpu::PointCloud cloud,
-                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::gpu::PointCloud& cloud,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
-                uint64_t randomSeed) {
-            float supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
-            return ShapeDescriptor::generateSpinImages(cloud, descriptorOrigins, supportRadius, supportAngleDegrees);
-        }
-        static ShapeDescriptor::cpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
-                ShapeDescriptor::cpu::Mesh mesh,
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
-                const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::cpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
-                const ShapeDescriptor::cpu::PointCloud cloud,
-                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::Mesh& mesh,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            float supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
-            return ShapeDescriptor::generateSpinImages(cloud, descriptorOrigins, supportRadius, supportAngleDegrees);
+            throwIncompatibleException();
+            return {};
+        }
+        static ShapeDescriptor::cpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
+                const ShapeDescriptor::cpu::PointCloud& cloud,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
+                const nlohmann::json& config,
+                const std::vector<float>& supportRadii,
+                uint64_t randomSeed) {
+
+            return ShapeDescriptor::generateSpinImagesMultiRadius(cloud, descriptorOrigins, supportRadii, supportAngleDegrees);
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {

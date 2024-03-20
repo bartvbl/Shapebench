@@ -71,43 +71,53 @@ namespace ShapeBench {
         }
 
         static ShapeDescriptor::gpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
-                ShapeDescriptor::gpu::Mesh mesh,
-                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::gpu::Mesh& mesh,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
-                const ShapeDescriptor::gpu::PointCloud cloud,
-                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::gpu::PointCloud& cloud,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
+            return {};
         }
 
         static ShapeDescriptor::cpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
-                ShapeDescriptor::cpu::Mesh mesh,
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::Mesh& mesh,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            return ShapeDescriptor::generateRoPSDescriptors(mesh,
-                    descriptorOrigins,
-                    supportRadius,
-                    RoPSPointCloudSamplingDensity,
-                    randomSeed, RoPSPointCloudSampleLimit);
+            ShapeDescriptor::cpu::array<ShapeDescriptor::RoPSDescriptor> outDescriptors(descriptorOrigins.length);
+            for(uint32_t i = 0; i < descriptorOrigins.length; i++) {
+                ShapeDescriptor::cpu::array<ShapeDescriptor::RoPSDescriptor> descriptor =
+                        ShapeDescriptor::generateRoPSDescriptors(
+                                 mesh,
+                                 {1, &descriptorOrigins.content[i]},
+                                 supportRadii.at(i),
+                                 RoPSPointCloudSamplingDensity,
+                                 randomSeed, RoPSPointCloudSampleLimit);
+                outDescriptors[i] = descriptor[0];
+                ShapeDescriptor::free(descriptor);
+            }
+            return outDescriptors;
         }
 
         static ShapeDescriptor::cpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
-                const ShapeDescriptor::cpu::PointCloud cloud,
-                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::PointCloud& cloud,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
+            return {};
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {

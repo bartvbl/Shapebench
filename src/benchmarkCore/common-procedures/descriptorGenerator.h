@@ -9,38 +9,38 @@
 
 namespace ShapeBench {
     template<typename DescriptorMethod, typename DescriptorType>
-    DescriptorType computeSingleDescriptor(const ShapeDescriptor::cpu::Mesh& mesh,
-                                 const ShapeDescriptor::cpu::PointCloud& pointCloud,
-                                 ShapeDescriptor::OrientedPoint descriptorOrigin,
-                                 const nlohmann::json &config,
-                                 float supportRadius,
-                                 uint64_t randomSeed) {
+    DescriptorType computeDescriptors(
+            const ShapeDescriptor::cpu::Mesh& mesh,
+            const ShapeDescriptor::cpu::PointCloud& pointCloud,
+            const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
+            const nlohmann::json &config,
+            const std::vector<float>& supportRadii,
+            uint64_t randomSeed,
+            std::vector<DescriptorType>& outputDescriptors) {
         ShapeDescriptor::cpu::array<DescriptorType> descriptors;
         if (DescriptorMethod::usesPointCloudInput()) {
             if(DescriptorMethod::shouldUseGPUKernel()) {
                 ShapeDescriptor::gpu::PointCloud gpuCloud = ShapeDescriptor::copyToGPU(pointCloud);
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray {1, &descriptorOrigin};
-                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(originArray);
-                ShapeDescriptor::gpu::array<DescriptorType> gpuDescriptors = DescriptorMethod::computeDescriptors(gpuCloud, gpuOrigins, config, supportRadius, randomSeed);
+                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(descriptorOrigins);
+                ShapeDescriptor::gpu::array<DescriptorType> gpuDescriptors = DescriptorMethod::computeDescriptors(gpuCloud, gpuOrigins, config, supportRadii, randomSeed);
                 descriptors = ShapeDescriptor::copyToCPU(gpuDescriptors);
                 ShapeDescriptor::free(gpuDescriptors);
                 ShapeDescriptor::free(gpuOrigins);
                 ShapeDescriptor::free(gpuCloud);
             } else {
-                descriptors = DescriptorMethod::computeDescriptors(pointCloud, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
+                descriptors = DescriptorMethod::computeDescriptors(pointCloud, descriptorOrigins, config, supportRadii, randomSeed);
             }
         } else {
             if(DescriptorMethod::shouldUseGPUKernel()) {
                 ShapeDescriptor::gpu::Mesh gpuMesh = ShapeDescriptor::copyToGPU(mesh);
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray {1, &descriptorOrigin};
-                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(originArray);
-                ShapeDescriptor::gpu::array<DescriptorType> gpuDescriptors = DescriptorMethod::computeDescriptors(gpuMesh, gpuOrigins, config, supportRadius, randomSeed);
+                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> gpuOrigins = ShapeDescriptor::copyToGPU(descriptorOrigins);
+                ShapeDescriptor::gpu::array<DescriptorType> gpuDescriptors = DescriptorMethod::computeDescriptors(gpuMesh, gpuOrigins, config, supportRadii, randomSeed);
                 descriptors = ShapeDescriptor::copyToCPU(gpuDescriptors);
                 ShapeDescriptor::free(gpuDescriptors);
                 ShapeDescriptor::free(gpuOrigins);
                 ShapeDescriptor::free(gpuMesh);
             } else {
-                descriptors = DescriptorMethod::computeDescriptors(mesh, {1, &descriptorOrigin}, config, supportRadius, randomSeed);
+                descriptors = DescriptorMethod::computeDescriptors(mesh, descriptorOrigins, config, supportRadii, randomSeed);
             }
         }
 
@@ -52,41 +52,24 @@ namespace ShapeBench {
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
-    DescriptorType computeSingleDescriptor(const ShapeDescriptor::cpu::Mesh& mesh,
-                                           ShapeDescriptor::OrientedPoint descriptorOrigin,
-                                           const nlohmann::json &config,
-                                           float supportRadius,
-                                           uint64_t pointCloudSamplingSeed,
-                                           uint64_t descriptorRandomSeed) {
+    void computeDescriptors(
+            const ShapeDescriptor::cpu::Mesh& mesh,
+            const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
+            const nlohmann::json &config,
+            const std::vector<float>& supportRadii,
+            uint64_t pointCloudSamplingSeed,
+            uint64_t descriptorRandomSeed,
+            std::vector<DescriptorType>& outputDescriptors) {
+
         ShapeDescriptor::cpu::PointCloud pointCloud;
         if (DescriptorMethod::usesPointCloudInput()) {
             pointCloud = computePointCloud<DescriptorMethod>(mesh, config, pointCloudSamplingSeed);
         }
 
-        DescriptorType descriptor = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, descriptorOrigin, config, supportRadius, descriptorRandomSeed);
+        computeDescriptors<DescriptorMethod, DescriptorType>(mesh, pointCloud, descriptorOrigins, config, supportRadii, descriptorRandomSeed, outputDescriptors);
 
         if(DescriptorMethod::usesPointCloudInput()) {
             ShapeDescriptor::free(pointCloud);
-        }
-
-        return descriptor;
-    }
-
-    template<typename DescriptorMethod, typename DescriptorType>
-    void computeDescriptorsForEachSupportRadii(
-            VertexInDataset vertexToRender,
-            const ShapeDescriptor::cpu::Mesh& mesh,
-            const ShapeDescriptor::cpu::PointCloud& pointCloud,
-            const nlohmann::json &config,
-            uint64_t randomSeed,
-            const std::vector<float>& supportRadii,
-            std::vector<DescriptorType>& outputDescriptors) {
-        assert(supportRadii.size() == outputDescriptors.size());
-
-        for (uint32_t radiusIndex = 0; radiusIndex < supportRadii.size(); radiusIndex++) {
-            uint32_t vertexIndex = vertexToRender.vertexIndex;
-            ShapeDescriptor::OrientedPoint originPoint = {mesh.vertices[vertexIndex], mesh.normals[vertexIndex]};
-            outputDescriptors.at(radiusIndex) = computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, pointCloud, originPoint, config, supportRadii.at(radiusIndex), randomSeed);
         }
     }
 }

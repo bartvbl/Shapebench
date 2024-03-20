@@ -9,7 +9,7 @@
 
 namespace ShapeBench {
     static float minSupportRadiusFactor;
-    static float pointDensityRadiusFactor;
+    static float pointDensityRadius;
 
     struct ShapeContextMethod : public ShapeBench::Method<ShapeDescriptor::ShapeContextDescriptor> {
 
@@ -18,7 +18,7 @@ namespace ShapeBench {
 
         static void init(const nlohmann::json& config) {
             minSupportRadiusFactor = readDescriptorConfigValue<float>(config, "3DSC", "minSupportRadiusFactor");
-            pointDensityRadiusFactor = readDescriptorConfigValue<float>(config, "3DSC", "pointDensityRadiusFactor");
+            pointDensityRadius = readDescriptorConfigValue<float>(config, "3DSC", "pointDensityRadius");
         }
 
         __host__ __device__ static __inline__ float computeEuclideanDistance(
@@ -103,7 +103,7 @@ namespace ShapeBench {
         }
 
         static bool hasGPUKernels() {
-            return true;
+            return false;
         }
 
         static bool shouldUseGPUKernel() {
@@ -111,40 +111,45 @@ namespace ShapeBench {
         }
 
         static ShapeDescriptor::gpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
-                ShapeDescriptor::gpu::Mesh mesh,
-                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::gpu::Mesh& mesh,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
-                const ShapeDescriptor::gpu::PointCloud cloud,
-                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::gpu::PointCloud& cloud,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
-                uint64_t randomSeed) {
-            return ShapeDescriptor::generate3DSCDescriptors(cloud, descriptorOrigins, pointDensityRadiusFactor * supportRadius, minSupportRadiusFactor * supportRadius, supportRadius);
-        }
-
-        static ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
-                ShapeDescriptor::cpu::Mesh mesh,
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
-                const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
 
         static ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
-                const ShapeDescriptor::cpu::PointCloud cloud,
-                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::Mesh& mesh,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            return ShapeDescriptor::generate3DSCDescriptors(cloud, descriptorOrigins, pointDensityRadiusFactor * supportRadius, minSupportRadiusFactor * supportRadius, supportRadius);
+            throwIncompatibleException();
+            return {};
+        }
+
+        static ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
+                const ShapeDescriptor::cpu::PointCloud& cloud,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
+                const nlohmann::json& config,
+                const std::vector<float>& supportRadii,
+                uint64_t randomSeed) {
+            std::vector<float> minSupportRadii(descriptorOrigins.length);
+            for(uint32_t i = 0; i < supportRadii.size(); i++) {
+                minSupportRadii.at(i) = minSupportRadiusFactor * supportRadii.at(i);
+            }
+            return ShapeDescriptor::generate3DSCDescriptorsMultiRadius(cloud, descriptorOrigins, pointDensityRadius, minSupportRadii, supportRadii);
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
@@ -163,7 +168,7 @@ namespace ShapeBench {
             metadata["verticalSliceCount"] = SHAPE_CONTEXT_VERTICAL_SLICE_COUNT;
             metadata["layerCount"] = SHAPE_CONTEXT_LAYER_COUNT;
             metadata["minSupportRadiusScaleFactor"] = minSupportRadiusFactor;
-            metadata["pointDensityRadiusFactor"] = pointDensityRadiusFactor;
+            metadata["pointDensityRadius"] = pointDensityRadius;
             metadata["distanceFunction"] = "Euclidean distance";
             return metadata;
         }

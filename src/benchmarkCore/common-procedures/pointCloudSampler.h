@@ -45,7 +45,6 @@ namespace ShapeBench {
         if(ShapeBench::hasConfigValue(config, DescriptorMethod::getName(), "pointDensityScaleFactor")) {
             double scaleFactor = ShapeBench::readDescriptorConfigValue<double>(config, DescriptorMethod::getName(), "pointDensityScaleFactor");
             sampleCount = uint32_t(scaleFactor * double(sampleCount));
-            std::cout << sampleCount << std::endl;
         }
 
         return ShapeDescriptor::sampleMesh(mesh, sampleCount, randomSeed);

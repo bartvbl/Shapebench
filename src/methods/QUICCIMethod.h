@@ -88,41 +88,42 @@ namespace ShapeBench {
             return false;
         }
         static bool hasGPUKernels() {
-            return true;
+            return false;
         }
         static bool shouldUseGPUKernel() {
             return false;
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
-                ShapeDescriptor::gpu::Mesh mesh,
-                ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::gpu::Mesh& mesh,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            return ShapeDescriptor::generatePartialityResistantQUICCImages(mesh, descriptorOrigins, supportRadius);
+            throwIncompatibleException();
+            return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
-                const ShapeDescriptor::gpu::PointCloud cloud,
-                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> device_descriptorOrigins,
+                const ShapeDescriptor::gpu::PointCloud& cloud,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::cpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
-                ShapeDescriptor::cpu::Mesh mesh,
-                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::Mesh& mesh,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            return ShapeDescriptor::generatePartialityResistantQUICCImages(mesh, descriptorOrigins, supportRadius);
+            return ShapeDescriptor::generatePartialityResistantQUICCImagesMultiRadius(mesh, descriptorOrigins, supportRadii);
         }
         static ShapeDescriptor::cpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
-                const ShapeDescriptor::cpu::PointCloud cloud,
-                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> descriptorOrigins,
+                const ShapeDescriptor::cpu::PointCloud& cloud,
+                const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
-                float supportRadius,
+                const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
             throwIncompatibleException();
             return {};

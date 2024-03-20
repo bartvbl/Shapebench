@@ -22,21 +22,21 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "additive-noise"}
             ]
         },
         {
             "name": "subtractive-noise-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
         },
         {
             "name": "normal-noise-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "normal-noise"}
             ]
@@ -50,14 +50,14 @@
         },
         {
             "name": "support-radius-deviation-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "support-radius-deviation"}
             ]
         },
         {
             "name": "mesh-resolution-deviation-only",
-            "enabled": false,
+            "enabled": true,
             "filters": [
                 {"type": "mesh-resolution-deviation"}
             ]
@@ -117,8 +117,8 @@
         {
             "name": "3DSC",
             "minSupportRadiusFactor": 0.04,
-            "pointDensityRadiusFactor": 0.08,
-            "pointDensityScaleFactor": 0.01
+            "pointDensityScaleFactor": 0.01,
+            "pointDensityRadius": 0.08
         },
         {
             "name": "FPFH"

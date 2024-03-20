@@ -30,9 +30,11 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
     for(uint32_t i = 0; i < representativeSet.size(); i++) {
         randomSeeds.at(i) = randomEngine();
     }
-
+    std::vector<float> radii(1, supportRadius);
     ShapeDescriptor::cpu::array<DescriptorType> representativeDescriptors(representativeSet.size());
     uint32_t completedCount = 0;
+    std::vector<DescriptorType> tempDescriptor(1);
+
     #pragma omp parallel for schedule(dynamic)
     for(int i = 0; i < representativeSet.size(); i++) {
         ShapeDescriptor::OrientedPoint descriptorOrigin;
@@ -41,7 +43,10 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
         ShapeDescriptor::cpu::Mesh mesh = ShapeBench::readDatasetMesh(config, entry);
         descriptorOrigin.vertex = mesh.vertices[vertex.vertexIndex];
         descriptorOrigin.normal = mesh.normals[vertex.vertexIndex];
-        representativeDescriptors[i] = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(mesh, descriptorOrigin, config, supportRadius, randomSeeds.at(i), randomSeeds.at(i));
+        ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray(1, &descriptorOrigin);
+
+        ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(mesh, originArray, config, radii, randomSeeds.at(i), randomSeeds.at(i), tempDescriptor);
+        representativeDescriptors[i] = tempDescriptor.at(0);
         ShapeDescriptor::free(mesh);
 
         #pragma omp atomic
@@ -164,7 +169,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     // Computing sample descriptors, or load them from a cache file
     std::cout << "Computing sample descriptor set.." << std::endl;
     std::vector<ShapeBench::VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize, configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject"));
-
     ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), sampleVerticesSet, "sample");
 
     // Initialise filter caches
@@ -356,6 +360,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile, filteredMesh.mappedReferenceVertices.at(0), supportRadius, false);
                 }
 
+                std::vector<DescriptorType> tempDescriptor(1);
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
                     if(!resultsEntries.at(i).included) {
@@ -367,7 +372,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
                     resultsEntries.at(i).filteredVertexLocation = filteredMesh.mappedReferenceVertices.at(i);
 
-                    DescriptorType filteredPointDescriptor = ShapeBench::computeSingleDescriptor<DescriptorMethod, DescriptorType>(combinedMesh, filteredMesh.mappedReferenceVertices.at(i), configuration, supportRadius, pointCloudSamplingSeed, sampleDescriptorGenerationSeed);
+                    std::vector<float> radii(1, supportRadius);
+                    ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
+                            combinedMesh,
+                            {1, &filteredMesh.mappedReferenceVertices.at(i)},
+                            configuration,
+                            radii,
+                            pointCloudSamplingSeed,
+                            sampleDescriptorGenerationSeed,
+                            tempDescriptor);
+                    DescriptorType filteredPointDescriptor = tempDescriptor.at(0);
 
                     if(enableIllustrationGenerationMode) {
                         if(DescriptorMethod::getName() == "QUICCI") {

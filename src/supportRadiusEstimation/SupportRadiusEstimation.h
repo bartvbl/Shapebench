@@ -162,14 +162,15 @@ namespace ShapeBench {
                 representativeSetPointCloud = computePointCloud<DescriptorMethod>(representativeSetMesh, config, referencePointCloudSamplingSeed);
             }
 
-            try {
-                ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
-                        referenceVertex, representativeSetMesh, representativeSetPointCloud, config,
-                        referenceDescriptorGenerationSeed,
-                        supportRadiiToTry, generatedDescriptors);
-            } catch(const std::exception& e) {
-                throw std::runtime_error("Failed to generate descriptor with index " + std::to_string(referenceIndex) + ": " + e.what());
-            }
+            //try {
+            ShapeDescriptor::OrientedPoint originPoint = {representativeSetMesh.vertices[referenceVertex.vertexIndex], representativeSetMesh.normals[referenceVertex.vertexIndex]};
+            std::vector<ShapeDescriptor::OrientedPoint> orientedPoints(supportRadiiToTry.size(), originPoint);
+                ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
+                        representativeSetMesh, representativeSetPointCloud, {orientedPoints.size(), orientedPoints.data()}, config,
+                        supportRadiiToTry, referenceDescriptorGenerationSeed, generatedDescriptors);
+            //} catch(const std::exception& e) {
+            //    throw std::runtime_error("Failed to generate descriptor with index " + std::to_string(referenceIndex) + ": " + e.what());
+            //}
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
                 referenceDescriptors.at(representativeSetSize * i + referenceIndex) = generatedDescriptors.at(i);
             }
@@ -200,9 +201,10 @@ namespace ShapeBench {
                 sampleSetPointCloud = computePointCloud<DescriptorMethod>(sampleSetMesh, config, samplePointCloudSamplingSeed);
             }
 
-            ShapeBench::computeDescriptorsForEachSupportRadii<DescriptorMethod, DescriptorType>(
-                    sampleVertex, sampleSetMesh, sampleSetPointCloud, config, sampleDescriptorGenerationSeed,
-                    supportRadiiToTry, generatedDescriptors);
+            ShapeDescriptor::OrientedPoint originPoint = {sampleSetMesh.vertices[sampleVertex.vertexIndex], sampleSetMesh.normals[sampleVertex.vertexIndex]};
+            std::vector<ShapeDescriptor::OrientedPoint> orientedPoints(supportRadiiToTry.size(), originPoint);
+            ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
+                    sampleSetMesh, sampleSetPointCloud, {orientedPoints.size(), orientedPoints.data()}, config, supportRadiiToTry, sampleDescriptorGenerationSeed, generatedDescriptors);
 
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
                 sampleDescriptors.at(sampleDescriptorSetSize * i + sampleIndex) = generatedDescriptors.at(i);
