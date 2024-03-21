@@ -153,11 +153,13 @@ namespace ShapeBench {
         int referenceCountProcessed = 0;
         #pragma omp parallel for default(none) shared(representativeSetSize, representativeSet, dataset, std::cout, config, referenceCountProcessed, referencePointCloudSamplingSeed, supportRadiiToTry, referenceDescriptorGenerationSeed, numberOfSupportRadiiToTry, referenceDescriptors, sampleDescriptorSetSize, sampleVerticesSet) firstprivate(generatedDescriptors) schedule(dynamic)
         for(uint32_t referenceIndex = 0; referenceIndex < representativeSetSize; referenceIndex++) {
-            #pragma omp atomic
-            referenceCountProcessed++;
-            std::cout << "\r        Processing " + std::to_string(referenceCountProcessed) + "/" + std::to_string(representativeSetSize) << " ";
-            ShapeBench::drawProgressBar(referenceCountProcessed, representativeSetSize);
-            std::cout << std::flush;
+            #pragma omp critical
+            {
+                referenceCountProcessed++;
+                std::cout << "\r        Processing " + std::to_string(referenceCountProcessed) + "/" + std::to_string(representativeSetSize) << " ";
+                ShapeBench::drawProgressBar(referenceCountProcessed, representativeSetSize);
+                std::cout << std::flush;
+            };
             VertexInDataset referenceVertex = representativeSet.at(referenceIndex);
             ShapeDescriptor::cpu::Mesh representativeSetMesh = loadMesh(config, dataset,referenceVertex);
             ShapeDescriptor::cpu::PointCloud representativeSetPointCloud;
@@ -194,11 +196,13 @@ namespace ShapeBench {
         int sampleCountProcessed = 0;
         #pragma omp parallel for default(none) shared(sampleDescriptorSetSize, sampleVerticesSet, sampleCountProcessed, std::cout, dataset, config, samplePointCloudSamplingSeed, sampleDescriptorGenerationSeed, supportRadiiToTry, numberOfSupportRadiiToTry, sampleDescriptors) firstprivate(generatedDescriptors) schedule(dynamic)
         for(uint32_t sampleIndex = 0; sampleIndex < sampleDescriptorSetSize; sampleIndex++) {
-            #pragma omp atomic
-            sampleCountProcessed++;
-            std::cout << "\r        Processing " + std::to_string(sampleCountProcessed) + "/" + std::to_string(sampleDescriptorSetSize) << " ";
-            ShapeBench::drawProgressBar(sampleCountProcessed, sampleDescriptorSetSize);
-            std::cout << std::flush;
+            #pragma omp critical
+            {
+                sampleCountProcessed++;
+                std::cout << "\r        Processing " + std::to_string(sampleCountProcessed) + "/" + std::to_string(sampleDescriptorSetSize) << " ";
+                ShapeBench::drawProgressBar(sampleCountProcessed, sampleDescriptorSetSize);
+                std::cout << std::flush;
+            };
             VertexInDataset sampleVertex = sampleVerticesSet.at(sampleIndex);
             ShapeDescriptor::cpu::Mesh sampleSetMesh = loadMesh(config, dataset, sampleVertex);
             ShapeDescriptor::cpu::PointCloud sampleSetPointCloud;
