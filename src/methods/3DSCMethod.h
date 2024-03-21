@@ -25,7 +25,7 @@ namespace ShapeBench {
                 const ShapeDescriptor::ShapeContextDescriptor& descriptor,
                 const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor) {
 #ifdef __CUDA_ARCH__
-            __shared__ float squaredSums[SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT];
+            float lowestSquareSum;
             for(int sliceOffset = 0; sliceOffset < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT; sliceOffset++) {
                 float threadSquaredDistance = 0;
                 for (short binIndex = threadIdx.x; binIndex < elementsPerShapeContextDescriptor; binIndex += blockDim.x) {
@@ -42,23 +42,18 @@ namespace ShapeBench {
 
                 float combinedSquaredDistance = ShapeDescriptor::warpAllReduceSum(threadSquaredDistance);
 
-                if (threadIdx.x == 0) {
-                    squaredSums[sliceOffset] = combinedSquaredDistance;
+                if (threadIdx.x == 0 && (sliceOffset = 0 || combinedSquaredDistance < lowestSquareSum)) {
+                    lowestSquareSum = combinedSquaredDistance;
                 }
             }
-
-            // An entire warp must participate in the reduction, so we give the excess threads
-            // the highest possible value so that any other value will be lower
-            float threadValue = threadIdx.x < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT ?
-                                squaredSums[threadIdx.x] : FLT_MAX;
-            float lowestDistance = std::sqrt(ShapeDescriptor::warpAllReduceMin(threadValue));
-
+            
+            float lowestDistance = std::sqrt(lowestSquareSum);
             return lowestDistance;
 #else
-            std::array<float, SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT> squaredSums;
+            float squaredSum = std::numeric_limits<float>::max();
             for(int sliceOffset = 0; sliceOffset < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT; sliceOffset++) {
                 float combinedSquaredDistance = 0;
-                for (short binIndex = 0; binIndex < elementsPerShapeContextDescriptor; binIndex++) {
+                for (short binIndex = 0; binIndex < elementsPerShapeContextDescriptor || combinedSquaredDistance > squaredSum; binIndex++) {
                     float needleBinValue = descriptor.contents[binIndex];
                     short haystackBinIndex = (binIndex + (sliceOffset * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT * SHAPE_CONTEXT_LAYER_COUNT));
                     // Simple modulo that I think is less expensive
@@ -70,17 +65,12 @@ namespace ShapeBench {
                     combinedSquaredDistance += binDelta * binDelta;
                 }
 
-                squaredSums[sliceOffset] = combinedSquaredDistance;
+                if(sliceOffset == 0 || combinedSquaredDistance < squaredSum) {
+                    squaredSum = combinedSquaredDistance;
+                }
             }
 
-            // An entire warp must participate in the reduction, so we give the excess threads
-            // the highest possible value so that any other value will be lower
-
-            float lowestDistance = squaredSums.at(0);
-            for(int i = 1; i < squaredSums.size(); i++) {
-                lowestDistance = std::min(lowestDistance, squaredSums.at(i));
-            }
-            lowestDistance = std::sqrt(lowestDistance);
+            lowestDistance = std::sqrt(squaredSum);
 
             return lowestDistance;
 
