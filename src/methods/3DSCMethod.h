@@ -70,7 +70,7 @@ namespace ShapeBench {
                 }
             }
 
-            lowestDistance = std::sqrt(squaredSum);
+            float lowestDistance = std::sqrt(squaredSum);
 
             return lowestDistance;
 
