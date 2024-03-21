@@ -256,17 +256,24 @@ namespace ShapeBench {
         std::vector<uint32_t> voteHistogram(numberOfSupportRadiiToTry);
 
         std::vector<DistanceStatistics> distanceStats(supportRadiiToTry.size());
+        std::vector<std::string> outputFileContents(supportRadiiToTry.size());
+        #pragma omp parallel for
         for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
-            std::cout << "\r        Processing " << (i+1) << "/" << supportRadiiToTry.size() << std::flush;
+            std::cout << "\r        Processing " + std::to_string(i+1) + "/" + std::to_string(supportRadiiToTry.size()) << std::flush;
             ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
             ShapeDescriptor::cpu::array<DescriptorType> sampleArray = {sampleDescriptorSetSize, sampleDescriptors.data() + i * sampleDescriptorSetSize};
             std::vector<DescriptorDistance> supportRadiusDistances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleArray, referenceArray);
             DistanceStatistics stats = computeDistances<DescriptorType>(supportRadiusDistances, sampleDescriptorSetSize);
             distanceStats.at(i) = stats;
 
-            outputBuffer << i << ", " << (float(i) * supportRadiusStep + supportRadiusStart) << ", ";
-            outputBuffer << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
-                         << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
+            std::stringstream outputLine;
+            outputLine << i << ", " << (float(i) * supportRadiusStep + supportRadiusStart) << ", ";
+            outputLine << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
+                       << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
+            outputFileContents.at(i) = outputLine.str();
+        }
+        for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
+            outputBuffer << outputFileContents.at(i) << std::endl;
         }
         std::string unique = ShapeDescriptor::generateUniqueFilenameString();
         std::filesystem::path outputDirectory = std::filesystem::path(std::string(config.at("resultsDirectory"))) / "support_radius_estimation";
