@@ -120,7 +120,8 @@
             "name": "3DSC",
             "minSupportRadiusFactor": 0.04,
             "pointDensityScaleFactor": 0.01,
-            "pointDensityRadius": 0.08
+            "pointDensityRadius": 0.08,
+            "normaliseDescriptorWhenComputingSupportRadius": true
         },
         {
             "name": "FPFH"
@@ -151,6 +152,7 @@
         "enableIllustrationDataGeneration": true,
         "illustrationObjectIndex": 0,
         "objectLimit": 500,
+        "objectStride": 1,
         "outputDirectory": "illustrations_data",
         "referenceDescriptorStartIndex": 0,
         "referenceDescriptorCount": 500

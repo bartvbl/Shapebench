@@ -149,7 +149,9 @@ namespace ShapeBench {
             for(uint32_t i = 0; i < supportRadii.size(); i++) {
                 minSupportRadii.at(i) = minSupportRadiusFactor * supportRadii.at(i);
             }
-            return ShapeDescriptor::generate3DSCDescriptorsMultiRadius(cloud, descriptorOrigins, pointDensityRadius, minSupportRadii, supportRadii);
+            ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> descriptors
+                = ShapeDescriptor::generate3DSCDescriptorsMultiRadius(cloud, descriptorOrigins, pointDensityRadius, minSupportRadii, supportRadii);
+            return descriptors;
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {

@@ -225,6 +225,26 @@ namespace ShapeBench {
         // Force LibC to clean up
         malloc_trim(0);
 
+        if(ShapeBench::hasConfigValue(config, DescriptorMethod::getName(), "normaliseDescriptorWhenComputingSupportRadius")
+        && ShapeBench::readDescriptorConfigValue<bool>(config, DescriptorMethod::getName(), "normaliseDescriptorWhenComputingSupportRadius")) {
+            std::cout << "    Normalising descriptors.." << std::endl;
+            const uint32_t floatsPerDescriptor = (sizeof(DescriptorType) / sizeof(float));
+            #pragma omp parallel for
+            for(DescriptorType& descriptor : sampleDescriptors) {
+                float maxElement = *std::max_element(descriptor.contents, descriptor.contents + floatsPerDescriptor);
+                for(uint32_t i = 0; i < floatsPerDescriptor; i++) {
+                    descriptor.contents[i] /= maxElement;
+                }
+            }
+            #pragma omp parallel for
+            for(DescriptorType& descriptor: referenceDescriptors) {
+                float maxElement = *std::max_element(descriptor.contents, descriptor.contents + floatsPerDescriptor);
+                for(uint32_t i = 0; i < floatsPerDescriptor; i++) {
+                    descriptor.contents[i] /= maxElement;
+                }
+            }
+        }
+
         std::cout << "    Computing distances.." << std::endl;
 
         std::stringstream outputBuffer;
