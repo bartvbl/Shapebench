@@ -257,7 +257,7 @@ namespace ShapeBench {
 
         std::vector<DistanceStatistics> distanceStats(supportRadiiToTry.size());
         std::vector<std::string> outputFileContents(supportRadiiToTry.size());
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(dynamic)
         for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
             std::cout << "\r        Processing " + std::to_string(i+1) + "/" + std::to_string(supportRadiiToTry.size()) << std::flush;
             ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
