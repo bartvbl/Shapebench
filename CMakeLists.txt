@@ -38,7 +38,8 @@ add_subdirectory(../libShapeDescriptor libShapeDescriptor)
 set(CROSS_PLATFORM_DETERMINISTIC ON)
 set(BUILD_SHARED_LIBS OFF)
 set(OVERRIDE_CXX_FLAGS OFF)
-add_definitions(-DJPH_ENABLE_ASSERTS)
+set(ENABLE_ALL_WARNINGS OFF)
+add_definitions(-DJPH_ENABLE_ASSERTS -DJPH_DEBUG_RENDERER)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
 add_subdirectory(lib/pmp-library)
@@ -52,6 +53,9 @@ find_package(CGAL REQUIRED)
 #set(CGAL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/CGAL-5.6.1)
 #add_subdirectory(lib/CGAL-5.6.1)
 
+# sudo apt install freeglut3-dev
+#add_subdirectory(lib/pcl)
+#find_package(PCL 1.12 REQUIRED)
 #
 # Set include paths
 #
@@ -70,6 +74,7 @@ include_directories (
         ../libShapeDescriptor/lib/glm
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+        #${PCL_INCLUDE_DIRS}
 )
 
 #
@@ -87,9 +92,10 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo CGAL::CGAL) # lsan
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo CGAL::CGAL) # lsan ${PCL_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
+#target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler>)
