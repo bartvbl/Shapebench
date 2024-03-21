@@ -6,21 +6,25 @@ import plotly.graph_objects as go
 import numpy as np
 import matplotlib.pyplot as plt
 
-def determineProcessingMode(mode, fileContents):
-    if mode != "auto":
-        return mode
 
+class ExperimentSettings:
+    pass
+
+
+def getProcessingSettings(mode, fileContents):
     experimentID = fileContents["experiment"]["index"]
-    lastFilterName = fileContents["configuration"]["experimentsToRun"][experimentID]["filters"][-1]['type']
-    print(lastFilterName)
-    if lastFilterName == "normal-noise":
-        return "normal"
-    elif lastFilterName == "subtractive-noise":
+    experimentName = fileContents["configuration"]["experimentsToRun"][experimentID]["name"]
+    settings = ExperimentSettings()
+    if experimentName == "normal-noise":
+        settings.title = ""
+        settings.xAxisTitle = "Normal deviation (degrees)"
+        return settings
+    elif experimentName == "subtractive-noise":
         return "subtractive"
-    elif lastFilterName == "additive-noise":
+    elif experimentName == "additive-noise":
         return "additive"
     else:
-        raise Exception("Unknown filter name: " + lastFilterName)
+        raise Exception("Failed to determine chart settings: Unknown experiment name: " + experimentName)
 
 
 def getXValue(result, mode):
@@ -36,9 +40,9 @@ def getXAxisLabel(mode):
     if mode == "additive":
         return 'Fraction clutter area added'
     elif mode == "normal":
-        return "Normal deviation (degrees)"
+        return
     elif mode == "subtractive":
-        return "Fraction of area removed"
+        return 
 
 
 def processSingleFile(jsonContent, mode):
@@ -130,7 +134,7 @@ def createChart(results_directory, output_file, mode):
         with open(os.path.join(results_directory, jsonFilePath)) as inFile:
             print('    Loading file: {}'.format(jsonFilePath))
             jsonContents = json.load(inFile)
-            mode = determineProcessingMode(mode, jsonContents)
+            mode = 'additive'#determineProcessingMode(mode, jsonContents)
             dataSequence, rawResults = processSingleFile(jsonContents, mode)
             #figure = go.Figure()
             #figure.add_trace(go.Scatter(x=dataSequence["x"], y=dataSequence['y'], mode='markers', name=dataSequence['name']))
