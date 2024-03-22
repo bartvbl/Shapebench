@@ -6,8 +6,10 @@
 #include <bitset>
 
 namespace ShapeBench {
+    static float supportAngleDegrees;
+
     struct SIMethod : public ShapeBench::Method<ShapeDescriptor::SpinImageDescriptor> {
-        static float supportAngleDegrees;
+
 
         static void init(const nlohmann::json& config) {
             supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
