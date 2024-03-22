@@ -132,13 +132,18 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            std::vector<float> minSupportRadii(descriptorOrigins.length);
+            std::vector<float> minSupportRadii(1);
+            std::vector<float> singleRadius(1);
+            ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> descriptors(supportRadii.size());
             for(uint32_t i = 0; i < supportRadii.size(); i++) {
-                minSupportRadii.at(i) = minSupportRadiusFactor * supportRadii.at(i);
+                minSupportRadii.at(0) = minSupportRadiusFactor * supportRadii.at(i);
+                singleRadius.at(0) = supportRadii.at(i);
+                ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> singlePoint{1, descriptorOrigins.content + i};
+                float density = pointDensityRadius * supportRadii.at(i);
+                ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> descriptor = ShapeDescriptor::generate3DSCDescriptorsMultiRadius(cloud, singlePoint, density, minSupportRadii, singleRadius);
+                descriptors[i] = descriptor[0];
+                ShapeDescriptor::free(descriptor);
             }
-            ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> descriptors
-                = ShapeDescriptor::generate3DSCDescriptorsMultiRadius(cloud, descriptorOrigins, pointDensityRadius, minSupportRadii, supportRadii);
-
             return descriptors;
         }
 

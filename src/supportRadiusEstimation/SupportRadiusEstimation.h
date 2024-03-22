@@ -140,7 +140,7 @@ namespace ShapeBench {
 
         int referenceCountProcessed = 0;
         #pragma omp parallel for default(none) shared(representativeSetSize, representativeSet, dataset, std::cout, config, referenceCountProcessed, referencePointCloudSamplingSeed, supportRadiiToTry, referenceDescriptorGenerationSeed, numberOfSupportRadiiToTry, referenceDescriptors) schedule(dynamic)
-        for(uint32_t referenceIndex = 55; referenceIndex < representativeSetSize; referenceIndex++) {
+        for(uint32_t referenceIndex = 0; referenceIndex < representativeSetSize; referenceIndex++) {
             std::vector<DescriptorType> generatedDescriptors(supportRadiiToTry.size());
             #pragma omp critical
             {
