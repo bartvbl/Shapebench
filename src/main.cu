@@ -11,7 +11,6 @@
 #include "benchmarkCore/experimentRunner.h"
 #include "methods/3DSCMethod.h"
 #include "methods/RoPSMethod.h"
-#include "methods/FPFHMethod.h"
 #include "methods/RICIMethod.h"
 
 
