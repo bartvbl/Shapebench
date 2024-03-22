@@ -53,7 +53,6 @@ namespace ShapeBench {
 #else
             float squaredSum = 1;
             for(int sliceOffset = 0; sliceOffset < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT; sliceOffset++) {
-                //std::cout << std::to_string(sliceOffset) + " " << std::flush;
                 float combinedSquaredDistance = 0;
                 for (short binIndex = 0; (binIndex < elementsPerShapeContextDescriptor) && (combinedSquaredDistance < squaredSum); binIndex++) {
                     float needleBinValue = descriptor.contents[binIndex];
@@ -65,10 +64,6 @@ namespace ShapeBench {
                     float haystackBinValue = otherDescriptor.contents[haystackBinIndex];
                     float binDelta = needleBinValue - haystackBinValue;
                     combinedSquaredDistance += binDelta * binDelta;
-
-                    if(std::isnan(combinedSquaredDistance)) {
-                        std::cout << "Detected NaN" << std::endl;
-                    }
                 }
 
                 if(sliceOffset == 0 || combinedSquaredDistance < squaredSum) {
@@ -78,10 +73,8 @@ namespace ShapeBench {
 
             float lowestDistance = std::sqrt(squaredSum);
             if(std::isnan(lowestDistance)) {
-                //throw std::runtime_error("Found a NaN!");
-                computeDescriptorDistance(descriptor, otherDescriptor);
+                throw std::runtime_error("Found a NaN!");
             }
-            //std::cout << lowestDistance << std::endl;
 
             return lowestDistance;
 

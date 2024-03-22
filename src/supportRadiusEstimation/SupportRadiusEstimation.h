@@ -156,7 +156,6 @@ namespace ShapeBench {
                 representativeSetPointCloud = computePointCloud<DescriptorMethod>(representativeSetMesh, config, referencePointCloudSamplingSeed);
             }
 
-            //try {
             ShapeDescriptor::OrientedPoint originPoint = {representativeSetMesh.vertices[referenceVertex.vertexIndex], representativeSetMesh.normals[referenceVertex.vertexIndex]};
             std::vector<ShapeDescriptor::OrientedPoint> orientedPoints(supportRadiiToTry.size(), originPoint);
             ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
@@ -171,9 +170,6 @@ namespace ShapeBench {
                 }
             }
 
-            //} catch(const std::exception& e) {
-            //    throw std::runtime_error("Failed to generate descriptor with index " + std::to_string(referenceIndex) + ": " + e.what());
-            //}
             for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
                 referenceDescriptors.at(representativeSetSize * i + referenceIndex) = generatedDescriptors.at(i);
             }
@@ -284,13 +280,11 @@ namespace ShapeBench {
 
         bool useGPU = supportRadiusConfig.at("useGPU");
 
-        //#pragma omp parallel for schedule(dynamic)
+        #pragma omp parallel for schedule(dynamic)
         for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
-            //std::cout << "Thread " + std::to_string(omp_get_thread_num()) + " reporting\n" << std::flush;
             ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
             ShapeDescriptor::cpu::array<DescriptorType> sampleArray = {sampleDescriptorSetSize, sampleDescriptors.data() + i * sampleDescriptorSetSize};
             std::vector<DescriptorDistance> supportRadiusDistances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleArray, referenceArray, useGPU);
-            //std::cout << "Done with (" + std::to_string(i) + "), computing statistics..\n" << std::flush;
             DistanceStatistics stats = computeDistances<DescriptorType>(supportRadiusDistances, sampleDescriptorSetSize);
             distanceStats.at(i) = stats;
 
@@ -307,7 +301,6 @@ namespace ShapeBench {
                 ShapeBench::drawProgressBar(nextToProcess, numberOfSupportRadiiToTry);
                 std::cout << std::flush;
             }
-            //std::cout << "Thread " << omp_get_thread_num() << " is continuing" << std::endl;
         }
         for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
             outputBuffer << outputFileContents.at(i);
