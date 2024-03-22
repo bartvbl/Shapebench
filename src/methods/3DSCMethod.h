@@ -21,9 +21,10 @@ namespace ShapeBench {
             pointDensityRadius = readDescriptorConfigValue<float>(config, "3DSC", "pointDensityRadius");
         }
 
-        __host__ __device__ static __inline__ float computeEuclideanDistance(
+        __host__ __device__ static __inline__ float computeDescriptorDistance(
                 const ShapeDescriptor::ShapeContextDescriptor& descriptor,
                 const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor) {
+
 #ifdef __CUDA_ARCH__
             float lowestSquareSum;
             for(int sliceOffset = 0; sliceOffset < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT; sliceOffset++) {
@@ -42,20 +43,21 @@ namespace ShapeBench {
 
                 float combinedSquaredDistance = ShapeDescriptor::warpAllReduceSum(threadSquaredDistance);
 
-                if (threadIdx.x == 0 && (sliceOffset = 0 || combinedSquaredDistance < lowestSquareSum)) {
+                if (threadIdx.x == 0 && (sliceOffset == 0 || combinedSquaredDistance < lowestSquareSum)) {
                     lowestSquareSum = combinedSquaredDistance;
                 }
             }
-            
+
             float lowestDistance = std::sqrt(lowestSquareSum);
             return lowestDistance;
 #else
-            float squaredSum = std::numeric_limits<float>::max();
+            float squaredSum = 1;
             for(int sliceOffset = 0; sliceOffset < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT; sliceOffset++) {
+                //std::cout << std::to_string(sliceOffset) + " " << std::flush;
                 float combinedSquaredDistance = 0;
-                for (short binIndex = 0; binIndex < elementsPerShapeContextDescriptor || combinedSquaredDistance > squaredSum; binIndex++) {
+                for (short binIndex = 0; (binIndex < elementsPerShapeContextDescriptor) && (combinedSquaredDistance < squaredSum); binIndex++) {
                     float needleBinValue = descriptor.contents[binIndex];
-                    short haystackBinIndex = (binIndex + (sliceOffset * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT * SHAPE_CONTEXT_LAYER_COUNT));
+                    uint32_t haystackBinIndex = (binIndex + (sliceOffset * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT * SHAPE_CONTEXT_LAYER_COUNT));
                     // Simple modulo that I think is less expensive
                     if (haystackBinIndex >= elementsPerShapeContextDescriptor) {
                         haystackBinIndex -= elementsPerShapeContextDescriptor;
@@ -63,6 +65,10 @@ namespace ShapeBench {
                     float haystackBinValue = otherDescriptor.contents[haystackBinIndex];
                     float binDelta = needleBinValue - haystackBinValue;
                     combinedSquaredDistance += binDelta * binDelta;
+
+                    if(std::isnan(combinedSquaredDistance)) {
+                        std::cout << "Detected NaN" << std::endl;
+                    }
                 }
 
                 if(sliceOffset == 0 || combinedSquaredDistance < squaredSum) {
@@ -71,17 +77,15 @@ namespace ShapeBench {
             }
 
             float lowestDistance = std::sqrt(squaredSum);
+            if(std::isnan(lowestDistance)) {
+                //throw std::runtime_error("Found a NaN!");
+                computeDescriptorDistance(descriptor, otherDescriptor);
+            }
+            //std::cout << lowestDistance << std::endl;
 
             return lowestDistance;
 
 #endif
-        }
-
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
-                const ShapeDescriptor::ShapeContextDescriptor& descriptor,
-                const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor) {
-            // Adapter such that the distance function satisfies the "higher distance is worse" criterion
-            return computeEuclideanDistance(descriptor, otherDescriptor);
         }
 
         static bool usesMeshInput() {
@@ -141,6 +145,7 @@ namespace ShapeBench {
             }
             ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> descriptors
                 = ShapeDescriptor::generate3DSCDescriptorsMultiRadius(cloud, descriptorOrigins, pointDensityRadius, minSupportRadii, supportRadii);
+
             return descriptors;
         }
 

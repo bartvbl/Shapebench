@@ -119,40 +119,29 @@ namespace ShapeBench {
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
-    float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed) {
-        static_assert(std::is_base_of<ShapeBench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
+    std::vector<DescriptorType> computeDescriptors(
+            uint32_t numberOfSupportRadiiToTry,
+            float supportRadiusStart,
+            float supportRadiusStep,
+            const Dataset& dataset,
+            uint64_t referenceDescriptorGenerationSeed,
+            uint64_t referencePointCloudSamplingSeed,
+            const std::vector<VertexInDataset>& representativeSet,
+            const nlohmann::json& config) {
 
+        std::vector<DescriptorType> referenceDescriptors(representativeSet.size() * numberOfSupportRadiiToTry);
+        uint32_t representativeSetSize = representativeSet.size();
 
-        ShapeBench::randomEngine randomEngine(randomSeed);
-
-        const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
-        uint32_t representativeSetSize = supportRadiusConfig.at("representativeSetObjectCount");
-        uint32_t sampleDescriptorSetSize = supportRadiusConfig.at("sampleDescriptorSetSize");
-        float supportRadiusStart = supportRadiusConfig.at("radiusSearchStart");
-        float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");
-        uint32_t numberOfSupportRadiiToTry = supportRadiusConfig.at("numberOfSupportRadiiToTry");
-
-        std::vector<DescriptorType> sampleDescriptors(representativeSetSize * numberOfSupportRadiiToTry);
-        std::vector<DescriptorType> referenceDescriptors(sampleDescriptorSetSize * numberOfSupportRadiiToTry);
-
-        std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize, 1);
-        std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize, 1);
 
         std::vector<float> supportRadiiToTry(numberOfSupportRadiiToTry);
         for(uint32_t radiusStep = 0; radiusStep < numberOfSupportRadiiToTry; radiusStep++) {
             supportRadiiToTry.at(radiusStep) = supportRadiusStart + float(radiusStep) * float(supportRadiusStep);
         }
 
-        std::chrono::time_point start = std::chrono::steady_clock::now();
-
-
-        std::cout << "    Computing reference descriptors.." << std::endl;
-        uint64_t referencePointCloudSamplingSeed = randomEngine();
-        uint64_t referenceDescriptorGenerationSeed = randomEngine();
-        std::vector<DescriptorType> generatedDescriptors(supportRadiiToTry.size());
         int referenceCountProcessed = 0;
-        #pragma omp parallel for default(none) shared(representativeSetSize, representativeSet, dataset, std::cout, config, referenceCountProcessed, referencePointCloudSamplingSeed, supportRadiiToTry, referenceDescriptorGenerationSeed, numberOfSupportRadiiToTry, referenceDescriptors, sampleDescriptorSetSize, sampleVerticesSet) firstprivate(generatedDescriptors) schedule(dynamic)
-        for(uint32_t referenceIndex = 0; referenceIndex < representativeSetSize; referenceIndex++) {
+        #pragma omp parallel for default(none) shared(representativeSetSize, representativeSet, dataset, std::cout, config, referenceCountProcessed, referencePointCloudSamplingSeed, supportRadiiToTry, referenceDescriptorGenerationSeed, numberOfSupportRadiiToTry, referenceDescriptors) schedule(dynamic)
+        for(uint32_t referenceIndex = 55; referenceIndex < representativeSetSize; referenceIndex++) {
+            std::vector<DescriptorType> generatedDescriptors(supportRadiiToTry.size());
             #pragma omp critical
             {
                 referenceCountProcessed++;
@@ -170,9 +159,18 @@ namespace ShapeBench {
             //try {
             ShapeDescriptor::OrientedPoint originPoint = {representativeSetMesh.vertices[referenceVertex.vertexIndex], representativeSetMesh.normals[referenceVertex.vertexIndex]};
             std::vector<ShapeDescriptor::OrientedPoint> orientedPoints(supportRadiiToTry.size(), originPoint);
-                ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
-                        representativeSetMesh, representativeSetPointCloud, {orientedPoints.size(), orientedPoints.data()}, config,
-                        supportRadiiToTry, referenceDescriptorGenerationSeed, generatedDescriptors);
+            ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
+                    representativeSetMesh, representativeSetPointCloud, {orientedPoints.size(), orientedPoints.data()}, config,
+                    supportRadiiToTry, referenceDescriptorGenerationSeed, generatedDescriptors);
+
+            for(int i = 0; i < generatedDescriptors.size(); i++) {
+                for(float content : generatedDescriptors[i].contents) {
+                    if(std::isnan(content)) {
+                        throw std::runtime_error("NaN detected");
+                    }
+                }
+            }
+
             //} catch(const std::exception& e) {
             //    throw std::runtime_error("Failed to generate descriptor with index " + std::to_string(referenceIndex) + ": " + e.what());
             //}
@@ -190,64 +188,85 @@ namespace ShapeBench {
         // Force LibC to clean up
         malloc_trim(0);
 
+        if(ShapeBench::hasConfigValue(config, DescriptorMethod::getName(), "normaliseDescriptorWhenComputingSupportRadius")
+           && ShapeBench::readDescriptorConfigValue<bool>(config, DescriptorMethod::getName(), "normaliseDescriptorWhenComputingSupportRadius")) {
+            std::cout << "    Normalising descriptors.." << std::endl;
+            const uint32_t floatsPerDescriptor = (sizeof(DescriptorType) / sizeof(float));
+
+            //#pragma omp parallel for
+            for(DescriptorType& descriptor: referenceDescriptors) {
+                for(uint32_t i = 0; i < floatsPerDescriptor; i++) {
+                    if(std::isnan(descriptor.contents[i])) {
+                        throw std::runtime_error("Found a NaN");
+                    }
+                }
+                float maxElement = *std::max_element(descriptor.contents, descriptor.contents + floatsPerDescriptor);
+                if(maxElement != 0) {
+                    for(uint32_t i = 0; i < floatsPerDescriptor; i++) {
+                        descriptor.contents[i] /= maxElement;
+                    }
+                }
+                for(uint32_t i = 0; i < floatsPerDescriptor; i++) {
+                    if(std::isnan(maxElement) || std::isnan(descriptor.contents[i])) {
+                        throw std::runtime_error("Found a NaN");
+                    }
+                }
+            }
+        }
+
+        return referenceDescriptors;
+    }
+
+    template<typename DescriptorMethod, typename DescriptorType>
+    float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed) {
+        static_assert(std::is_base_of<ShapeBench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
+
+
+        ShapeBench::randomEngine randomEngine(randomSeed);
+
+        const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
+        uint32_t representativeSetSize = supportRadiusConfig.at("representativeSetObjectCount");
+        uint32_t sampleDescriptorSetSize = supportRadiusConfig.at("sampleDescriptorSetSize");
+        float supportRadiusStart = supportRadiusConfig.at("radiusSearchStart");
+        float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");
+        uint32_t numberOfSupportRadiiToTry = supportRadiusConfig.at("numberOfSupportRadiiToTry");
+
+        std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize, 1);
+        std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize, 1);
+
+        std::chrono::time_point start = std::chrono::steady_clock::now();
+
+
+        std::cout << "    Computing reference descriptors.." << std::endl;
+        uint64_t referencePointCloudSamplingSeed = randomEngine();
+        uint64_t referenceDescriptorGenerationSeed = randomEngine();
+
+        std::vector<DescriptorType> referenceDescriptors = computeDescriptors<DescriptorMethod, DescriptorType>(
+                numberOfSupportRadiiToTry,
+                supportRadiusStart,
+                supportRadiusStep,
+                dataset,
+                referenceDescriptorGenerationSeed,
+                referencePointCloudSamplingSeed,
+                representativeSet,
+                config);
+
+
         std::cout << "    Computing sample descriptors.." << std::endl;
         uint64_t samplePointCloudSamplingSeed = randomEngine();
         uint64_t sampleDescriptorGenerationSeed = randomEngine();
-        int sampleCountProcessed = 0;
-        #pragma omp parallel for default(none) shared(sampleDescriptorSetSize, sampleVerticesSet, sampleCountProcessed, std::cout, dataset, config, samplePointCloudSamplingSeed, sampleDescriptorGenerationSeed, supportRadiiToTry, numberOfSupportRadiiToTry, sampleDescriptors) firstprivate(generatedDescriptors) schedule(dynamic)
-        for(uint32_t sampleIndex = 0; sampleIndex < sampleDescriptorSetSize; sampleIndex++) {
-            #pragma omp critical
-            {
-                sampleCountProcessed++;
-                std::cout << "\r        Processing " + std::to_string(sampleCountProcessed) + "/" + std::to_string(sampleDescriptorSetSize) << " ";
-                ShapeBench::drawProgressBar(sampleCountProcessed, sampleDescriptorSetSize);
-                std::cout << std::flush;
-            };
-            VertexInDataset sampleVertex = sampleVerticesSet.at(sampleIndex);
-            ShapeDescriptor::cpu::Mesh sampleSetMesh = loadMesh(config, dataset, sampleVertex);
-            ShapeDescriptor::cpu::PointCloud sampleSetPointCloud;
-            if (DescriptorMethod::usesPointCloudInput()) {
-                sampleSetPointCloud = computePointCloud<DescriptorMethod>(sampleSetMesh, config, samplePointCloudSamplingSeed);
-            }
 
-            ShapeDescriptor::OrientedPoint originPoint = {sampleSetMesh.vertices[sampleVertex.vertexIndex], sampleSetMesh.normals[sampleVertex.vertexIndex]};
-            std::vector<ShapeDescriptor::OrientedPoint> orientedPoints(supportRadiiToTry.size(), originPoint);
-            ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
-                    sampleSetMesh, sampleSetPointCloud, {orientedPoints.size(), orientedPoints.data()}, config, supportRadiiToTry, sampleDescriptorGenerationSeed, generatedDescriptors);
+        std::vector<DescriptorType> sampleDescriptors = computeDescriptors<DescriptorMethod, DescriptorType>(
+                numberOfSupportRadiiToTry,
+                supportRadiusStart,
+                supportRadiusStep,
+                dataset,
+                sampleDescriptorGenerationSeed,
+                samplePointCloudSamplingSeed,
+                sampleVerticesSet,
+                config);
 
-            for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
-                sampleDescriptors.at(sampleDescriptorSetSize * i + sampleIndex) = generatedDescriptors.at(i);
-            }
 
-            if(DescriptorMethod::usesPointCloudInput()) {
-                ShapeDescriptor::free(sampleSetPointCloud);
-            }
-            ShapeDescriptor::free(sampleSetMesh);
-        }
-        std::cout << std::endl;
-
-        // Force LibC to clean up
-        malloc_trim(0);
-
-        if(ShapeBench::hasConfigValue(config, DescriptorMethod::getName(), "normaliseDescriptorWhenComputingSupportRadius")
-        && ShapeBench::readDescriptorConfigValue<bool>(config, DescriptorMethod::getName(), "normaliseDescriptorWhenComputingSupportRadius")) {
-            std::cout << "    Normalising descriptors.." << std::endl;
-            const uint32_t floatsPerDescriptor = (sizeof(DescriptorType) / sizeof(float));
-            #pragma omp parallel for
-            for(DescriptorType& descriptor : sampleDescriptors) {
-                float maxElement = *std::max_element(descriptor.contents, descriptor.contents + floatsPerDescriptor);
-                for(uint32_t i = 0; i < floatsPerDescriptor; i++) {
-                    descriptor.contents[i] /= maxElement;
-                }
-            }
-            #pragma omp parallel for
-            for(DescriptorType& descriptor: referenceDescriptors) {
-                float maxElement = *std::max_element(descriptor.contents, descriptor.contents + floatsPerDescriptor);
-                for(uint32_t i = 0; i < floatsPerDescriptor; i++) {
-                    descriptor.contents[i] /= maxElement;
-                }
-            }
-        }
 
         std::cout << "    Computing distances.." << std::endl;
 
@@ -255,14 +274,23 @@ namespace ShapeBench {
         outputBuffer << "Radius index, radius, Min mean, Mean, Max mean, Variance min, Mean variance, max variance" << std::endl;
         std::vector<uint32_t> voteHistogram(numberOfSupportRadiiToTry);
 
-        std::vector<DistanceStatistics> distanceStats(supportRadiiToTry.size());
-        std::vector<std::string> outputFileContents(supportRadiiToTry.size());
-        #pragma omp parallel for schedule(dynamic)
-        for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
-            std::cout << "\r        Processing " + std::to_string(i+1) + "/" + std::to_string(supportRadiiToTry.size()) << std::flush;
+        std::vector<DistanceStatistics> distanceStats(numberOfSupportRadiiToTry);
+        std::vector<std::string> outputFileContents(numberOfSupportRadiiToTry);
+        uint32_t nextToProcess = 0;
+
+        std::cout << "\r        Completed " + std::to_string(nextToProcess) + "/" + std::to_string(numberOfSupportRadiiToTry) << " ";
+        ShapeBench::drawProgressBar(nextToProcess + 1, numberOfSupportRadiiToTry);
+        std::cout << std::flush;
+
+        bool useGPU = supportRadiusConfig.at("useGPU");
+
+        //#pragma omp parallel for schedule(dynamic)
+        for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
+            //std::cout << "Thread " + std::to_string(omp_get_thread_num()) + " reporting\n" << std::flush;
             ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
             ShapeDescriptor::cpu::array<DescriptorType> sampleArray = {sampleDescriptorSetSize, sampleDescriptors.data() + i * sampleDescriptorSetSize};
-            std::vector<DescriptorDistance> supportRadiusDistances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleArray, referenceArray);
+            std::vector<DescriptorDistance> supportRadiusDistances = computeReferenceSetDistance<DescriptorMethod, DescriptorType>(sampleArray, referenceArray, useGPU);
+            //std::cout << "Done with (" + std::to_string(i) + "), computing statistics..\n" << std::flush;
             DistanceStatistics stats = computeDistances<DescriptorType>(supportRadiusDistances, sampleDescriptorSetSize);
             distanceStats.at(i) = stats;
 
@@ -271,9 +299,18 @@ namespace ShapeBench {
             outputLine << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
                        << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
             outputFileContents.at(i) = outputLine.str();
+
+            #pragma omp critical
+            {
+                nextToProcess++;
+                std::cout << "\r        Completed " + std::to_string(nextToProcess+1) + "/" + std::to_string(numberOfSupportRadiiToTry) << " ";
+                ShapeBench::drawProgressBar(nextToProcess, numberOfSupportRadiiToTry);
+                std::cout << std::flush;
+            }
+            //std::cout << "Thread " << omp_get_thread_num() << " is continuing" << std::endl;
         }
-        for(uint32_t i = 0; i < supportRadiiToTry.size(); i++) {
-            outputBuffer << outputFileContents.at(i) << std::endl;
+        for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
+            outputBuffer << outputFileContents.at(i);
         }
         std::string unique = ShapeDescriptor::generateUniqueFilenameString();
         std::filesystem::path outputDirectory = std::filesystem::path(std::string(config.at("resultsDirectory"))) / "support_radius_estimation";
@@ -302,7 +339,7 @@ namespace ShapeBench {
             DistanceStatistics stats = distanceStats.at(i);
             if(stats.meanOfMeans > highestMean) {
                 highestMean = stats.meanOfMeans;
-                highestMeanSupportRadius = supportRadiiToTry.at(i);
+                highestMeanSupportRadius = float(i) * supportRadiusStep + supportRadiusStart;
             }
         }
 

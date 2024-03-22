@@ -139,7 +139,8 @@
             "radiusSearchStart": 0.01,
             "radiusSearchStep": 0.01,
             "sampleDescriptorSetSize": 10000,
-            "representativeSetObjectCount": 10000
+            "representativeSetObjectCount": 10000,
+            "useGPU": true
         }
     },
 

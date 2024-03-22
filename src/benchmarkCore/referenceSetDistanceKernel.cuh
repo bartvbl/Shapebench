@@ -55,13 +55,15 @@ namespace ShapeBench {
             ShapeDescriptor::cpu::array<DescriptorType> sampleDescriptors,
             ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors,
             ShapeDescriptor::cpu::array<DescriptorDistance> distances) {
-        #pragma omp parallel for schedule(dynamic) default(none) shared(sampleDescriptors, referenceDescriptors, distances, std::cout)
+        //std::cout << "Thread " + std::to_string(omp_get_thread_num()) + " is processing " + std::to_string(sampleDescriptors.length) + " descriptors\n" << std::flush;
+        //#pragma omp parallel for schedule(dynamic) default(none) shared(sampleDescriptors, referenceDescriptors, distances, std::cout)
         for(uint32_t sampleDescriptorIndex = 0; sampleDescriptorIndex < sampleDescriptors.length; sampleDescriptorIndex++) {
             uint32_t runningCount = 0;
             float runningMean = 0;
             float runningSumOfSquaredDifferences = 0;
 
             for(uint32_t referenceDescriptorIndex = 0; referenceDescriptorIndex < referenceDescriptors.length; referenceDescriptorIndex++) {
+                //std::cout << "Thread " + std::to_string(omp_get_thread_num()) + " is processing " + std::to_string(sampleDescriptorIndex) + "." + std::to_string(referenceDescriptorIndex) + "/" + std::to_string(referenceDescriptors.length) + " descriptors\n" << std::flush;
                 float similarity = DescriptorMethod::computeDescriptorDistance(sampleDescriptors[sampleDescriptorIndex],
                                                                                referenceDescriptors[referenceDescriptorIndex]);
                 // Using Welford's algorithm for computing the mean and variance
@@ -80,6 +82,7 @@ namespace ShapeBench {
             distance.variance = runningSumOfSquaredDifferences / float(runningCount - 1);
 
             distances.content[sampleDescriptorIndex] = distance;
+            //std::cout << "Done with " + std::to_string(sampleDescriptorIndex) + ", " + std::to_string(omp_get_thread_num()) + "\n" << std::flush;
         }
     }
 
@@ -121,11 +124,18 @@ namespace ShapeBench {
     template<typename DescriptorMethod, typename DescriptorType>
     std::vector<DescriptorDistance> computeReferenceSetDistance(
             ShapeDescriptor::cpu::array<DescriptorType> sampleDescriptors,
-            ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors) {
+            ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors,
+            bool useGPU) {
 
         std::vector<DescriptorDistance> descriptorDistances(sampleDescriptors.length);
 
-        referenceSetDistanceKernelGPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, {sampleDescriptors.length, descriptorDistances.data()});
+        if(useGPU) {
+            referenceSetDistanceKernelGPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, {sampleDescriptors.length, descriptorDistances.data()});
+        } else {
+            //std::cout << "Thread " + std::to_string(omp_get_thread_num()) + " starting distance calculation\n" << std::flush;
+            referenceSetDistanceKernelCPU<DescriptorMethod, DescriptorType>(sampleDescriptors, referenceDescriptors, {sampleDescriptors.length, descriptorDistances.data()});
+            //std::cout << "Thread " + std::to_string(omp_get_thread_num()) + " finished distance calculation\n" << std::flush;
+        }
 
         return descriptorDistances;
     }
