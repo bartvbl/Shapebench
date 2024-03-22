@@ -6,6 +6,7 @@
 #include <mutex>
 #include <omp.h>
 #include "json.hpp"
+#include <semaphore>
 #include "Dataset.h"
 #include "ComputedConfig.h"
 #include "supportRadiusEstimation/SupportRadiusEstimation.h"
@@ -186,6 +187,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     const uint32_t intermediateSaveFrequency = configuration.at("commonExperimentSettings").at(
             "intermediateSaveFrequency");
     std::mutex resultWriteLock;
+    std::counting_semaphore<1> remeshingRateLimiter(10);
 
     bool enableIllustrationGenerationMode = configuration.at("illustrationDataGenerationOverride").at("enableIllustrationDataGeneration");
     uint32_t illustrativeObjectLimit = 0;
@@ -311,6 +313,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 ShapeBench::writeFilteredMesh<DescriptorMethod>(filteredMesh, outputFile);
             }
 
+
+
             std::vector<ShapeBench::ExperimentResultsEntry> resultsEntries(verticesPerSampleObject);
 
             try {
@@ -327,7 +331,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         ShapeBench::SubtractiveNoiseOutput output = ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                         filterMetadata = output.metadata;
                     } else if (filterType == "repeated-capture") {
+                        remeshingRateLimiter.acquire();
                         ShapeBench::RemeshingFilterOutput output = ShapeBench::remesh(filteredMesh, configuration);
+                        remeshingRateLimiter.release();
                         filterMetadata = output.metadata;
                     } else if (filterType == "normal-noise") {
                         ShapeBench::NormalNoiseFilterOutput output = ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);
