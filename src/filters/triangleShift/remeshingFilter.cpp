@@ -40,7 +40,7 @@ void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, double targetEdgeLengt
 
     std::vector<edge_descriptor> border;
     PMP::border_halfedges(faces(mesh), mesh, boost::make_function_output_iterator(halfedge2edge(mesh, border)));
-    PMP::split_long_edges(border, targetEdgeLength, mesh);
+    PMP::split_long_edges(border, targetEdgeLength / 1.5, mesh);
     CGAL::Polygon_mesh_processing::remove_isolated_vertices(mesh);
     CGAL::Polygon_mesh_processing::duplicate_non_manifold_vertices(mesh);
 
@@ -71,9 +71,9 @@ void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, double targetEdgeLengt
 
 
 ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config) {
-    /*if(scene.filteredSampleMesh.vertexCount > 1000000) {
+    if(scene.filteredSampleMesh.vertexCount > config.at("filterSettings").at("alternateTriangulation").at("triangleLimit")) {
         throw std::runtime_error("Mesh too large!");
-    }*/
+    }
 
     ShapeBench::RemeshingFilterOutput output;
     {

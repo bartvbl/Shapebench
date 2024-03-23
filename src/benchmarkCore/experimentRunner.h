@@ -23,6 +23,22 @@
 #include "filters/supportRadiusDeviation/supportRadiusNoise.h"
 #include "filters/meshResolutionDeviation/simplificationFilter.h"
 
+template <typename T>
+class lockGuard
+{
+    T &m_;
+
+public:
+    lockGuard(T &m) : m_(m)
+    {
+        m_.acquire();
+    }
+    ~lockGuard()
+    {
+        m_.release();
+    }
+};
+
 template<typename DescriptorMethod, typename DescriptorType>
 ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -187,7 +203,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     const uint32_t intermediateSaveFrequency = configuration.at("commonExperimentSettings").at(
             "intermediateSaveFrequency");
     std::mutex resultWriteLock;
-    std::counting_semaphore<1> remeshingRateLimiter(10);
+    std::counting_semaphore<1> remeshingRateLimiter(6);
 
     bool enableIllustrationGenerationMode = configuration.at("illustrationDataGenerationOverride").at("enableIllustrationDataGeneration");
     uint32_t illustrativeObjectLimit = 0;
@@ -331,9 +347,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         ShapeBench::SubtractiveNoiseOutput output = ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                         filterMetadata = output.metadata;
                     } else if (filterType == "repeated-capture") {
-                        remeshingRateLimiter.acquire();
+                        lockGuard<std::counting_semaphore<1>> lock { remeshingRateLimiter };
                         ShapeBench::RemeshingFilterOutput output = ShapeBench::remesh(filteredMesh, configuration);
-                        remeshingRateLimiter.release();
                         filterMetadata = output.metadata;
                     } else if (filterType == "normal-noise") {
                         ShapeBench::NormalNoiseFilterOutput output = ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);

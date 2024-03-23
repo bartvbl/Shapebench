@@ -45,7 +45,7 @@
         },
         {
             "name": "repeated-capture-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "repeated-capture"}
             ]
@@ -59,7 +59,7 @@
         },
         {
             "name": "mesh-resolution-deviation-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "mesh-resolution-deviation"}
             ]
@@ -92,7 +92,8 @@
         "alternateTriangulation": {
             "remeshIterationCount": 1,
             "minEdgeLength": 0.0,
-            "maxEdgeLength": 2.0
+            "maxEdgeLength": 2.0,
+            "triangleLimit": 1500000
         },
         "normalVectorNoise": {
             "maxAngleDeviationDegrees": 30
@@ -107,7 +108,7 @@
 
     "methodSettings": [
         {
-            "name": "Spin Image",
+            "name": "SI",
             "supportAngle": 180
         },
         {
@@ -150,7 +151,7 @@
     },
 
     "illustrationDataGenerationOverride": {
-        "enableIllustrationDataGeneration": true,
+        "enableIllustrationDataGeneration": false,
         "illustrationObjectIndex": 0,
         "objectLimit": 500,
         "objectStride": 1,

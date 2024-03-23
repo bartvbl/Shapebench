@@ -12,7 +12,7 @@ namespace ShapeBench {
 
 
         static void init(const nlohmann::json& config) {
-            supportAngleDegrees = readDescriptorConfigValue<float>(config, "Spin Image", "supportAngle");
+            supportAngleDegrees = readDescriptorConfigValue<float>(config, "SI", "supportAngle");
         }
 
         __host__ __device__ static __inline__ float computePearsonCorrelation(
