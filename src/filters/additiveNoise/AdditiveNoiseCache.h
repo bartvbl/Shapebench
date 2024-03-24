@@ -35,6 +35,7 @@ namespace ShapeBench {
     }
 
     inline void loadAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config) {
+        std::unique_lock<std::mutex> lock {cache.cacheLock};
         std::filesystem::path cacheFilePath = std::filesystem::path(std::string(config.at("cacheDirectory"))) / cache.cacheFileName;
         uint32_t configuredObjectsPerEntry = uint32_t(config.at("filterSettings").at("additiveNoise").at("addedObjectCount")) + 1;
 
@@ -136,6 +137,7 @@ namespace ShapeBench {
     }
 
     inline void saveAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config) {
+        std::unique_lock<std::mutex> lock {cache.cacheLock};
         uint32_t header_version = 1;
         uint32_t header_entryCount = cache.startIndexMap.size();
 
