@@ -47,13 +47,14 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
     for(uint32_t i = 0; i < representativeSet.size(); i++) {
         randomSeeds.at(i) = randomEngine();
     }
-    std::vector<float> radii(1, supportRadius);
+
     ShapeDescriptor::cpu::array<DescriptorType> representativeDescriptors(representativeSet.size());
     uint32_t completedCount = 0;
-    std::vector<DescriptorType> tempDescriptor(1);
+    std::vector<float> radii(1, supportRadius);
 
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic) default(none) shared(radii, representativeSet, dataset, config, randomSeeds, representativeDescriptors, completedCount, std::cout)
     for(int i = 0; i < representativeSet.size(); i++) {
+        std::vector<DescriptorType> tempDescriptor(1);
         ShapeDescriptor::OrientedPoint descriptorOrigin;
         ShapeBench::VertexInDataset vertex = representativeSet.at(i);
         const ShapeBench::DatasetEntry& entry = dataset.at(vertex.meshID);
