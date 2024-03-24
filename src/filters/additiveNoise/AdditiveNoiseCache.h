@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <vector>
+#include <mutex>
 #include <fstream>
 #include "utils/Orientation.h"
 #include "json.hpp"
@@ -15,6 +16,7 @@ namespace ShapeBench {
         const std::string cacheFileName = "additiveNoiseSceneCache.bin";
         const std::string headerIdentifier = "ADDITIVENOISECACHE";
         uint32_t objectsPerEntry = 0;
+        std::mutex cacheLock;
     public:
         bool contains(uint64_t randomSeed);
         void set(uint64_t randomSeed, const std::vector<ShapeBench::Orientation>& objectOrientations);
