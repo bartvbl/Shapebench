@@ -7,6 +7,8 @@ import argparse
 import plotly.graph_objects as go
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.io as pio
+pio.kaleido.scope.mathjax = None
 
 
 class ExperimentSettings:
@@ -22,7 +24,7 @@ def getProcessingSettings(mode, fileContents):
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
     if experimentName == "normal-noise-only":
-        settings.title = ""
+        settings.title = settings.methodName
         settings.xAxisTitle = "Normal deviation (degrees)"
         settings.yAxisTitle = "Descriptor Index"
         settings.xAxisMin = 0
@@ -30,7 +32,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x : x["filterOutput"]["normal-noise-deviationAngle"]
         return settings
     elif experimentName == "subtractive-noise-only":
-        settings.title = ""
+        settings.title = settings.methodName
         settings.xAxisTitle = "Fraction of surface remaining"
         settings.yAxisTitle = "Descriptor Index"
         settings.xAxisMin = 0
@@ -38,7 +40,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
         return settings
     elif experimentName == "additive-noise-only":
-        settings.title = ""
+        settings.title = settings.methodName
         settings.xAxisTitle = "Fraction of clutter added"
         settings.yAxisTitle = "Descriptor Index"
         settings.xAxisMin = 0
@@ -46,7 +48,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["fractionAddedNoise"]
         return settings
     elif experimentName == "support-radius-deviation-only":
-        settings.title = ""
+        settings.title = settings.methodName
         settings.xAxisTitle = "Relative Support Radius"
         settings.yAxisTitle = "Descriptor Index"
         settings.xAxisMin = 1 - fileContents['configuration']['filterSettings']['supportRadiusDeviation']['maxRadiusDeviation']
@@ -88,15 +90,14 @@ def computeStackedHistogram(rawResults, config, settings):
     histogram = []
     labels = []
     for i in range(stepsPerBin):
-        histogram.append([0] * (settings.binCount + 1))
-        if i == 0:
-            labels.append('0')
-        elif i == 1:
-            labels.append('1 - 10')
-        elif i == stepsPerBin - 1:
-            labels.append(str(int(representativeSetSize)))
-        else:
-            labels.append(str(int(10 ** (i-1)) + 1) + " - " + str(int(10 ** i)))
+        if i != stepsPerBin:
+            histogram.append([0] * (settings.binCount + 1))
+            if i == 0:
+                labels.append('0')
+            elif i == 1:
+                labels.append('1 - 10')
+            else:
+                labels.append(str(int(10 ** (i-1)) + 1) + " - " + str(int(10 ** i)))
 
     xValues = [((float(x+1) * delta) + histogramMin) for x in range(settings.binCount + 1)]
 
@@ -107,13 +108,17 @@ def computeStackedHistogram(rawResults, config, settings):
         if rawResult[0] < histogramMin or rawResult[0] > histogramMax:
             removedCount += 1
             continue
+
         binIndexX = int((rawResult[0] - histogramMin) / delta)
-        binIndexY = int(0 if rawResult[1] == 0 else math.log10(rawResult[1]))
+
+        binIndexY = int(0 if rawResult[1] == 0 else (math.log10(rawResult[1]) + 1))
+        if rawResult[1] == representativeSetSize:
+            binIndexY -= 1
         histogram[binIndexY][binIndexX] += 1
 
     # Time to normalise
 
-    for i in range(settings.binCount + 1):
+    for i in range(settings.binCount):
         stepSum = 0
         for j in range(stepsPerBin):
             stepSum += histogram[j][i]
@@ -147,19 +152,17 @@ def createChart(results_directory, output_directory, mode):
             jsonContents = json.load(inFile)
             settings = getProcessingSettings(mode, jsonContents)
             dataSequence, rawResults = processSingleFile(jsonContents, settings)
-            #figure = go.Figure()
-            #figure.add_trace(go.Scatter(x=dataSequence["x"], y=dataSequence['y'], mode='markers', name=dataSequence['name']))
-            xAxisLabel = settings.xAxisTitle
-            #figure.update_layout(title='Title missing', xaxis_title=xAxisLabel, yaxis_title='Image rank')
-            #figure.show()
 
             stackedXValues, stackedYValues, stackedLabels = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
             stackFigure = go.Figure()
             for index, yValueStack in enumerate(stackedYValues):
                 stackFigure.add_trace(go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
-            stackFigure.update_layout(title=jsonFilePath, xaxis_title=xAxisLabel, yaxis_title='Image rank')
-            stackFigure.show()
-            stackFigure.write_image(os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".eps"))
+            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title='Image rank')
+            #stackFigure.show()
+
+            outputFile =os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
+            pio.write_image(stackFigure, outputFile, engine="kaleido")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Generates charts for the experiment results")
