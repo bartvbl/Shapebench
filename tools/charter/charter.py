@@ -19,6 +19,8 @@ def getProcessingSettings(mode, fileContents):
     settings = ExperimentSettings()
     settings.minSamplesPerBin = 50
     settings.binCount = 150
+    settings.experimentName = experimentName
+    settings.methodName = fileContents["method"]['name']
     if experimentName == "normal-noise-only":
         settings.title = ""
         settings.xAxisTitle = "Normal deviation (degrees)"
@@ -126,10 +128,13 @@ def computeStackedHistogram(rawResults, config, settings):
 
 
 
-def createChart(results_directory, output_file, mode):
+def createChart(results_directory, output_directory, mode):
     # Find all JSON files in results directory
     jsonFilePaths = [x.name for x in os.scandir(results_directory) if x.name.endswith(".json")]
     jsonFilePaths.sort()
+
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory, exist_ok=True)
 
     if len(jsonFilePaths) == 0:
         print("No json files were found in this directory. Aborting.")
@@ -154,6 +159,7 @@ def createChart(results_directory, output_file, mode):
                 stackFigure.add_trace(go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
             stackFigure.update_layout(title=jsonFilePath, xaxis_title=xAxisLabel, yaxis_title='Image rank')
             stackFigure.show()
+            stackFigure.write_image(os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".eps"))
 
 def main():
     parser = argparse.ArgumentParser(description="Generates charts for the experiment results")
