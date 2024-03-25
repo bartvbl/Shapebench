@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
-pio.kaleido.scope.default_width = 500
-pio.kaleido.scope.default_height = 500
+pio.kaleido.scope.default_width = 350
+pio.kaleido.scope.default_height = 350
 
 class ExperimentSettings:
     pass
@@ -117,6 +117,8 @@ def computeStackedHistogram(rawResults, config, settings):
             binIndexY -= 1
         histogram[binIndexY][binIndexX] += 1
 
+    counts = [sum(x) for x in zip(*histogram)]
+
     # Time to normalise
 
     for i in range(settings.binCount):
@@ -130,9 +132,9 @@ def computeStackedHistogram(rawResults, config, settings):
                 histogram[j][i] = float(histogram[j][i]) / float(stepSum)
         else:
             for j in range(stepsPerBin):
-                histogram[j][i] = 0
+                histogram[j][i] = None
 
-    return xValues, histogram, labels
+    return xValues, histogram, labels, counts
 
 
 
@@ -148,15 +150,25 @@ def createChart(results_directory, output_directory, mode):
         print("No json files were found in this directory. Aborting.")
         return
 
+    allCounts = []
+    countXValues = []
+    countLabels = []
+    lastSettings = ""
+
     print("Found {} json files".format(len(jsonFilePaths)))
     for jsonFilePath in jsonFilePaths:
         with open(os.path.join(results_directory, jsonFilePath)) as inFile:
-            print('    Loading file: {}'.format(jsonFilePath))
+            print('Loading file: {}'.format(jsonFilePath))
             jsonContents = json.load(inFile)
             settings = getProcessingSettings(mode, jsonContents)
+            print('Creating chart for method ' + settings.methodName + "..")
+            lastSettings = settings
             dataSequence, rawResults = processSingleFile(jsonContents, settings)
 
-            stackedXValues, stackedYValues, stackedLabels = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
+            stackedXValues, stackedYValues, stackedLabels, counts = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
+            allCounts.append(counts)
+            countLabels.append(settings.methodName)
+            countXValues = stackedXValues
             stackFigure = go.Figure()
             for index, yValueStack in enumerate(stackedYValues):
                 stackFigure.add_trace(go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
@@ -166,20 +178,35 @@ def createChart(results_directory, output_directory, mode):
                 stackFigure.update_layout(showlegend=False)
                 titleX = 0.5
             else:
-                pio.kaleido.scope.default_width = 650
-                titleX = (float(500) / float(650)) * 0.5
+                pio.kaleido.scope.default_width = 500
+                titleX = (float(350) / float(500)) * 0.5
 
             stackFigure.update_yaxes(range=[0, 1])
             stackFigure.update_xaxes(range=[settings.xAxisMin, settings.xAxisMax])
 
 
-            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':45,'r':0})
+            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':300,'r':0})
             #stackFigure.show()
 
 
 
             outputFile =os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
             pio.write_image(stackFigure, outputFile, engine="kaleido", validate=True)
+
+    print('Writing counts chart..')
+    countsFigure = go.Figure()
+    for index, countSet in enumerate(allCounts):
+        countSet = [x if x >= settings.minSamplesPerBin else None for x in countSet]
+        countsFigure.add_trace(go.Scatter(x=countXValues, y=countSet, mode='lines', name=countLabels[index]))
+    countsFigure.update_yaxes(range=[0, math.log10(max([max(x) for x in allCounts]))], type="log")
+    countsFigure.update_xaxes(range=[lastSettings.xAxisMin, lastSettings.xAxisMax])
+    countsFigure.update_layout(title='Sample Distribution', xaxis_title=settings.xAxisTitle, yaxis_title='Sample Count',
+                              title_x=0.5, margin={'t': 30, 'l': 0, 'b': 45, 'r': 0})
+    countsFigure.update_layout(legend=dict(y=0, orientation="h", yanchor="bottom", yref="container"))
+    outputFile = os.path.join(output_directory, lastSettings.experimentName + "-counts.pdf")
+    pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
+
+    print('Done.')
 
 
 def main():
