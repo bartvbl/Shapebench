@@ -9,7 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
-
+pio.kaleido.scope.default_width = 500
+pio.kaleido.scope.default_height = 500
 
 class ExperimentSettings:
     pass
@@ -19,7 +20,7 @@ def getProcessingSettings(mode, fileContents):
     experimentID = fileContents["experiment"]["index"]
     experimentName = fileContents["configuration"]["experimentsToRun"][experimentID]["name"]
     settings = ExperimentSettings()
-    settings.minSamplesPerBin = 50
+    settings.minSamplesPerBin = 0
     settings.binCount = 150
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
@@ -125,11 +126,9 @@ def computeStackedHistogram(rawResults, config, settings):
         if stepSum > settings.minSamplesPerBin:
 
             for j in range(stepsPerBin):
-                print(histogram[j][i], stepSum)
                 histogram[j][i] = float(histogram[j][i]) / float(stepSum)
         else:
             for j in range(stepsPerBin):
-                print(histogram[j][i], stepSum, '=0')
                 histogram[j][i] = 0
 
     return xValues, histogram, labels
@@ -160,8 +159,13 @@ def createChart(results_directory, output_directory, mode):
             stackFigure = go.Figure()
             for index, yValueStack in enumerate(stackedYValues):
                 stackFigure.add_trace(go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
-            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle)
+            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=0.5, margin={'t':0,'l':0,'b':0,'r':0})
             #stackFigure.show()
+
+            if jsonFilePath is not jsonFilePaths[-1]:
+                stackFigure.update_layout(showlegend=False)
+            else:
+                pio.kaleido.scope.default_width = 650
 
             outputFile =os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
             pio.write_image(stackFigure, outputFile, engine="kaleido")
