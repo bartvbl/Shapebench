@@ -280,7 +280,7 @@ namespace ShapeBench {
 
         bool useGPU = supportRadiusConfig.at("useGPU");
 
-        #pragma omp parallel for schedule(dynamic)
+        #pragma omp parallel for schedule(dynamic) default(none) shared(supportRadiusStart, std::cout, nextToProcess, numberOfSupportRadiiToTry, representativeSetSize, referenceDescriptors, sampleDescriptorSetSize, sampleDescriptors, useGPU, distanceStats, supportRadiusStep, outputFileContents)
         for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
             ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
             ShapeDescriptor::cpu::array<DescriptorType> sampleArray = {sampleDescriptorSetSize, sampleDescriptors.data() + i * sampleDescriptorSetSize};
