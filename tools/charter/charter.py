@@ -31,6 +31,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 0
         settings.xAxisMax = fileContents['configuration']['filterSettings']['normalVectorNoise']['maxAngleDeviationDegrees']
+        settings.xTick = 5
         settings.readValueX = lambda x : x["filterOutput"]["normal-noise-deviationAngle"]
         return settings
     elif experimentName == "subtractive-noise-only":
@@ -39,6 +40,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 0
         settings.xAxisMax = 1
+        settings.xTick = 0.1
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
         return settings
     elif experimentName == "additive-noise-only":
@@ -47,6 +49,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 0
         settings.xAxisMax = 10
+        settings.xTick = 1
         settings.readValueX = lambda x: x["fractionAddedNoise"]
         return settings
     elif experimentName == "support-radius-deviation-only":
@@ -55,6 +58,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 1 - fileContents['configuration']['filterSettings']['supportRadiusDeviation']['maxRadiusDeviation']
         settings.xAxisMax = 1 + fileContents['configuration']['filterSettings']['supportRadiusDeviation']['maxRadiusDeviation']
+        settings.xTick = 0.05
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
         return settings
     else:
@@ -185,7 +189,10 @@ def createChart(results_directory, output_directory, mode):
             stackFigure.update_xaxes(range=[settings.xAxisMin, settings.xAxisMax])
 
 
-            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':300,'r':0})
+            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':45,'r':0}, xaxis = dict(
+        tickmode = 'linear',
+        dtick = settings.xTick
+    ))
             #stackFigure.show()
 
 
