@@ -169,14 +169,17 @@ def createChart(results_directory, output_directory, mode):
                 pio.kaleido.scope.default_width = 650
                 titleX = (float(500) / float(650)) * 0.5
 
+            stackFigure.update_yaxes(range=[0, 1])
+            stackFigure.update_xaxes(range=[settings.xAxisMin, settings.xAxisMax])
 
-            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':0,'r':0})
+
+            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':45,'r':0})
             #stackFigure.show()
 
 
 
             outputFile =os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
-            pio.write_image(stackFigure, outputFile, engine="kaleido")
+            pio.write_image(stackFigure, outputFile, engine="kaleido", validate=True)
 
 
 def main():
