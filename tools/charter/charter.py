@@ -20,10 +20,11 @@ def getProcessingSettings(mode, fileContents):
     experimentID = fileContents["experiment"]["index"]
     experimentName = fileContents["configuration"]["experimentsToRun"][experimentID]["name"]
     settings = ExperimentSettings()
-    settings.minSamplesPerBin = 0
+    settings.minSamplesPerBin = 25
     settings.binCount = 150
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
+    settings.methodName = "Spin Image" if settings.methodName == "SI" else settings.methodName
     if experimentName == "normal-noise-only":
         settings.title = settings.methodName
         settings.xAxisTitle = "Normal deviation (degrees)"
@@ -64,7 +65,7 @@ def getProcessingSettings(mode, fileContents):
 
 def processSingleFile(jsonContent, settings):
     chartDataSequence = {}
-    chartDataSequence["name"] = jsonContent["method"]["name"]
+    chartDataSequence["name"] = settings.methodName
     chartDataSequence["x"] = []
     chartDataSequence["y"] = []
 
@@ -159,13 +160,20 @@ def createChart(results_directory, output_directory, mode):
             stackFigure = go.Figure()
             for index, yValueStack in enumerate(stackedYValues):
                 stackFigure.add_trace(go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
-            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=0.5, margin={'t':0,'l':0,'b':0,'r':0})
-            #stackFigure.show()
+
 
             if jsonFilePath is not jsonFilePaths[-1]:
                 stackFigure.update_layout(showlegend=False)
+                titleX = 0.5
             else:
                 pio.kaleido.scope.default_width = 650
+                titleX = (float(500) / float(650)) * 0.5
+
+
+            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':0,'r':0})
+            #stackFigure.show()
+
+
 
             outputFile =os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
             pio.write_image(stackFigure, outputFile, engine="kaleido")
