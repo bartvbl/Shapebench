@@ -26,7 +26,7 @@ def getProcessingSettings(mode, fileContents):
     if experimentName == "normal-noise-only":
         settings.title = settings.methodName
         settings.xAxisTitle = "Normal deviation (degrees)"
-        settings.yAxisTitle = "Descriptor Index"
+        settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 0
         settings.xAxisMax = fileContents['configuration']['filterSettings']['normalVectorNoise']['maxAngleDeviationDegrees']
         settings.readValueX = lambda x : x["filterOutput"]["normal-noise-deviationAngle"]
@@ -34,7 +34,7 @@ def getProcessingSettings(mode, fileContents):
     elif experimentName == "subtractive-noise-only":
         settings.title = settings.methodName
         settings.xAxisTitle = "Fraction of surface remaining"
-        settings.yAxisTitle = "Descriptor Index"
+        settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 0
         settings.xAxisMax = 1
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
@@ -42,7 +42,7 @@ def getProcessingSettings(mode, fileContents):
     elif experimentName == "additive-noise-only":
         settings.title = settings.methodName
         settings.xAxisTitle = "Fraction of clutter added"
-        settings.yAxisTitle = "Descriptor Index"
+        settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 0
         settings.xAxisMax = 10
         settings.readValueX = lambda x: x["fractionAddedNoise"]
@@ -50,7 +50,7 @@ def getProcessingSettings(mode, fileContents):
     elif experimentName == "support-radius-deviation-only":
         settings.title = settings.methodName
         settings.xAxisTitle = "Relative Support Radius"
-        settings.yAxisTitle = "Descriptor Index"
+        settings.yAxisTitle = "Fraction of Descriptor Index"
         settings.xAxisMin = 1 - fileContents['configuration']['filterSettings']['supportRadiusDeviation']['maxRadiusDeviation']
         settings.xAxisMax = 1 + fileContents['configuration']['filterSettings']['supportRadiusDeviation']['maxRadiusDeviation']
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
@@ -99,7 +99,7 @@ def computeStackedHistogram(rawResults, config, settings):
             else:
                 labels.append(str(int(10 ** (i-1)) + 1) + " - " + str(int(10 ** i)))
 
-    xValues = [((float(x+1) * delta) + histogramMin) for x in range(settings.binCount + 1)]
+    xValues = [((float(x+1) * delta) + histogramMin) for x in range(settings.binCount)]
 
     removedCount = 0
     for rawResult in rawResults:
@@ -110,7 +110,6 @@ def computeStackedHistogram(rawResults, config, settings):
             continue
 
         binIndexX = int((rawResult[0] - histogramMin) / delta)
-
         binIndexY = int(0 if rawResult[1] == 0 else (math.log10(rawResult[1]) + 1))
         if rawResult[1] == representativeSetSize:
             binIndexY -= 1
@@ -122,11 +121,15 @@ def computeStackedHistogram(rawResults, config, settings):
         stepSum = 0
         for j in range(stepsPerBin):
             stepSum += histogram[j][i]
+
         if stepSum > settings.minSamplesPerBin:
+
             for j in range(stepsPerBin):
+                print(histogram[j][i], stepSum)
                 histogram[j][i] = float(histogram[j][i]) / float(stepSum)
         else:
             for j in range(stepsPerBin):
+                print(histogram[j][i], stepSum, '=0')
                 histogram[j][i] = 0
 
     return xValues, histogram, labels
@@ -157,7 +160,7 @@ def createChart(results_directory, output_directory, mode):
             stackFigure = go.Figure()
             for index, yValueStack in enumerate(stackedYValues):
                 stackFigure.add_trace(go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
-            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title='Image rank')
+            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle)
             #stackFigure.show()
 
             outputFile =os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
