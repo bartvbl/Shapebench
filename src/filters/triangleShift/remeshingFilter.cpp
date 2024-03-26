@@ -1,5 +1,6 @@
 //#define CGAL_PMP_REMESHING_VERBOSE
 //#define CGAL_PMP_REMESHING_VERBOSE_PROGRESS
+#define CGAL_PMP_USE_CERES_SOLVER
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <malloc.h>
 #include "remeshingFilter.h"
@@ -35,35 +36,24 @@ struct halfedge2edge
     std::vector<edge_descriptor>& m_edges;
 };
 
-void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, double targetEdgeLength, uint32_t iterationCount) {
+void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, uint32_t iterationCount, uint32_t& sharpEdgeCount) {
     CGALMesh mesh = ShapeBench::convertSDMeshToCGAL(meshToRemesh);
 
-    std::vector<edge_descriptor> border;
-    PMP::border_halfedges(faces(mesh), mesh, boost::make_function_output_iterator(halfedge2edge(mesh, border)));
-    PMP::split_long_edges(border, targetEdgeLength / 1.5, mesh);
-    CGAL::Polygon_mesh_processing::remove_isolated_vertices(mesh);
-    CGAL::Polygon_mesh_processing::duplicate_non_manifold_vertices(mesh);
+    // Constrain edges with a dihedral angle over 60°
+    typedef boost::property_map<CGALMesh, CGAL::edge_is_feature_t>::type EIFMap;
+    EIFMap eif = get(CGAL::edge_is_feature, mesh);
+    PMP::detect_sharp_edges(mesh, 80, eif);
+    for(edge_descriptor e : edges(mesh))
+        if(get(eif, e))
+            sharpEdgeCount++;
 
-    if(!CGAL::is_valid_polygon_mesh(mesh)) {
-        throw std::runtime_error("Mesh invalid");
-    }
-
-    PMP::isotropic_remeshing(faces(mesh), targetEdgeLength, mesh,
-                             CGAL::parameters::number_of_iterations(iterationCount)
-                                     .protect_constraints(false)); //i.e. protect border, here
+    // Smooth with both angle and area criteria + Delaunay flips
+    PMP::angle_and_area_smoothing(mesh, CGAL::parameters::number_of_iterations(iterationCount)
+            .use_safety_constraints(false) // authorize all moves
+            .edge_is_constrained_map(eif));
 
     mesh.collect_garbage();
 
-    /*
-     * using EIFMap = boost::property_map<CGALMesh, CGAL::edge_is_feature_t>::type;
-    EIFMap eif = get(CGAL::edge_is_feature, mesh);
-    PMP::detect_sharp_edges(mesh, 45, eif);
-     * CGALMesh outmesh = PMP::surface_Delaunay_remeshing(mesh,
-                                                   CGAL::parameters::mesh_edge_size(targetEdgeLength/15.0)
-                                                           .mesh_facet_distance(targetEdgeLength/6.0)
-                                                           .number_of_iterations(iterationCount));
-*/
-    //mesh.collect_garbage();
     ShapeDescriptor::free(meshToRemesh);
     meshToRemesh = ShapeBench::convertCGALMeshToSD(mesh);
 }
@@ -72,30 +62,28 @@ void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, double targetEdgeLengt
 
 ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config) {
     if(scene.filteredSampleMesh.vertexCount > config.at("filterSettings").at("alternateTriangulation").at("triangleLimit")) {
-        throw std::runtime_error("Mesh too large!");
+        //throw std::runtime_error("Mesh too large!");
     }
 
     ShapeBench::RemeshingFilterOutput output;
     {
-        float minEdgeLength = config.at("filterSettings").at("alternateTriangulation").at("minEdgeLength");
-        float maxEdgeLength = config.at("filterSettings").at("alternateTriangulation").at("maxEdgeLength");
         uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
 
         uint32_t initialVertexCount = scene.filteredSampleMesh.vertexCount;
 
-        // Determine target edge length
+        // Determine average edge length (used in the output results as a means to denote object scale)
         double averageEdgeLength = 0;
         uint32_t edgeIndex = 0;
         internal::calculateAverageEdgeLength(scene.filteredSampleMesh, averageEdgeLength, edgeIndex);
         internal::calculateAverageEdgeLength(scene.filteredAdditiveNoise, averageEdgeLength, edgeIndex);
-        averageEdgeLength = std::clamp<double>(averageEdgeLength, minEdgeLength, maxEdgeLength);
-
 
         // Do remeshing
-        remeshMesh(scene.filteredSampleMesh, averageEdgeLength, iterationCount);
+        uint32_t sampleSharpEdgeCount = 0;
+        uint32_t additiveNoiseSharpEdgeCount = 0;
+        remeshMesh(scene.filteredSampleMesh, iterationCount, sampleSharpEdgeCount);
 
         if (scene.filteredAdditiveNoise.vertexCount != 0) {
-            remeshMesh(scene.filteredAdditiveNoise, averageEdgeLength, iterationCount);
+            remeshMesh(scene.filteredAdditiveNoise, iterationCount, additiveNoiseSharpEdgeCount);
         }
 
         // Update corresponding vertices
@@ -123,6 +111,8 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
             nlohmann::json entry;
             entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
             entry["triangle-shift-average-edge-length"] = averageEdgeLength;
+            entry["triangle-shift-sample-sharp-edge-count"] = sampleSharpEdgeCount;
+            entry["triangle-shift-additive-noise-sharp-edge-count"] = additiveNoiseSharpEdgeCount;
             entry["triangle-shift-sample-mesh-initial-vertexcount"] = initialVertexCount;
             entry["triangle-shift-sample-mesh-filtered-vertexcount"] = scene.filteredSampleMesh.vertexCount;
             output.metadata.push_back(entry);

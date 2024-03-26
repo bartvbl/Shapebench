@@ -90,7 +90,7 @@
             "objectDistanceFromCamera": 2.0
         },
         "alternateTriangulation": {
-            "remeshIterationCount": 1,
+            "remeshIterationCount": 3,
             "minEdgeLength": 0.0,
             "maxEdgeLength": 2.0,
             "triangleLimit": 1500000

@@ -204,7 +204,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     const uint32_t intermediateSaveFrequency = configuration.at("commonExperimentSettings").at(
             "intermediateSaveFrequency");
     std::mutex resultWriteLock;
-    std::counting_semaphore<1> remeshingRateLimiter(6);
 
     bool enableIllustrationGenerationMode = configuration.at("illustrationDataGenerationOverride").at("enableIllustrationDataGeneration");
     uint32_t illustrativeObjectLimit = 0;
@@ -273,7 +272,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             threadsToLaunch = experimentConfig.at("threadLimit");
         }
 
-        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(resultsDirectory, intermediateSaveFrequency, experimentResult, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, additiveCache, remeshingRateLimiter)
+        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(resultsDirectory, intermediateSaveFrequency, experimentResult, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, additiveCache)
         for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject * illustrativeObjectStride) {
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
@@ -348,7 +347,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         ShapeBench::SubtractiveNoiseOutput output = ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
                         filterMetadata = output.metadata;
                     } else if (filterType == "repeated-capture") {
-                        lockGuard<std::counting_semaphore<1>> lock { remeshingRateLimiter };
                         ShapeBench::RemeshingFilterOutput output = ShapeBench::remesh(filteredMesh, configuration);
                         filterMetadata = output.metadata;
                     } else if (filterType == "normal-noise") {
