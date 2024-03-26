@@ -109,7 +109,7 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
 
         for (uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
             nlohmann::json entry;
-            entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
+            entry["triangle-shift-displacement-distance"] = length(scene.mappedReferenceVertices.at(i).vertex - originalReferenceVertices.at(i).vertex);
             entry["triangle-shift-average-edge-length"] = averageEdgeLength;
             entry["triangle-shift-sample-sharp-edge-count"] = sampleSharpEdgeCount;
             entry["triangle-shift-additive-noise-sharp-edge-count"] = additiveNoiseSharpEdgeCount;
