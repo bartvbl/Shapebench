@@ -61,6 +61,15 @@ def getProcessingSettings(mode, fileContents):
         settings.xTick = 0.05
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
         return settings
+    elif experimentName == "repeated-capture-only":
+        settings.title = settings.methodName
+        settings.xAxisTitle = "Relative Support Radius"
+        settings.yAxisTitle = "Fraction of Descriptor Index"
+        settings.xAxisMin = 0
+        settings.xAxisMax = 0.15
+        settings.xTick = 0.01
+        settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
+        return settings
     else:
         raise Exception("Failed to determine chart settings: Unknown experiment name: " + experimentName)
 

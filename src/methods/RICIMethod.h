@@ -7,14 +7,15 @@
 
 namespace ShapeBench {
     struct RICIMethod : public ShapeBench::Method<ShapeDescriptor::RICIDescriptor> {
-        __host__ __device__ static __inline__ int computeDescriptorDistance(
+        __host__ __device__ static __inline__ float computeDescriptorDistance(
                 const ShapeDescriptor::RICIDescriptor& descriptor,
                 const ShapeDescriptor::RICIDescriptor& otherDescriptor) {
 
             #ifdef __CUDA_ARCH__
-            uint32_t threadScore = 0;
-            uint32_t  threadPixelSum = 0;
-            uint32_t  threadSquaredSum = 0;
+            uint64_t threadScore = 0;
+            uint64_t  threadPixelSum = 0;
+            uint64_t  threadSquaredSum = 0;
+            uint64_t threadTotalSquaredSum = 0;
             const int laneIndex = threadIdx.x % 32;
 
             static_assert(spinImageWidthPixels % 32 == 0, "This kernel assumes an image whose width is a multiple of the warp size");
@@ -78,11 +79,13 @@ namespace ShapeBench {
                     // This if statement makes a massive difference in the clutter resistant performance of this method
                     // It only counts least squares differences if the needle image has a change in intersection count
                     // Which is usually something very specific to that object.
+                    uint32_t pixelSquaredSum = (needleDelta - haystackDelta) * (needleDelta - haystackDelta);
                     if (needleDelta != 0) {
-                        threadScore += (needleDelta - haystackDelta) * (needleDelta - haystackDelta);
+                        threadScore += pixelSquaredSum;
                     }
                     threadPixelSum += currentNeedlePixelValue * currentNeedlePixelValue;
                     threadSquaredSum += haystackDelta * haystackDelta;
+                    threadTotalSquaredSum += pixelSquaredSum;
 
                     // This only matters for thread 31, so no need to broadcast it using a shuffle instruction
                     previousWarpLastNeedlePixelValue = currentNeedlePixelValue;
@@ -90,19 +93,23 @@ namespace ShapeBench {
                 }
             }
 
-            uint32_t imageScore = ShapeDescriptor::warpAllReduceSum(threadScore);
-            uint32_t pixelSum = ShapeDescriptor::warpAllReduceSum(threadPixelSum);
-            uint32_t squaredSum = ShapeDescriptor::warpAllReduceSum(threadSquaredSum);
+            uint64_t imageScore = ShapeDescriptor::warpAllReduceSum(threadScore);
+            uint64_t pixelSum = ShapeDescriptor::warpAllReduceSum(threadPixelSum);
+            uint64_t squaredSum = ShapeDescriptor::warpAllReduceSum(threadSquaredSum);
+            uint64_t totalSquaredSum = ShapeDescriptor::warpAllReduceSum(threadTotalSquaredSum);
 
             if(pixelSum > 0) {
                 return imageScore;
-            } else {
+            } else if(squaredSum > 0) {
                 return squaredSum;
+            } else {
+                return totalSquaredSum;
             }
             #else
-            int score = 0;
-            uint32_t pixelSum = 0;
-            int squaredSum = 0;
+            uint64_t score = 0;
+            uint64_t pixelSum = 0;
+            uint64_t globalSquaredSum = 0;
+            uint64_t squaredSum = 0;
 
             // Scores are computed one row at a time.
             // We differentiate between rows to ensure the final pixel of the previous row does not
@@ -134,13 +141,16 @@ namespace ShapeBench {
                     }
                     pixelSum += currentNeedlePixelValue;
                     squaredSum += haystackDelta * haystackDelta;
+                    globalSquaredSum += (needleDelta - haystackDelta) * (needleDelta - haystackDelta);
                 }
             }
 
             if(pixelSum > 0) {
-                return score;
+                return float(score);
+            } else if(squaredSum > 0) {
+                return float(squaredSum);
             } else {
-                return squaredSum;
+                return float(globalSquaredSum);
             }
 
             #endif
