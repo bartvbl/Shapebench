@@ -58,8 +58,12 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
             datasetEntry["id"] = i;
             std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)),
                                                                        originalDatasetDirectory);
+            bool isPointCloud = false;
+            if(filePath.extension() == ".glb") {
+                ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
+            }
             datasetEntry["filePath"] = filePath;
-            bool isPointCloud = ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
+
             datasetEntry["isPointCloud"] = isPointCloud;
             std::filesystem::path compressedMeshPath = compressedDatasetDirectory / filePath;
             compressedMeshPath.replace_extension(".cm");
