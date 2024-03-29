@@ -42,7 +42,7 @@ set(ENABLE_ALL_WARNINGS OFF)
 add_definitions(-DJPH_ENABLE_ASSERTS -DJPH_DEBUG_RENDERER)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
-add_subdirectory(lib/pmp-library)
+add_subdirectory(lib/glfw)
 
 # sudo apt install libcgal-dev libceres-dev
 # For 5.6.1 I had to install through the debian channel, it's not available yet
@@ -92,7 +92,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw pmp gitinfo CGAL::CGAL ceres glog) # lsan ${PCL_LIBRARIES}
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo CGAL::CGAL ceres glog) # lsan ${PCL_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
 #target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
