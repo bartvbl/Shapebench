@@ -153,7 +153,6 @@ ShapeBench::OpenGLDebugRenderer::CreateTriangleBatch(const JPH::DebugRenderer::T
         vertices.at(3 * i + 2) = inTriangles[i].mV[2];
     }
     return CreateTriangleBatch(vertices.data(), vertices.size(), indices.data(), indices.size());
-    printGLError();
 }
 
 JPH::DebugRenderer::Batch

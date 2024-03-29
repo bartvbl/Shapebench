@@ -5,17 +5,11 @@
 #include <malloc.h>
 #include "remeshingFilter.h"
 #include "utils/filterUtils/cgalConverter.h"
-#include <CGAL/Polyhedron_3.h>
-#include <CGAL/Polygon_mesh_processing/IO/polygon_mesh_io.h>
 #include <vector>
 #include <CGAL/Surface_mesh.h>
-#include <CGAL/Polygon_mesh_processing/remesh.h>
 #include <CGAL/Polygon_mesh_processing/border.h>
-#include <boost/iterator/function_output_iterator.hpp>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_mesh_processing/detect_features.h>
-//#include <CGAL/Polygon_mesh_processing/surface_Delaunay_remeshing.h>
-#include <CGAL/Mesh_constant_domain_field_3.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel   CGALK;
