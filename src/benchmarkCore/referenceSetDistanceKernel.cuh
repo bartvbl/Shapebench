@@ -8,6 +8,8 @@ namespace ShapeBench {
         float variance = 0;
     };
 
+    constexpr uint32_t warpsPerBlock = 48;
+
     // Kernel assumes 1D blocks with multiples of 32 in width
     template<typename DescriptorMethod, typename DescriptorType>
     __global__ void referenceSetDistanceKernel(
@@ -15,9 +17,13 @@ namespace ShapeBench {
             ShapeDescriptor::gpu::array<DescriptorType> referenceDescriptors,
             ShapeDescriptor::gpu::array<DescriptorDistance> distances) {
         __shared__ DescriptorType sampleDescriptor;
+        __shared__ float runningAverages[warpsPerBlock];
+        __shared__ uint32_t averageCount[warpsPerBlock];
+        __shared__ float runningSquaredSums[warpsPerBlock];
         const uint32_t sampleDescriptorIndex = blockIdx.x;
         static_assert(sizeof(DescriptorType) % sizeof(float) == 0, "This descriptor does not appear to use integers or floats as its storage type. Please implement a special case for it.");
-        for(uint32_t i = threadIdx.x; i < (sizeof(DescriptorType) / sizeof(float)); i += blockDim.x) {
+        uint32_t threadIndex = threadIdx.y * blockDim.x + threadIdx.x;
+        for(uint32_t i = threadIndex; i < (sizeof(DescriptorType) / sizeof(float)); i += blockDim.x * blockDim.y) {
             sampleDescriptor.contents[i] = sampleDescriptors[sampleDescriptorIndex].contents[i];
         }
 
@@ -27,9 +33,8 @@ namespace ShapeBench {
         float runningMean = 0;
         float runningSumOfSquaredDifferences = 0;
 
-        for(uint32_t referenceDescriptorIndex = 0; referenceDescriptorIndex < referenceDescriptors.length; referenceDescriptorIndex++) {
-            float similarity = DescriptorMethod::computeDescriptorDistance(sampleDescriptor,
-                                                                           referenceDescriptors[referenceDescriptorIndex]);
+        for(uint32_t referenceDescriptorIndex = threadIdx.y; referenceDescriptorIndex < referenceDescriptors.length; referenceDescriptorIndex += blockDim.y) {
+            float similarity = DescriptorMethod::computeDescriptorDistance(sampleDescriptor, referenceDescriptors[referenceDescriptorIndex]);
             // Using Welford's algorithm for computing the mean and variance
             // Updating the running mean and standard deviation values
             runningCount++;
@@ -39,13 +44,27 @@ namespace ShapeBench {
             runningSumOfSquaredDifferences += delta * delta2;
         }
 
-        // Computing the variance
         if(threadIdx.x == 0) {
-            DescriptorDistance distance;
-            distance.mean = runningMean;
-            // Note: will be NaN if runningCount <= 1
-            distance.variance = runningSumOfSquaredDifferences / float(runningCount - 1);
+            runningAverages[threadIdx.y] = runningMean;
+            averageCount[threadIdx.y] = runningCount;
+            runningSquaredSums[threadIdx.y] = runningSumOfSquaredDifferences;
+        }
 
+        __syncthreads();
+
+        // Computing the variance
+        if(threadIdx.x == 0 && threadIdx.y == 0) {
+            float globalMean = 0;
+            float globalSquaredSum = 0;
+            for(int i = 0; i < blockDim.y; i++) {
+                float fractionOfTotal = float(averageCount[i]) / float(referenceDescriptors.length);
+                globalMean += fractionOfTotal * runningAverages[i];
+                globalSquaredSum += runningSquaredSums[i];
+            }
+
+            DescriptorDistance distance;
+            distance.mean = globalMean;
+            distance.variance = globalSquaredSum / float(referenceDescriptors.length - 1);
             distances.content[sampleDescriptorIndex] = distance;
         }
     };
@@ -92,7 +111,8 @@ namespace ShapeBench {
         ShapeDescriptor::gpu::array<DescriptorType> device_referenceDescriptors = referenceDescriptors.copyToGPU();
         ShapeDescriptor::gpu::array<DescriptorDistance> device_distances = distances.copyToGPU();
 
-        referenceSetDistanceKernel<DescriptorMethod, DescriptorType><<<sampleDescriptors.length, 32>>>(device_sampleDescriptors, device_referenceDescriptors, device_distances);
+        dim3 blockDimensions = {32, warpsPerBlock, 1};
+        referenceSetDistanceKernel<DescriptorMethod, DescriptorType><<<sampleDescriptors.length, blockDimensions>>>(device_sampleDescriptors, device_referenceDescriptors, device_distances);
         checkCudaErrors(cudaDeviceSynchronize());
 
         checkCudaErrors(cudaMemcpy(distances.content, device_distances.content, distances.length * sizeof(DescriptorDistance), cudaMemcpyDeviceToHost));
