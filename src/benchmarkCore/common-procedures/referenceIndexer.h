@@ -12,6 +12,7 @@ namespace ShapeBench {
         for(uint32_t i = 0; i < referenceSet.length; i++) {
             float referenceDescriptorDistance = DescriptorMethod::computeDescriptorDistance(filteredDescriptor, referenceSet[i]);
             if(referenceDescriptorDistance < sampleDescriptorDistance) {
+                //std::cout << "Distance to beat: " + std::to_string(referenceDescriptorDistance) + ", beat distance: " + std::to_string(sampleDescriptorDistance) + "\n" << std::flush;
                 filteredDescriptorRank++;
             }
         }
