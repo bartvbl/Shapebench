@@ -106,40 +106,40 @@
         }
     },
 
-    "methodSettings": [
-        {
-            "name": "SI",
+    "methodSettings": {
+        "SI": {
+            "enabled": false,
             "supportAngle": 180
         },
-        {
-            "name": "RICI"
+        "RICI": {
+            "enabled": false
         },
-        {
-            "name": "QUICCI"
+        "QUICCI": {
+            "enabled": false
         },
-        {
-            "name": "3DSC",
+        "3DSC": {
+            "enabled": false,
             "minSupportRadiusFactor": 0.04,
             "pointDensityScaleFactor": 0.01,
             "pointDensityRadius": 0.08,
             "normaliseDescriptorWhenComputingSupportRadius": false
         },
-        {
-            "name": "USC",
+        "USC": {
+            "enabled": false,
             "minSupportRadiusFactor": 0.1,
             "pointDensityScaleFactor": 0.01,
             "pointDensityRadius": 0.1,
             "normaliseDescriptorWhenComputingSupportRadius": true
         },
-        {
-            "name": "FPFH"
+        "FPFH": {
+            "enabled": false
         },
-        {
-            "name": "RoPS",
+        "RoPS": {
+            "enabled": false,
             "pointSamplingDensity": 100000,
             "pointSampleLimit": 5000000
         }
-    ],
+    },
 
     "parameterSelection": {
         "supportRadius": {

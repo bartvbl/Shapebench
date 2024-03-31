@@ -6,20 +6,10 @@
 namespace ShapeBench {
     template<typename Type>
     inline Type readDescriptorConfigValue(const nlohmann::json& config, std::string methodName, std::string configEntryName) {
-        for(const nlohmann::json& entry : config.at("methodSettings")) {
-            if(entry.at("name") == methodName) {
-                return Type(entry.at(configEntryName));
-            }
-        }
-        throw std::runtime_error("Config entry \"" + configEntryName + "\" for method " + methodName + " not found in config file");
+        return config.at("methodSettings").at(methodName).at(configEntryName);
     }
     inline bool hasConfigValue(const nlohmann::json& config, std::string methodName, std::string configEntryName) {
-        for(const nlohmann::json& entry : config.at("methodSettings")) {
-            if(entry.at("name") == methodName) {
-                return entry.contains(configEntryName);
-            }
-        }
-        throw std::runtime_error("Config entry \"" + configEntryName + "\" for method " + methodName + " not found in config file");
+        return config.at("methodSettings").at(methodName).contains(configEntryName);
     }
 
     template<typename DescriptorType>
