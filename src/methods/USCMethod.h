@@ -114,6 +114,8 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
+#define recomputeDensity true
+#if !recomputeDensity
             std::vector<float> minSupportRadii(supportRadii.size());
             for(uint32_t i = 0; i < supportRadii.size(); i++) {
                 minSupportRadii.at(i) = minSupportRadiusFactor * supportRadii.at(i);
@@ -121,7 +123,7 @@ namespace ShapeBench {
 
             ShapeDescriptor::cpu::array<ShapeDescriptor::UniqueShapeContextDescriptor> descriptors = ShapeDescriptor::generateUniqueShapeContextDescriptorsMultiRadius(
                     cloud, descriptorOrigins, pointDensityRadius, minSupportRadii, supportRadii);
-            /*
+#else
             std::vector<float> minSupportRadii(1);
             std::vector<float> singleRadius(1);
             ShapeDescriptor::cpu::array<ShapeDescriptor::UniqueShapeContextDescriptor> descriptors(supportRadii.size());
@@ -130,10 +132,11 @@ namespace ShapeBench {
                 singleRadius.at(0) = supportRadii.at(i);
                 ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> singlePoint{1, descriptorOrigins.content + i};
                 float density = pointDensityRadius * supportRadii.at(i);
-                ShapeDescriptor::cpu::array<ShapeDescriptor::UniqueShapeContextDescriptor> descriptor = ShapeDescriptor::generalUniqueShapeContextMultiRadius(cloud, singlePoint, density, minSupportRadii, singleRadius);
+                ShapeDescriptor::cpu::array<ShapeDescriptor::UniqueShapeContextDescriptor> descriptor = ShapeDescriptor::generateUniqueShapeContextDescriptorsMultiRadius(cloud, singlePoint, density, minSupportRadii, singleRadius);
                 descriptors[i] = descriptor[0];
                 ShapeDescriptor::free(descriptor);
-            }*/
+            }
+#endif
             return descriptors;
         }
 
