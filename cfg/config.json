@@ -126,10 +126,10 @@
         },
         {
             "name": "USC",
-            "minSupportRadiusFactor": 0.04,
+            "minSupportRadiusFactor": 0.1,
             "pointDensityScaleFactor": 0.01,
-            "pointDensityRadius": 0.08,
-            "normaliseDescriptorWhenComputingSupportRadius": false
+            "pointDensityRadius": 0.1,
+            "normaliseDescriptorWhenComputingSupportRadius": true
         },
         {
             "name": "FPFH"

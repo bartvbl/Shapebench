@@ -6,7 +6,7 @@
 #include "benchmarkCore/randomEngine.h"
 
 
-ShapeBench::MeshSimplificationFilterOutput ShapeBench::simplifyMesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::SimplificationFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
 
 
     // Update reference points
@@ -29,7 +29,7 @@ ShapeBench::MeshSimplificationFilterOutput ShapeBench::simplifyMesh(ShapeBench::
     }
 
 
-    ShapeBench::MeshSimplificationFilterOutput output;
+    ShapeBench::FilterOutput output;
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         nlohmann::json entry;
         entry["mesh-resolution-vertex-displacement"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
@@ -38,3 +38,16 @@ ShapeBench::MeshSimplificationFilterOutput ShapeBench::simplifyMesh(ShapeBench::
 
     return output;
 }
+
+void ShapeBench::SimplificationFilter::init(const nlohmann::json &config) {
+
+}
+
+void ShapeBench::SimplificationFilter::destroy() {
+
+}
+
+void ShapeBench::SimplificationFilter::saveCaches() {
+
+}
+

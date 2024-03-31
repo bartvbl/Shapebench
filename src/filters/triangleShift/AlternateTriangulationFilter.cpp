@@ -55,11 +55,49 @@ void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, uint32_t iterationCoun
 
 
 ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config) {
+
+}
+
+void ShapeBench::internal::calculateAverageEdgeLength(const ShapeDescriptor::cpu::Mesh& mesh, double &averageEdgeLength,uint32_t &edgeIndex) {
+    for (uint32_t triangleBaseIndex = 0; triangleBaseIndex < mesh.vertexCount; triangleBaseIndex += 3) {
+        ShapeDescriptor::cpu::float3& vertex0 = mesh.vertices[triangleBaseIndex];
+        ShapeDescriptor::cpu::float3& vertex1 = mesh.vertices[triangleBaseIndex + 1];
+        ShapeDescriptor::cpu::float3& vertex2 = mesh.vertices[triangleBaseIndex + 2];
+        double length10 = length(vertex1 - vertex0);
+        double length21 = length(vertex2 - vertex1);
+        double length02 = length(vertex0 - vertex2);
+        //std::cout << vertex0 << ", " << vertex1 << ", " << vertex2 << " - " << length10 << ", " << length21 << ", " << length02 << " - " << averageEdgeLength << std::endl;
+        averageEdgeLength += (length10 - averageEdgeLength) / double(edgeIndex + 1);
+        edgeIndex++;
+        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
+        averageEdgeLength += (length21 - averageEdgeLength) / double(edgeIndex + 1);
+        edgeIndex++;
+        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
+        averageEdgeLength += (length02 - averageEdgeLength) / double(edgeIndex + 1);
+        edgeIndex++;
+        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
+    }
+}
+
+
+void ShapeBench::TriangleShiftFilter::init(const nlohmann::json &config) {
+
+}
+
+void ShapeBench::TriangleShiftFilter::destroy() {
+
+}
+
+void ShapeBench::TriangleShiftFilter::saveCaches() {
+
+}
+
+ShapeBench::FilterOutput ShapeBench::TriangleShiftFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
     if(scene.filteredSampleMesh.vertexCount > config.at("filterSettings").at("alternateTriangulation").at("triangleLimit")) {
         //throw std::runtime_error("Mesh too large!");
     }
 
-    ShapeBench::RemeshingFilterOutput output;
+    ShapeBench::FilterOutput output;
     {
         uint32_t iterationCount = config.at("filterSettings").at("alternateTriangulation").at("remeshIterationCount");
 
@@ -118,26 +156,3 @@ ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPai
 
     return output;
 }
-
-void ShapeBench::internal::calculateAverageEdgeLength(const ShapeDescriptor::cpu::Mesh& mesh, double &averageEdgeLength,uint32_t &edgeIndex) {
-    for (uint32_t triangleBaseIndex = 0; triangleBaseIndex < mesh.vertexCount; triangleBaseIndex += 3) {
-        ShapeDescriptor::cpu::float3& vertex0 = mesh.vertices[triangleBaseIndex];
-        ShapeDescriptor::cpu::float3& vertex1 = mesh.vertices[triangleBaseIndex + 1];
-        ShapeDescriptor::cpu::float3& vertex2 = mesh.vertices[triangleBaseIndex + 2];
-        double length10 = length(vertex1 - vertex0);
-        double length21 = length(vertex2 - vertex1);
-        double length02 = length(vertex0 - vertex2);
-        //std::cout << vertex0 << ", " << vertex1 << ", " << vertex2 << " - " << length10 << ", " << length21 << ", " << length02 << " - " << averageEdgeLength << std::endl;
-        averageEdgeLength += (length10 - averageEdgeLength) / double(edgeIndex + 1);
-        edgeIndex++;
-        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
-        averageEdgeLength += (length21 - averageEdgeLength) / double(edgeIndex + 1);
-        edgeIndex++;
-        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
-        averageEdgeLength += (length02 - averageEdgeLength) / double(edgeIndex + 1);
-        edgeIndex++;
-        //std::cout << averageEdgeLength << ", " << edgeIndex << std::endl;
-    }
-}
-
-
