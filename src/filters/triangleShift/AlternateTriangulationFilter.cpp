@@ -3,7 +3,7 @@
 #define CGAL_PMP_USE_CERES_SOLVER
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <malloc.h>
-#include "remeshingFilter.h"
+#include "AlternateTriangulationFilter.h"
 #include "utils/filterUtils/cgalConverter.h"
 #include <vector>
 #include <CGAL/Surface_mesh.h>
@@ -52,12 +52,6 @@ void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, uint32_t iterationCoun
     meshToRemesh = ShapeBench::convertCGALMeshToSD(mesh);
 }
 
-
-
-ShapeBench::RemeshingFilterOutput ShapeBench::remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config) {
-
-}
-
 void ShapeBench::internal::calculateAverageEdgeLength(const ShapeDescriptor::cpu::Mesh& mesh, double &averageEdgeLength,uint32_t &edgeIndex) {
     for (uint32_t triangleBaseIndex = 0; triangleBaseIndex < mesh.vertexCount; triangleBaseIndex += 3) {
         ShapeDescriptor::cpu::float3& vertex0 = mesh.vertices[triangleBaseIndex];
@@ -80,19 +74,19 @@ void ShapeBench::internal::calculateAverageEdgeLength(const ShapeDescriptor::cpu
 }
 
 
-void ShapeBench::TriangleShiftFilter::init(const nlohmann::json &config) {
+void ShapeBench::AlternateTriangulationFilter::init(const nlohmann::json &config) {
 
 }
 
-void ShapeBench::TriangleShiftFilter::destroy() {
+void ShapeBench::AlternateTriangulationFilter::destroy() {
 
 }
 
-void ShapeBench::TriangleShiftFilter::saveCaches() {
+void ShapeBench::AlternateTriangulationFilter::saveCaches(const nlohmann::json& config) {
 
 }
 
-ShapeBench::FilterOutput ShapeBench::TriangleShiftFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::AlternateTriangulationFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
     if(scene.filteredSampleMesh.vertexCount > config.at("filterSettings").at("alternateTriangulation").at("triangleLimit")) {
         //throw std::runtime_error("Mesh too large!");
     }

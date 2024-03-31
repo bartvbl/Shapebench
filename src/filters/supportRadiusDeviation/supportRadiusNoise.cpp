@@ -3,7 +3,7 @@
 #include "supportRadiusNoise.h"
 #include "benchmarkCore/randomEngine.h"
 
-ShapeBench::SupportRadiusDeviationOutput ShapeBench::applySupportRadiusNoise(ShapeBench::FilteredMeshPair& scene, uint64_t randomSeed, const nlohmann::json& config) {
+ShapeBench::FilterOutput ShapeBench::SupportRadiusNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
     float deviationLimit = config.at("filterSettings").at("supportRadiusDeviation").at("maxRadiusDeviation");
 
     ShapeBench::randomEngine generator(randomSeed);
@@ -20,7 +20,7 @@ ShapeBench::SupportRadiusDeviationOutput ShapeBench::applySupportRadiusNoise(Sha
     }
 
     // Update reference points
-    ShapeBench::SupportRadiusDeviationOutput output;
+    ShapeBench::FilterOutput output;
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         scene.mappedReferenceVertices.at(i).vertex *= scaleFactor;
         nlohmann::json entry;
@@ -29,4 +29,16 @@ ShapeBench::SupportRadiusDeviationOutput ShapeBench::applySupportRadiusNoise(Sha
     }
 
     return output;
+}
+
+void ShapeBench::SupportRadiusNoiseFilter::saveCaches(const nlohmann::json& config) {
+
+}
+
+void ShapeBench::SupportRadiusNoiseFilter::destroy() {
+
+}
+
+void ShapeBench::SupportRadiusNoiseFilter::init(const nlohmann::json &config) {
+
 }

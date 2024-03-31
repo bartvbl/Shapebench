@@ -33,8 +33,8 @@ ShapeDescriptor::cpu::float3 computeDeviatedNormal(ShapeDescriptor::cpu::float3 
     return normalize(ShapeDescriptor::cpu::float3(deviatedNormal.x, deviatedNormal.y, deviatedNormal.z));
 }
 
-ShapeBench::NormalNoiseFilterOutput ShapeBench::applyNormalNoiseFilter(const nlohmann::json& config, FilteredMeshPair& filteredMesh, uint64_t randomSeed) {
-    ShapeBench::NormalNoiseFilterOutput meta;
+ShapeBench::FilterOutput ShapeBench::NormalNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+    ShapeBench::FilterOutput meta;
 
     float maxDeviation = config.at("filterSettings").at("normalVectorNoise").at("maxAngleDeviationDegrees");
 
@@ -43,8 +43,8 @@ ShapeBench::NormalNoiseFilterOutput ShapeBench::applyNormalNoiseFilter(const nlo
     std::uniform_real_distribution<float> rotationAngleDistribution(0, 360);
 
     // Displace reference point normals
-    for(uint32_t i = 0; i < filteredMesh.mappedReferenceVertices.size(); i++) {
-        ShapeDescriptor::cpu::float3& normal = filteredMesh.mappedReferenceVertices.at(i).normal;
+    for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+        ShapeDescriptor::cpu::float3& normal = scene.mappedReferenceVertices.at(i).normal;
         float deviationAngleDegrees = deviationAngleDistribution(engine);
         float rotationAngleDegrees = rotationAngleDistribution(engine);
         normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
@@ -55,19 +55,31 @@ ShapeBench::NormalNoiseFilterOutput ShapeBench::applyNormalNoiseFilter(const nlo
     }
 
     // Displace mesh normals
-    for(uint32_t i = 0; i < filteredMesh.filteredSampleMesh.vertexCount; i++) {
-        ShapeDescriptor::cpu::float3& normal = filteredMesh.filteredSampleMesh.normals[i];
+    for(uint32_t i = 0; i < scene.filteredSampleMesh.vertexCount; i++) {
+        ShapeDescriptor::cpu::float3& normal = scene.filteredSampleMesh.normals[i];
         float deviationAngleDegrees = deviationAngleDistribution(engine);
         float rotationAngleDegrees = rotationAngleDistribution(engine);
         normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
     }
 
-    for(uint32_t i = 0; i < filteredMesh.filteredAdditiveNoise.vertexCount; i++) {
-        ShapeDescriptor::cpu::float3& normal = filteredMesh.filteredAdditiveNoise.normals[i];
+    for(uint32_t i = 0; i < scene.filteredAdditiveNoise.vertexCount; i++) {
+        ShapeDescriptor::cpu::float3& normal = scene.filteredAdditiveNoise.normals[i];
         float deviationAngleDegrees = deviationAngleDistribution(engine);
         float rotationAngleDegrees = rotationAngleDistribution(engine);
         normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
     }
 
     return meta;
+}
+
+void ShapeBench::NormalNoiseFilter::init(const nlohmann::json &config) {
+
+}
+
+void ShapeBench::NormalNoiseFilter::destroy() {
+
+}
+
+void ShapeBench::NormalNoiseFilter::saveCaches(const nlohmann::json& config) {
+
 }

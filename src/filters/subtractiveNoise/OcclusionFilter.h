@@ -9,10 +9,14 @@
 #include "utils/gl/Shader.h"
 #include "utils/gl/GeometryBuffer.h"
 #include "filters/FilteredMeshPair.h"
+#include "filters/Filter.h"
 
 namespace ShapeBench {
-    struct SubtractiveNoiseOutput {
-        nlohmann::json metadata;
+    struct OcclusionRendererSettings {
+        float nearPlaneDistance = 0.001;
+        float farPlaneDistance = 100.0;
+        float fovy = 1.552;
+        float objectDistanceFromCamera = 20;
     };
 
     class OccludedSceneGenerator {
@@ -32,16 +36,20 @@ namespace ShapeBench {
     public:
         explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
-        SubtractiveNoiseOutput computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
+        ShapeBench::FilterOutput computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };
 
-    static OccludedSceneGenerator occlusionSceneGeneratorInstance;
+    class OcclusionFilter : public ShapeBench::Filter {
+        OccludedSceneGenerator sceneGenerator;
 
+    public:
+        virtual void init(const nlohmann::json& config);
+        virtual void destroy();
+        virtual void saveCaches(const nlohmann::json& config);
 
+        virtual FilterOutput apply(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed);
 
-    inline SubtractiveNoiseOutput applyOcclusionFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, uint64_t seed) {
-        return occlusionSceneGeneratorInstance.computeOccludedMesh(config, scene, seed);
-    }
+    };
 }

@@ -1,12 +1,12 @@
 #include <iostream>
 #include <shapeDescriptor/shapeDescriptor.h>
-#include "simplificationFilter.h"
+#include "NoisyCaptureFilter.h"
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/decimation.h"
 #include "benchmarkCore/randomEngine.h"
 
 
-ShapeBench::FilterOutput ShapeBench::SimplificationFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
 
 
     // Update reference points
@@ -39,15 +39,15 @@ ShapeBench::FilterOutput ShapeBench::SimplificationFilter::apply(const nlohmann:
     return output;
 }
 
-void ShapeBench::SimplificationFilter::init(const nlohmann::json &config) {
+void ShapeBench::NoisyCaptureFilter::init(const nlohmann::json &config) {
 
 }
 
-void ShapeBench::SimplificationFilter::destroy() {
+void ShapeBench::NoisyCaptureFilter::destroy() {
 
 }
 
-void ShapeBench::SimplificationFilter::saveCaches() {
+void ShapeBench::NoisyCaptureFilter::saveCaches(const nlohmann::json& config) {
 
 }
 

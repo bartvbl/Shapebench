@@ -2,11 +2,16 @@
 
 #include "filters/FilteredMeshPair.h"
 #include "json.hpp"
+#include "filters/Filter.h"
 
 namespace ShapeBench {
-    struct NormalNoiseFilterOutput {
-        nlohmann::json metadata;
-    };
+    class NormalNoiseFilter : public ShapeBench::Filter {
 
-    NormalNoiseFilterOutput applyNormalNoiseFilter(const nlohmann::json& config, FilteredMeshPair& filteredMesh, uint64_t randomSeed);
+    public:
+        void init(const nlohmann::json& config) override;
+        void destroy() override;
+        void saveCaches(const nlohmann::json& config) override;
+
+        FilterOutput apply(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed) override;
+    };
 }

@@ -237,8 +237,7 @@ bool anyBodyActive(JPH::BodyInterface *bodyInterface, const std::vector<JPH::Bod
     return false;
 }
 
-
-void ShapeBench::initPhysics() {
+void ShapeBench::AdditiveNoiseFilter::init(const nlohmann::json &config) {
     // Register allocation hook
     JPH::RegisterDefaultAllocator();
 
@@ -251,15 +250,22 @@ void ShapeBench::initPhysics() {
 
     // Register all Jolt physics types
     JPH::RegisterTypes();
+
+    ShapeBench::loadAdditiveNoiseCache(additiveNoiseCache, config);
+    std::cout << "    Loaded Additive Noise filter cache (" << additiveNoiseCache.entryCount() << " entries)" << std::endl;
 }
 
-void ShapeBench::destroyPhysics() {
+void ShapeBench::AdditiveNoiseFilter::destroy() {
     // Unregisters all types with the factory and cleans up the default material
     JPH::UnregisterTypes();
 
     // Destroy the factory
     delete JPH::Factory::sInstance;
     JPH::Factory::sInstance = nullptr;
+}
+
+void ShapeBench::AdditiveNoiseFilter::saveCaches(const nlohmann::json& config) {
+    ShapeBench::saveAdditiveNoiseCache(additiveNoiseCache, config);
 }
 
 std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings,
@@ -468,8 +474,10 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     return orientations;
 }
 
-ShapeBench::AdditiveNoiseOutput ShapeBench::runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const ShapeBench::Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache) {
-    ShapeBench::AdditiveNoiseOutput output;
+ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+    const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
+    ShapeBench::FilterOutput output;
+    AdditiveNoiseFilterSettings settings = readAdditiveNoiseFilterSettings(config, filterSettings);
 
     std::filesystem::path datasetRootDir = settings.compressedDatasetRootDir;
     uint32_t clutterObjectCount = settings.addedClutterObjectCount;
@@ -496,11 +504,11 @@ ShapeBench::AdditiveNoiseOutput ShapeBench::runAdditiveNoiseFilter(AdditiveNoise
 
     // Compute orientations by doing a physics simulation or using a cached result
     std::vector<ShapeBench::Orientation> objectOrientations;
-    if(!cache.contains(randomSeed)) {
+    if(!additiveNoiseCache.contains(randomSeed)) {
         objectOrientations = runPhysicsSimulation(settings, meshes);
-        cache.set(randomSeed, objectOrientations);
+        additiveNoiseCache.set(randomSeed, objectOrientations);
     } else {
-        objectOrientations = cache.get(randomSeed);
+        objectOrientations = additiveNoiseCache.get(randomSeed);
     }
 
     // Constructing cluttered scene
@@ -577,3 +585,9 @@ ShapeBench::AdditiveNoiseOutput ShapeBench::runAdditiveNoiseFilter(AdditiveNoise
 
     return output;
 }
+
+
+
+
+
+

@@ -8,23 +8,20 @@ class AdditiveNoiseCache;
 #include "filters/FilteredMeshPair.h"
 #include "AdditiveNoiseCache.h"
 #include "AdditiveNoiseFilterSettings.h"
+#include "filters/Filter.h"
 
 namespace ShapeBench {
-    struct AdditiveNoiseOutput {
-        nlohmann::json metadata;
+
+    class AdditiveNoiseFilter : public ShapeBench::Filter {
+        AdditiveNoiseCache additiveNoiseCache;
+
+    public:
+        void init(const nlohmann::json& config) override;
+        void destroy() override;
+        void saveCaches(const nlohmann::json& config) override;
+
+        FilterOutput apply(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed) override;
     };
 
-    void initPhysics();
-    void destroyPhysics();
     std::vector<ShapeBench::Orientation> runPhysicsSimulation(ShapeBench::AdditiveNoiseFilterSettings settings, const std::vector<ShapeDescriptor::cpu::Mesh>& meshes);
-    AdditiveNoiseOutput runAdditiveNoiseFilter(AdditiveNoiseFilterSettings settings, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache);
-
-
-
-    inline AdditiveNoiseOutput applyAdditiveNoiseFilter(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed, AdditiveNoiseCache& cache) {
-        const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
-
-        AdditiveNoiseFilterSettings settings = readAdditiveNoiseFilterSettings(config, filterSettings);
-        return runAdditiveNoiseFilter(settings, scene, dataset, randomSeed, cache);
-    }
 }

@@ -12,7 +12,7 @@
 #include "supportRadiusEstimation/SupportRadiusEstimation.h"
 #include "utils/prettyprint.h"
 #include "filters/subtractiveNoise/OcclusionFilter.h"
-#include "filters/triangleShift/remeshingFilter.h"
+#include "filters/triangleShift/AlternateTriangulationFilter.h"
 #include "filters/additiveNoise/AdditiveNoiseCache.h"
 #include "filters/FilteredMeshPair.h"
 #include "results/ExperimentResult.h"
@@ -21,7 +21,7 @@
 #include "results/ResultDumper.h"
 #include "filters/normalVectorDeviation/normalNoiseFilter.h"
 #include "filters/supportRadiusDeviation/supportRadiusNoise.h"
-#include "filters/meshResolutionDeviation/simplificationFilter.h"
+#include "filters/noisyCapture/NoisyCaptureFilter.h"
 
 template <typename T>
 class lockGuard
@@ -128,16 +128,6 @@ ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
     return referenceDescriptors;
 }
 
-bool experimentContainsSubtractiveFilter(const nlohmann::json& experimentConfig) {
-    for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
-        std::string filterType = experimentConfig.at("filters").at(filterStepIndex).at("type");
-        if(filterType == "subtractive-noise") {
-            return true;
-        }
-    }
-    return false;
-}
-
 template<typename DescriptorMethod, typename DescriptorType>
 void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
     std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
@@ -176,8 +166,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     // Computing sample descriptors and their distance to the representative set
     const uint32_t representativeSetSize = configuration.at("commonExperimentSettings").at("representativeSetSize");
     const uint32_t sampleSetSize = configuration.at("commonExperimentSettings").at("sampleSetSize");
-    const uint32_t verticesPerSampleObject = configuration.at("commonExperimentSettings").at(
-            "verticesToTestPerSampleObject");
+    const uint32_t verticesPerSampleObject = configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject");
 
     // Compute reference descriptors, or load them from a cache file
     std::cout << "Computing reference descriptor set.." << std::endl;
@@ -189,12 +178,15 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     std::vector<ShapeBench::VertexInDataset> sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize, configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject"));
     ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), sampleVerticesSet, "sample");
 
-    // Initialise filter caches
-    std::cout << "Initialising filter caches.." << std::endl;
-    ShapeBench::AdditiveNoiseCache additiveCache;
-    ShapeBench::loadAdditiveNoiseCache(additiveCache, configuration);
-    std::cout << "    Loaded Additive Noise filter cache (" << additiveCache.entryCount() << " entries)" << std::endl;
-    ShapeBench::initPhysics();
+    // Initialise filters
+    std::unordered_map<std::string, std::unique_ptr<ShapeBench::Filter>> filterInstanceMap;
+    filterInstanceMap.insert(std::make_pair("repeated-capture", new ShapeBench::AlternateTriangulationFilter()));
+    filterInstanceMap.insert(std::make_pair("support-radius-deviation", new ShapeBench::SupportRadiusNoiseFilter()));
+    filterInstanceMap.insert(std::make_pair("normal-noise", new ShapeBench::NormalNoiseFilter()));
+    filterInstanceMap.insert(std::make_pair("additive-noise", new ShapeBench::AdditiveNoiseFilter()));
+    filterInstanceMap.insert(std::make_pair("subtractive-noise", new ShapeBench::OcclusionFilter()));
+    filterInstanceMap.insert(std::make_pair("noisy-capture", new ShapeBench::NoisyCaptureFilter()));
+
 
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();
@@ -250,6 +242,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": "
                   << experimentName << std::endl;
 
+
+
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
         uint32_t testedObjectCount = sampleSetSize / verticesPerSampleObject;
         std::vector<uint64_t> experimentRandomSeeds(testedObjectCount);
@@ -259,10 +253,10 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         for (uint32_t i = 0; i < sampleSetSize; i++) {
             experimentResult.vertexResults.at(i).included = false;
         }
-        if(experimentContainsSubtractiveFilter(experimentConfig)) {
-            uint32_t visibilityImageWidth = configuration.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(0);
-            uint32_t visibilityImageHeight = configuration.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(1);
-            ShapeBench::occlusionSceneGeneratorInstance.init(visibilityImageWidth, visibilityImageHeight);
+
+        for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+            std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
+            filterInstanceMap.at(filterName)->init(configuration);
         }
 
         std::vector<uint32_t> threadActivity;
@@ -272,7 +266,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             threadsToLaunch = experimentConfig.at("threadLimit");
         }
 
-        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(resultsDirectory, intermediateSaveFrequency, experimentResult, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, additiveCache)
+        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(resultsDirectory, intermediateSaveFrequency, experimentResult, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, filterInstanceMap)
         for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject * illustrativeObjectStride) {
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
@@ -340,34 +334,18 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     uint64_t filterRandomSeed = experimentInstanceRandomEngine();
                     const nlohmann::json &filterConfig = experimentConfig.at("filters").at(filterStepIndex);
                     const std::string &filterType = filterConfig.at("type");
-                    if (filterType == "additive-noise") {
-                        ShapeBench::AdditiveNoiseOutput output = ShapeBench::applyAdditiveNoiseFilter(configuration, filteredMesh, dataset, filterRandomSeed, additiveCache);
-                        filterMetadata = output.metadata;
-                    } else if (filterType == "subtractive-noise") {
-                        ShapeBench::SubtractiveNoiseOutput output = ShapeBench::applyOcclusionFilter(configuration, filteredMesh, filterRandomSeed);
-                        filterMetadata = output.metadata;
-                    } else if (filterType == "repeated-capture") {
-                        ShapeBench::RemeshingFilterOutput output = ShapeBench::remesh(filteredMesh, configuration);
-                        filterMetadata = output.metadata;
-                    } else if (filterType == "normal-noise") {
-                        ShapeBench::NormalNoiseFilterOutput output = ShapeBench::applyNormalNoiseFilter(configuration, filteredMesh, filterRandomSeed);
-                        filterMetadata = output.metadata;
-                    } else if (filterType == "support-radius-deviation") {
-                        ShapeBench::SupportRadiusDeviationOutput output = ShapeBench::applySupportRadiusNoise(filteredMesh, filterRandomSeed, configuration);
-                        filterMetadata = output.metadata;
-                    } else if (filterType == "mesh-resolution-deviation") {
-                        ShapeBench::MeshSimplificationFilterOutput output = ShapeBench::simplifyMesh(filteredMesh, configuration, filterRandomSeed);
-                        filterMetadata = output.metadata;
+
+                    ShapeBench::FilterOutput output = filterInstanceMap.at(filterType)->apply(configuration, filteredMesh, dataset, filterRandomSeed);
+                    filterMetadata = output.metadata;
+
+                    if(!filterMetadata.empty()) {
+                        for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                            resultsEntries.at(i).filterOutput.merge_patch(filterMetadata.at(i));
+                        }
                     }
                 }
 
                 // Collect data here
-                if(!filterMetadata.empty()) {
-                    for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
-                        resultsEntries.at(i).filterOutput.merge_patch(filterMetadata.at(i));
-                    }
-                }
-
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
                 const uint64_t pointCloudSamplingSeed = experimentInstanceRandomEngine();
                 const uint64_t sampleDescriptorGenerationSeed = experimentInstanceRandomEngine();
@@ -455,7 +433,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 if (sampleVertexIndex % intermediateSaveFrequency == 0 && !enableIllustrationGenerationMode) {
                     std::cout << std::endl << "    Writing caches.." << std::endl;
-                    ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
                     writeExperimentResults(experimentResult, resultsDirectory, false);
                 }
             }
@@ -473,20 +450,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             }
         }
 
-        if(experimentContainsSubtractiveFilter(experimentConfig)) {
-            ShapeBench::occlusionSceneGeneratorInstance.destroy();
+        std::cout << "Writing caches.." << std::endl;
+        for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+            std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
+            filterInstanceMap.at(filterName)->saveCaches(configuration);
+            filterInstanceMap.at(filterName)->destroy();
         }
     }
 
-    if(!enableIllustrationGenerationMode) {
-        std::cout << std::endl << "    Writing caches.." << std::endl;
-        ShapeBench::saveAdditiveNoiseCache(additiveCache, configuration);
-    }
-
-
 
     std::cout << "Cleaning up.." << std::endl;
-    ShapeBench::destroyPhysics();
     ShapeDescriptor::free(referenceDescriptors);
     ShapeDescriptor::free(cleanSampleDescriptors);
     if(enableIllustrationGenerationMode && DescriptorMethod::getName() == "QUICCI") {

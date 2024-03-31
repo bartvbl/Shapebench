@@ -19,9 +19,9 @@ ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
 }
 
 // Mesh is assumed to be fit inside unit sphere
-ShapeBench::SubtractiveNoiseOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
+ShapeBench::FilterOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
     ShapeBench::randomEngine randomEngine(seed);
-    ShapeBench::SubtractiveNoiseOutput output;
+    ShapeBench::FilterOutput output;
 
     std::vector<unsigned char> localFramebufferCopy(3 * offscreenTextureWidth * offscreenTextureHeight);
     const uint32_t totalVertexCount = scene.filteredSampleMesh.vertexCount + scene.filteredAdditiveNoise.vertexCount;
@@ -283,4 +283,24 @@ void ShapeBench::OccludedSceneGenerator::init(uint32_t visibilityImageWidth, uin
 
     glfwMakeContextCurrent(nullptr);
     isCreated = true;
+}
+
+void ShapeBench::OcclusionFilter::init(const nlohmann::json &config) {
+    uint32_t visibilityImageWidth = config.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(0);
+    uint32_t visibilityImageHeight = config.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(1);
+    sceneGenerator.init(visibilityImageWidth, visibilityImageHeight);
+}
+
+void ShapeBench::OcclusionFilter::destroy() {
+    sceneGenerator.destroy();
+}
+
+void ShapeBench::OcclusionFilter::saveCaches(const nlohmann::json &config) {
+
+}
+
+ShapeBench::FilterOutput
+ShapeBench::OcclusionFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
+                                   const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+    return sceneGenerator.computeOccludedMesh(config, scene, randomSeed);
 }

@@ -9,12 +9,13 @@ namespace ShapeBench {
         void calculateAverageEdgeLength(const ShapeDescriptor::cpu::Mesh& mesh, double &averageEdgeLength, uint32_t &edgeIndex);
     }
 
-    class TriangleShiftFilter : public ShapeBench::Filter {
-        RemeshingFilterOutput remesh(ShapeBench::FilteredMeshPair& scene, const nlohmann::json& config);
+    class AlternateTriangulationFilter : public ShapeBench::Filter {
+
+    public:
 
         virtual void init(const nlohmann::json& config);
         virtual void destroy();
-        virtual void saveCaches();
+        virtual void saveCaches(const nlohmann::json& config);
 
         virtual FilterOutput apply(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed);
 
