@@ -8,7 +8,7 @@ namespace ShapeBench {
         float variance = 0;
     };
 
-    constexpr uint32_t warpsPerBlock = 48;
+    constexpr uint32_t warpsPerBlock = 16;
 
     // Kernel assumes 1D blocks with multiples of 32 in width
     template<typename DescriptorMethod, typename DescriptorType>
