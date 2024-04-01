@@ -7,7 +7,7 @@
 namespace ShapeBench {
     inline ShapeDescriptor::cpu::Mesh readDatasetMesh(std::filesystem::path compressedDatasetRootDir, const DatasetEntry &datasetEntry) {
         const std::filesystem::path &pathInDataset = datasetEntry.meshFile;
-        float computedBoundingSphereRadius = datasetEntry.computedObjectRadius;
+        float computedBoundingSphereRadius = std::max<float>(datasetEntry.computedObjectRadius, 0.0000001);
         ShapeDescriptor::cpu::float3 computedBoundingSphereCentre = datasetEntry.computedObjectCentre;
 
         std::filesystem::path datasetBasePath = compressedDatasetRootDir;
