@@ -28,5 +28,12 @@ void ShapeBench::OcclusionFilter::saveCaches(const nlohmann::json &config) {
 ShapeBench::FilterOutput
 ShapeBench::OcclusionFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
                                    const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
-    return sceneGenerator.computeOccludedMesh(config, scene, randomSeed);
+
+    OcclusionRendererSettings renderSettings;
+    renderSettings.nearPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("nearPlaneDistance");
+    renderSettings.farPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("farPlaneDistance");
+    renderSettings.fovy = config.at("filterSettings").at("subtractiveNoise").at("fovYAngleRadians");
+    renderSettings.objectDistanceFromCamera = config.at("filterSettings").at("subtractiveNoise").at("objectDistanceFromCamera");
+
+    return sceneGenerator.computeOccludedMesh(renderSettings, scene, randomSeed);
 }

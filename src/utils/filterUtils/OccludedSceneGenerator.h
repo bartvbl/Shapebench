@@ -31,7 +31,7 @@ namespace ShapeBench {
     public:
         explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
-        ShapeBench::FilterOutput computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
+        ShapeBench::FilterOutput computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };

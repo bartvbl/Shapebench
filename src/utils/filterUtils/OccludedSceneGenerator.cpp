@@ -23,7 +23,7 @@ ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
 }
 
 // Mesh is assumed to be fit inside unit sphere
-ShapeBench::FilterOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh(const nlohmann::json& config, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
+ShapeBench::FilterOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
     ShapeBench::randomEngine randomEngine(seed);
     ShapeBench::FilterOutput output;
 
@@ -53,13 +53,8 @@ ShapeBench::FilterOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh
         output.metadata.push_back(entry);
     }
 
-    float nearPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("nearPlaneDistance");
-    float farPlaneDistance = config.at("filterSettings").at("subtractiveNoise").at("farPlaneDistance");
-    float fovy = config.at("filterSettings").at("subtractiveNoise").at("fovYAngleRadians");
-    float objectDistanceFromCamera = config.at("filterSettings").at("subtractiveNoise").at("objectDistanceFromCamera");
-
-    glm::mat4 objectProjection = glm::perspective(fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, nearPlaneDistance, farPlaneDistance);
-    glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -objectDistanceFromCamera));
+    glm::mat4 objectProjection = glm::perspective(settings.fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, settings.nearPlaneDistance, settings.farPlaneDistance);
+    glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -settings.objectDistanceFromCamera));
     positionTransformation *= glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1));
     positionTransformation *= glm::rotate(glm::mat4(1.0), yaw, glm::vec3(1, 0, 0));
     positionTransformation *= glm::rotate(glm::mat4(1.0), pitch, glm::vec3(0, 1, 0));
