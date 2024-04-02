@@ -4,10 +4,12 @@
 #include "filters/FilteredMeshPair.h"
 #include "json.hpp"
 #include "filters/Filter.h"
+#include "utils/filterUtils/OccludedSceneGenerator.h"
 
 
 namespace ShapeBench {
     class NoisyCaptureFilter : public ShapeBench::Filter {
+        OccludedSceneGenerator sceneGenerator;
 
     public:
         void init(const nlohmann::json& config) override;

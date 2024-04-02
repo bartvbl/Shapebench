@@ -12,6 +12,9 @@ namespace ShapeBench {
         float farPlaneDistance = 100.0;
         float fovy = 1.552;
         float objectDistanceFromCamera = 20;
+        float roll = 0;
+        float yaw = 0;
+        float pitch = 0;
     };
 
     class OccludedSceneGenerator {
@@ -31,7 +34,7 @@ namespace ShapeBench {
     public:
         explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
-        ShapeBench::FilterOutput computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene, uint64_t seed);
+        void computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };

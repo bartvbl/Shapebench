@@ -23,10 +23,7 @@ ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
 }
 
 // Mesh is assumed to be fit inside unit sphere
-ShapeBench::FilterOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene, uint64_t seed) {
-    ShapeBench::randomEngine randomEngine(seed);
-    ShapeBench::FilterOutput output;
-
+void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene) {
     std::vector<unsigned char> localFramebufferCopy(3 * offscreenTextureWidth * offscreenTextureHeight);
     const uint32_t totalVertexCount = scene.filteredSampleMesh.vertexCount + scene.filteredAdditiveNoise.vertexCount;
     std::vector<ShapeDescriptor::cpu::float3> vertexColours(totalVertexCount);
@@ -40,24 +37,11 @@ ShapeBench::FilterOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh
         vertexColours.at(3 * triangle + 2) = {red, green, blue};
     }
 
-    std::uniform_real_distribution<float> distribution(0, 1);
-    float yaw = float(distribution(randomEngine) * 2.0 * M_PI);
-    float pitch = float((distribution(randomEngine) - 0.5) * M_PI);
-    float roll = float(distribution(randomEngine) * 2.0 * M_PI);
-
-    nlohmann::json entry;
-    entry["subtractive-noise-pitch"] = pitch;
-    entry["subtractive-noise-yaw"] = yaw;
-    entry["subtractive-noise-roll"] = roll;
-    for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
-        output.metadata.push_back(entry);
-    }
-
     glm::mat4 objectProjection = glm::perspective(settings.fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, settings.nearPlaneDistance, settings.farPlaneDistance);
     glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -settings.objectDistanceFromCamera));
-    positionTransformation *= glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1));
-    positionTransformation *= glm::rotate(glm::mat4(1.0), yaw, glm::vec3(1, 0, 0));
-    positionTransformation *= glm::rotate(glm::mat4(1.0), pitch, glm::vec3(0, 1, 0));
+    positionTransformation *= glm::rotate(glm::mat4(1.0), settings.roll, glm::vec3(0, 0, 1));
+    positionTransformation *= glm::rotate(glm::mat4(1.0), settings.yaw, glm::vec3(1, 0, 0));
+    positionTransformation *= glm::rotate(glm::mat4(1.0), settings.pitch, glm::vec3(0, 1, 0));
     glm::mat4 objectTransformation = objectProjection * positionTransformation;
 
     {
@@ -216,8 +200,6 @@ ShapeBench::FilterOutput ShapeBench::OccludedSceneGenerator::computeOccludedMesh
     scene.filteredAdditiveNoise = occludedAdditiveNoiseMesh;
 
     //std::cout << "Output count: " << scene.filteredSampleMesh.vertexCount << ", " << scene.filteredAdditiveNoise.vertexCount << std::endl;
-
-    return output;
 }
 
 void ShapeBench::OccludedSceneGenerator::destroy() {
