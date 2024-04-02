@@ -31,10 +31,13 @@ namespace ShapeBench {
         uint32_t offscreenTextureHeight = 0;
         std::mutex occlusionFilterLock;
 
+        void renderSceneToOffscreenBuffer(ShapeBench::FilteredMeshPair& scene, OcclusionRendererSettings settings, ShapeDescriptor::cpu::float3* vertexColours = nullptr, uint8_t* outFrameBuffer = nullptr, float* outDepthBuffer = nullptr);
+
     public:
         explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
         void computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene);
+        void computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair& scene);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };
