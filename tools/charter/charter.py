@@ -163,6 +163,18 @@ def createChart(results_directory, output_directory, mode):
     jsonFilePaths = [x.name for x in os.scandir(results_directory) if x.name.endswith(".json")]
     jsonFilePaths.sort()
 
+    pio.templates[pio.templates.default].layout.colorway = [
+        '#%02x%02x%02x' % (0, 128, 64),
+        '#%02x%02x%02x' % (181, 137, 000),
+        '#%02x%02x%02x' % (203, 75, 22),
+        '#%02x%02x%02x' % (220, 50, 47),
+        '#%02x%02x%02x' % (211, 54, 130),
+        '#%02x%02x%02x' % (108, 113, 196),
+        '#%02x%02x%02x' % (38, 139, 210),
+        '#%02x%02x%02x' % (42, 161, 152),
+        '#%02x%02x%02x' % (133, 153, 000),
+    ]
+
     if not os.path.exists(output_directory):
         os.makedirs(output_directory, exist_ok=True)
 
@@ -190,6 +202,7 @@ def createChart(results_directory, output_directory, mode):
             countLabels.append(settings.methodName)
             countXValues = stackedXValues
             stackFigure = go.Figure()
+
             for index, yValueStack in enumerate(stackedYValues):
                 stackFigure.add_trace(go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
 
@@ -227,7 +240,7 @@ def createChart(results_directory, output_directory, mode):
     countsFigure.update_yaxes(range=[0, math.log10(max([max(x) for x in allCounts]))], type="log")
     countsFigure.update_xaxes(range=[lastSettings.xAxisMin, lastSettings.xAxisMax])
     countsFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title='Sample Count',
-                              title_x=0.5, margin={'t': 2, 'l': 0, 'b': 0, 'r': 0}, width=300, height=270, font = dict(size = 10), xaxis = dict(
+                              title_x=0.5, margin={'t': 2, 'l': 0, 'b': 0, 'r': 0}, width=285, height=270, font = dict(size = 10), xaxis = dict(
         tickmode = 'linear',
         dtick = settings.xTick * 2,
             range = (lastSettings.xAxisMin, lastSettings.xAxisMax)
