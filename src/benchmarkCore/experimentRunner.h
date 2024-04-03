@@ -63,6 +63,7 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
         descriptorOrigin.normal = mesh.normals[vertex.vertexIndex];
         ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray(1, &descriptorOrigin);
 
+
         ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(mesh, originArray, config, radii, randomSeeds.at(i), randomSeeds.at(i), tempDescriptor);
         representativeDescriptors[i] = tempDescriptor.at(0);
         ShapeDescriptor::free(mesh);

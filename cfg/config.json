@@ -24,35 +24,35 @@
     "experimentsToRun": [
         {
             "name": "additive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "additive-noise"}
             ]
         },
         {
             "name": "subtractive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
         },
         {
             "name": "normal-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "normal-noise"}
             ]
         },
         {
             "name": "repeated-capture-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "repeated-capture"}
             ]
         },
         {
             "name": "support-radius-deviation-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "support-radius-deviation"}
             ]
@@ -62,6 +62,14 @@
             "enabled": false,
             "filters": [
                 {"type": "mesh-resolution-deviation"}
+            ]
+        },
+        {
+            "name": "additive-and-subtractive-noise",
+            "enabled": true,
+            "filters": [
+                {"type": "additive-noise"},
+                {"type": "subtractive-noise"}
             ]
         }
     ],
@@ -108,14 +116,14 @@
 
     "methodSettings": {
         "SI": {
-            "enabled": false,
+            "enabled": true,
             "supportAngle": 180
         },
         "RICI": {
-            "enabled": false
+            "enabled": true
         },
         "QUICCI": {
-            "enabled": false
+            "enabled": true
         },
         "3DSC": {
             "enabled": false,
@@ -125,17 +133,17 @@
             "normaliseDescriptorWhenComputingSupportRadius": false
         },
         "USC": {
-            "enabled": false,
+            "enabled": true,
             "minSupportRadiusFactor": 0.1,
             "pointDensityScaleFactor": 0.01,
             "pointDensityRadius": 0.1,
-            "normaliseDescriptorWhenComputingSupportRadius": true
+            "normaliseDescriptorWhenComputingSupportRadius": false
         },
         "FPFH": {
             "enabled": false
         },
         "RoPS": {
-            "enabled": false,
+            "enabled": true,
             "pointSamplingDensity": 100000,
             "pointSampleLimit": 5000000
         }
