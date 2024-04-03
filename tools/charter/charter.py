@@ -9,8 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
-pio.kaleido.scope.default_width = 350
-pio.kaleido.scope.default_height = 350
+
 
 class ExperimentSettings:
     pass
@@ -25,49 +24,55 @@ def getProcessingSettings(mode, fileContents):
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
     settings.methodName = "Spin Image" if settings.methodName == "SI" else settings.methodName
+    sharedYAxisTitle = "Proportion of DDI"
     if experimentName == "normal-noise-only":
         settings.title = settings.methodName
-        settings.xAxisTitle = "Normal deviation (degrees)"
-        settings.yAxisTitle = "Fraction of Descriptor Index"
+        settings.xAxisTitle = "Normal vector rotation (degrees)"
+        settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = fileContents['configuration']['filterSettings']['normalVectorNoise']['maxAngleDeviationDegrees']
         settings.xTick = 5
+        settings.reverse = False
         settings.readValueX = lambda x : x["filterOutput"]["normal-noise-deviationAngle"]
         return settings
     elif experimentName == "subtractive-noise-only":
         settings.title = settings.methodName
-        settings.xAxisTitle = "Fraction of surface remaining"
-        settings.yAxisTitle = "Fraction of Descriptor Index"
+        settings.xAxisTitle = "Fraction of surface removed"
+        settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 1
         settings.xTick = 0.1
+        settings.reverse = True
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
         return settings
     elif experimentName == "additive-noise-only":
         settings.title = settings.methodName
         settings.xAxisTitle = "Fraction of clutter added"
-        settings.yAxisTitle = "Fraction of Descriptor Index"
+        settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 10
         settings.xTick = 1
+        settings.reverse = False
         settings.readValueX = lambda x: x["fractionAddedNoise"]
         return settings
     elif experimentName == "support-radius-deviation-only":
         settings.title = settings.methodName
-        settings.xAxisTitle = "Relative Support Radius"
-        settings.yAxisTitle = "Fraction of Descriptor Index"
+        settings.xAxisTitle = "Support radius scale factor"
+        settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 1 - fileContents['configuration']['filterSettings']['supportRadiusDeviation']['maxRadiusDeviation']
         settings.xAxisMax = 1 + fileContents['configuration']['filterSettings']['supportRadiusDeviation']['maxRadiusDeviation']
         settings.xTick = 0.05
+        settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
         return settings
     elif experimentName == "repeated-capture-only":
         settings.title = settings.methodName
-        settings.xAxisTitle = "Relative Support Radius"
-        settings.yAxisTitle = "Fraction of Descriptor Index"
+        settings.xAxisTitle = "Vertex displacement distance"
+        settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 0.15
         settings.xTick = 0.01
+        settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
         return settings
     else:
@@ -125,6 +130,8 @@ def computeStackedHistogram(rawResults, config, settings):
             continue
 
         binIndexX = int((rawResult[0] - histogramMin) / delta)
+        if settings.reverse:
+            binIndexX = int((histogramMax - rawResult[0] - histogramMin) / delta)
         binIndexY = int(0 if rawResult[1] == 0 else (math.log10(rawResult[1]) + 1))
         if rawResult[1] == representativeSetSize:
             binIndexY -= 1
@@ -190,15 +197,18 @@ def createChart(results_directory, output_directory, mode):
             if jsonFilePath is not jsonFilePaths[-1]:
                 stackFigure.update_layout(showlegend=False)
                 titleX = 0.5
+                pio.kaleido.scope.default_width = 300
+                pio.kaleido.scope.default_height = 300
             else:
-                pio.kaleido.scope.default_width = 500
-                titleX = (float(350) / float(500)) * 0.5
+                pio.kaleido.scope.default_width = 425
+                pio.kaleido.scope.default_height = 286
+                titleX = (float(200) / float(500)) * 0.5
 
             stackFigure.update_yaxes(range=[0, 1])
             stackFigure.update_xaxes(range=[settings.xAxisMin, settings.xAxisMax])
 
 
-            stackFigure.update_layout(title=settings.title, xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':30,'l':0,'b':45,'r':0}, xaxis = dict(
+            stackFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX, margin={'t':0,'l':0,'b':45,'r':0}, xaxis = dict(
         tickmode = 'linear',
         dtick = settings.xTick
     ))
@@ -216,10 +226,18 @@ def createChart(results_directory, output_directory, mode):
         countsFigure.add_trace(go.Scatter(x=countXValues, y=countSet, mode='lines', name=countLabels[index]))
     countsFigure.update_yaxes(range=[0, math.log10(max([max(x) for x in allCounts]))], type="log")
     countsFigure.update_xaxes(range=[lastSettings.xAxisMin, lastSettings.xAxisMax])
-    countsFigure.update_layout(title='Sample Distribution', xaxis_title=settings.xAxisTitle, yaxis_title='Sample Count',
-                              title_x=0.5, margin={'t': 30, 'l': 0, 'b': 45, 'r': 0})
-    countsFigure.update_layout(legend=dict(y=0, orientation="h", yanchor="bottom", yref="container"))
+    countsFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title='Sample Count',
+                              title_x=0.5, margin={'t': 2, 'l': 0, 'b': 0, 'r': 0}, width=300, height=270, font = dict(size = 10), xaxis = dict(
+        tickmode = 'linear',
+        dtick = settings.xTick * 2,
+            range = (lastSettings.xAxisMin, lastSettings.xAxisMax)
+
+
+    ))
+    countsFigure.update_layout(legend=dict(y=0, orientation="h", yanchor="bottom", yref="container", xref="paper", xanchor="left"))
     outputFile = os.path.join(output_directory, lastSettings.experimentName + "-counts.pdf")
+    pio.kaleido.scope.default_width = 225
+    pio.kaleido.scope.default_height = 300
     pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
 
     print('Done.')
