@@ -526,9 +526,9 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     ShapeDescriptor::cpu::Mesh outputAdditiveNoiseMesh(totalAdditiveNoiseVertexCount);
     uint32_t nextVertexIndex = 0;
 
-    glm::mat4 referenceObjectTranslation = glm::translate(glm::mat4(1.0), glm::vec3(objectOrientations.at(0).position.x,
-                                                                                    objectOrientations.at(0).position.y,
-                                                                                    objectOrientations.at(0).position.z));
+    glm::mat4 referenceObjectTranslation = glm::translate(glm::mat4(1.0), glm::vec3(-objectOrientations.at(0).position.x,
+                                                                                    -objectOrientations.at(0).position.y,
+                                                                                    -objectOrientations.at(0).position.z));
 
     for(int i = 0; i < meshes.size(); i++) {
         if(std::isnan(objectOrientations.at(i).position.x)) {
@@ -540,7 +540,7 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
 
         // Ensure that the reference object is at the origin by subtracting its position.
         // Important for other filters
-        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(orientation.position.x, orientation.position.y, orientation.position.z)) - referenceObjectTranslation;
+        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0), glm::vec3(orientation.position.x, orientation.position.y, orientation.position.z)) * referenceObjectTranslation;
         glm::qua rotationDirection = glm::qua(orientation.rotation.w, orientation.rotation.x, orientation.rotation.y, orientation.rotation.z);
         glm::mat4 rotationMatrix = glm::toMat4(rotationDirection);
         glm::mat4 transformationMatrix = translationMatrix * rotationMatrix;

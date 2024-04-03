@@ -2,13 +2,13 @@
 // Created by bart on 03/04/24.
 //
 
+#include "glad/gl.h"
 #include "OccludedSceneGenerator.h"
 #include "benchmarkCore/randomEngine.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "utils/gl/VAOGenerator.h"
 #include "glm/gtc/type_ptr.hpp"
-#include "glad/gl.h"
 #include "utils/gl/GLUtils.h"
 #include "utils/gl/ShaderLoader.h"
 #include <glm/glm.hpp>
