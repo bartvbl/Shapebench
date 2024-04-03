@@ -211,15 +211,13 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
         JPH::ConvexHullShape::ShapeResult result;
         JPH::RefConst<JPH::ConvexHullShape> convexShape {new JPH::ConvexHullShape(*convexHullSettings, result)};
 
-        if(!result.IsValid() || convexShape->GetMassProperties().mMass <= 0) {
-            delete convexHullSettings;
-            continue;
-        }
         // Remove any objects that have too little volume and are disproportionately affected by forces
-        if(convexShape->GetMassProperties().mMass < settings.minRequiredObjectVolume) {
+        // Also removes degenerate volumes with a volume of 0
+        if(!result.IsValid() || convexShape->GetMassProperties().mMass < settings.minRequiredObjectVolume) {
             delete convexHullSettings;
             continue;
         }
+
         convexHullContainer->AddShape(JPH::Vec3Arg(0, 0, 0), JPH::Quat::sIdentity(), convexHullSettings, 0);
     }
 
