@@ -118,6 +118,10 @@
             "objectDistanceFromCameraLimitNear": 2.0,
             "objectDistanceFromCameraLimitFar": 9.0,
             "mappedVertexDisplacementCutoff": 0.02
+        },
+        "gaussianNoise": {
+            "minStandardDeviation": 0.0001,
+            "maxStandardDeviation": 0.01
         }
     },
 

@@ -22,6 +22,7 @@
 #include "filters/normalVectorDeviation/normalNoiseFilter.h"
 #include "filters/supportRadiusDeviation/supportRadiusNoise.h"
 #include "filters/noisyCapture/NoisyCaptureFilter.h"
+#include "filters/gaussianNoise/gaussianNoiseFilter.h"
 
 template <typename T>
 class lockGuard
@@ -187,7 +188,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     filterInstanceMap.insert(std::make_pair("additive-noise", new ShapeBench::AdditiveNoiseFilter()));
     filterInstanceMap.insert(std::make_pair("subtractive-noise", new ShapeBench::OcclusionFilter()));
     filterInstanceMap.insert(std::make_pair("depth-camera-capture", new ShapeBench::NoisyCaptureFilter()));
-
+    filterInstanceMap.insert(std::make_pair("gaussian-noise", new ShapeBench::GaussianNoiseFilter()));
 
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();
