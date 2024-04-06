@@ -66,7 +66,7 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
                                                                        originalDatasetDirectory);
             bool isPointCloud = false;
             if(filePath.extension() == ".glb") {
-                ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
+                isPointCloud = ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
             }
             datasetEntry["filePath"] = filePath;
 
