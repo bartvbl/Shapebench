@@ -188,13 +188,13 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
         std::cout << "    Compressed dataset was successfully computed. Total duration: ";
         ShapeBench::printDuration(endTime - startTime);
         std::cout << std::endl;
+
+        std::ofstream outCacheStream {metadataFile};
+        outCacheStream << datasetCache.dump(4);
     } else {
         std::cout << "    Dataset cache loaded successfully" << std::endl;
     }
 
-
-    std::ofstream outCacheStream {metadataFile};
-    outCacheStream << datasetCache.dump(4);
-
+    
     return datasetCache;
 }
