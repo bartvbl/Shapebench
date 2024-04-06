@@ -64,7 +64,7 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
         glReadPixels(0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_RGB, GL_UNSIGNED_BYTE, outFrameBuffer);
     }
     if(outDepthBuffer != nullptr) {
-        glBindTexture(GL_TEXTURE_2D, renderTextureID);
+        glBindTexture(GL_TEXTURE_2D, depthTextureID);
         glReadPixels (0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_DEPTH_COMPONENT, GL_FLOAT, outDepthBuffer);
     }
 
@@ -82,7 +82,13 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
 
     glBindVertexArray(screenQuadVAO.vaoID);
     glDisable(GL_DEPTH_TEST);
-    glBindTextureUnit(0, renderTextureID);
+    if(outFrameBuffer != nullptr) {
+        glBindTextureUnit(0, renderTextureID);
+        glUniform1i(25, 0);
+    } else if(outDepthBuffer != nullptr) {
+        glBindTextureUnit(0, depthTextureID);
+        glUniform1i(25, 1);
+    }
 
     glm::mat4 fullscreenProjection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 
@@ -215,6 +221,43 @@ void ShapeBench::OccludedSceneGenerator::computeRGBDMesh(ShapeBench::OcclusionRe
 
     renderSceneToOffscreenBuffer(scene, settings, nullptr, nullptr, depthBuffer.data());
 
+    glm::mat4 objectProjection = glm::perspective(settings.fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, settings.nearPlaneDistance, settings.farPlaneDistance);
+    glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -settings.objectDistanceFromCamera));
+    positionTransformation *= glm::rotate(glm::mat4(1.0), settings.roll, glm::vec3(0, 0, 1));
+    positionTransformation *= glm::rotate(glm::mat4(1.0), settings.yaw, glm::vec3(1, 0, 0));
+    positionTransformation *= glm::rotate(glm::mat4(1.0), settings.pitch, glm::vec3(0, 1, 0));
+    glm::mat4 objectTransformation = objectProjection * positionTransformation;
+
+
+    std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
+
+
+    ShapeDescriptor::cpu::PointCloud cloud(offscreenTextureWidth * offscreenTextureHeight);
+
+    for(int col = 0; col < offscreenTextureWidth; col++) {
+        for(int row = 0; row < offscreenTextureHeight; row++) {
+            float xCoord = 2.0f * (float(col) / float(offscreenTextureWidth)) - 1.0f;
+            float yCoord = 2.0f * (float(row) / float(offscreenTextureHeight)) - 1.0f;
+            float zCoord = depthBuffer.at(row * offscreenTextureWidth + col);
+            glm::vec4 projected(xCoord, yCoord, zCoord, 1);
+            glm::vec3 unprojected = glm::unProject({col, row, zCoord}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
+            cloud.vertices[row * offscreenTextureWidth + col] = ShapeDescriptor::cpu::float3(unprojected.x, unprojected.y, unprojected.z);
+        }
+    }
+
+    float backgroundZ = glm::unProject({0, 0, 1}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight)).z;
+
+    uint32_t foregroundPointCount = 0;
+    for(uint32_t i = 0; i < cloud.pointCount; i++) {
+        if(cloud.vertices[i].z > backgroundZ) {
+            foregroundPointCount++;
+        }
+    }
+
+
+
+    ShapeDescriptor::writeXYZ("cloud.xyz", cloud);
+    ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "cloudmesh.obj");
     
 }
 
@@ -230,6 +273,7 @@ void ShapeBench::OccludedSceneGenerator::destroy() {
     glDeleteFramebuffers(1, &frameBufferID);
     glDeleteRenderbuffers(1, &renderBufferID);
     glDeleteTextures(1, &renderTextureID);
+    glDeleteTextures(1, &depthTextureID);
     glfwDestroyWindow(window);
     isDestroyed = true;
 }
@@ -272,6 +316,16 @@ void ShapeBench::OccludedSceneGenerator::init(uint32_t visibilityImageWidth, uin
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTextureID, 0);
+
+    glGenTextures(1, &depthTextureID);
+    glBindTexture(GL_TEXTURE_2D, depthTextureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, offscreenTextureWidth, offscreenTextureHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 
     glGenRenderbuffers(1, &renderBufferID);
     glBindRenderbuffer(GL_RENDERBUFFER, renderBufferID);

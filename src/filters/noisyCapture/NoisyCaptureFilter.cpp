@@ -29,7 +29,7 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
         output.metadata.push_back(entry);
     }
 
-    sceneGenerator.computeOccludedMesh(renderSettings, scene);
+    sceneGenerator.computeRGBDMesh(renderSettings, scene);
 
     // Update reference points
     std::vector<float> bestDistances(scene.mappedReferenceVertices.size(), std::numeric_limits<float>::max());

@@ -26,14 +26,15 @@ namespace ShapeBench {
         uint32_t frameBufferID = 0;
         uint32_t renderBufferID = 0;
         uint32_t renderTextureID = 0;
+        uint32_t depthTextureID = 0;
         GeometryBuffer screenQuadVAO;
         uint32_t offscreenTextureWidth = 0;
         uint32_t offscreenTextureHeight = 0;
         std::mutex occlusionFilterLock;
 
-        void renderSceneToOffscreenBuffer(ShapeBench::FilteredMeshPair& scene, OcclusionRendererSettings settings, ShapeDescriptor::cpu::float3* vertexColours = nullptr, uint8_t* outFrameBuffer = nullptr, float* outDepthBuffer = nullptr);
+        void renderSceneToOffscreenBuffer(ShapeBench::FilteredMeshPair& scene, OcclusionRendererSettings settings, ShapeDescriptor::cpu::float3* vertexColours, uint8_t* outFrameBuffer, float* outDepthBuffer = nullptr);
 
-    public:
+        public:
         explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
         void computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene);
