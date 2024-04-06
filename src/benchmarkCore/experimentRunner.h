@@ -186,7 +186,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     filterInstanceMap.insert(std::make_pair("normal-noise", new ShapeBench::NormalNoiseFilter()));
     filterInstanceMap.insert(std::make_pair("additive-noise", new ShapeBench::AdditiveNoiseFilter()));
     filterInstanceMap.insert(std::make_pair("subtractive-noise", new ShapeBench::OcclusionFilter()));
-    filterInstanceMap.insert(std::make_pair("noisy-capture", new ShapeBench::NoisyCaptureFilter()));
+    filterInstanceMap.insert(std::make_pair("depth-camera-capture", new ShapeBench::NoisyCaptureFilter()));
 
 
     // Running experiments

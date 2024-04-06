@@ -58,15 +58,15 @@
             ]
         },
         {
-            "name": "mesh-resolution-deviation-only",
-            "enabled": false,
+            "name": "depth-camera-capture-only",
+            "enabled": true,
             "filters": [
-                {"type": "mesh-resolution-deviation"}
+                {"type": "depth-camera-capture"}
             ]
         },
         {
             "name": "additive-and-subtractive-noise",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "additive-noise"},
                 {"type": "subtractive-noise"}
@@ -109,8 +109,15 @@
         "supportRadiusDeviation": {
             "maxRadiusDeviation": 0.25
         },
-        "meshResolutionDeviation": {
-            "minVertexCountFactor": 0.10
+        "depthCameraCapture": {
+            "visibilityImageResolution": [640, 480],
+            "nearPlaneDistance": 0.02,
+            "farPlaneDistance": 10.0,
+            "fovYAngleRadians": 1.047197551,
+            "depthCutoff": 0.2,
+            "objectDistanceFromCameraLimitNear": 2.0,
+            "objectDistanceFromCameraLimitFar": 9.0,
+            "mappedVertexDisplacementCutoff": 0.02
         }
     },
 
