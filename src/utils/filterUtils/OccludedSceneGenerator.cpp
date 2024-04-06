@@ -286,8 +286,14 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
             bool notBackgroundVertex2 = vertex2 != backgroundVertex2;
             bool notBackgroundVertex3 = vertex3 != backgroundVertex3;
 
-            bool triangle0Valid = (std::max(vertex0.z, std::max(vertex1.z, vertex2.z)) - std::min(vertex0.z, std::min(vertex1.z, vertex2.z))) <= settings.rgbdDepthCutoff;
-            bool triangle1Valid = (std::max(vertex0.z, std::max(vertex2.z, vertex3.z)) - std::min(vertex0.z, std::min(vertex2.z, vertex3.z))) <= settings.rgbdDepthCutoff;
+            float distance01 = length(vertex1 - vertex0);
+            float distance12 = length(vertex2 - vertex1);
+            float distance23 = length(vertex3 - vertex2);
+            float distance30 = length(vertex0 - vertex3);
+            float distance20 = length(vertex0 - vertex2);
+
+            bool triangle0Valid = std::max(distance01, std::max(distance12, distance20)) <= settings.rgbdDepthCutoff;
+            bool triangle1Valid = std::max(distance20, std::max(distance23, distance30)) <= settings.rgbdDepthCutoff;
 
             if(notBackgroundVertex0 && notBackgroundVertex1 && notBackgroundVertex2 && triangle0Valid) {
                 rgbdMesh.vertices[nextBaseIndex + 0] = vertex0;

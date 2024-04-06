@@ -195,6 +195,6 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
         std::cout << "    Dataset cache loaded successfully" << std::endl;
     }
 
-    
+
     return datasetCache;
 }
