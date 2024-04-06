@@ -15,6 +15,7 @@ namespace ShapeBench {
         float roll = 0;
         float yaw = 0;
         float pitch = 0;
+        float rgbdDepthCutoff = 0.2;
     };
 
     class OccludedSceneGenerator {
@@ -38,7 +39,7 @@ namespace ShapeBench {
         explicit OccludedSceneGenerator();
         ~OccludedSceneGenerator();
         void computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene);
-        void computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair& scene);
+        ShapeDescriptor::cpu::Mesh computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair& scene);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };

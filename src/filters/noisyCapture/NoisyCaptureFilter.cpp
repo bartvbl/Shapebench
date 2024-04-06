@@ -14,22 +14,23 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     renderSettings.nearPlaneDistance = config.at("filterSettings").at("noisyCapture").at("nearPlaneDistance");
     renderSettings.farPlaneDistance = config.at("filterSettings").at("noisyCapture").at("farPlaneDistance");
     renderSettings.fovy = config.at("filterSettings").at("noisyCapture").at("fovYAngleRadians");
-    renderSettings.objectDistanceFromCamera = config.at("filterSettings").at("noisyCapture").at("objectDistanceFromCamera");
+    renderSettings.rgbdDepthCutoff = config.at("filterSettings").at("noisyCapture").at("depthCutoff");
+    float objectPlacementMin = float(config.at("filterSettings").at("noisyCapture").at("objectDistanceFromCameraLimitNear"));
+    float objectPlacementMax = float(config.at("filterSettings").at("noisyCapture").at("objectDistanceFromCameraLimitFar"));
+    float displacementCutoff = config.at("filterSettings").at("noisyCapture").at("mappedVertexDisplacementCutoff");
+    std::uniform_real_distribution<float> distanceDistribution(objectPlacementMin, objectPlacementMax);
+    renderSettings.objectDistanceFromCamera = objectPlacementMin;//distanceDistribution(randomEngine);
 
     std::uniform_real_distribution<float> distribution(0, 1);
-    float yaw = float(distribution(randomEngine) * 2.0 * M_PI);
-    float pitch = float((distribution(randomEngine) - 0.5) * M_PI);
-    float roll = float(distribution(randomEngine) * 2.0 * M_PI);
+    renderSettings.yaw = float(distribution(randomEngine) * 2.0 * M_PI);
+    renderSettings.pitch = float((distribution(randomEngine) - 0.5) * M_PI);
+    renderSettings.roll = float(distribution(randomEngine) * 2.0 * M_PI);
 
-    nlohmann::json entry;
-    entry["noisy-capture-pitch"] = pitch;
-    entry["noisy-capture-yaw"] = yaw;
-    entry["noisy-capture-roll"] = roll;
-    for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
-        output.metadata.push_back(entry);
-    }
-
-    sceneGenerator.computeRGBDMesh(renderSettings, scene);
+    ShapeDescriptor::cpu::Mesh sceneMesh = sceneGenerator.computeRGBDMesh(renderSettings, scene);
+    ShapeDescriptor::free(scene.filteredSampleMesh);
+    ShapeDescriptor::free(scene.filteredAdditiveNoise);
+    scene.filteredSampleMesh = sceneMesh;
+    // This filter cannot easily distinguish what is additive noise, so it is all merged into the sample mesh instead
 
     // Update reference points
     std::vector<float> bestDistances(scene.mappedReferenceVertices.size(), std::numeric_limits<float>::max());
@@ -48,6 +49,23 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
                 scene.mappedReferenceVertexIndices.at(i) = meshVertexIndex;
             }
         }
+    }
+
+
+    for(uint32_t i = 0; i < bestDistances.size(); i++) {
+        if(bestDistances.at(i) > displacementCutoff) {
+            scene.mappedVertexIncluded.at(i) = false;
+        }
+    }
+
+    nlohmann::json entry;
+    entry["noisy-capture-pitch"] = renderSettings.pitch;
+    entry["noisy-capture-yaw"] = renderSettings.yaw;
+    entry["noisy-capture-roll"] = renderSettings.roll;
+    entry["noisy-capture-distance-from-camera"] = renderSettings.objectDistanceFromCamera;
+    for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+        output.metadata.push_back(entry);
+        output.metadata.at(i)["noisy-capture-displaced-distance"] = bestDistances.at(i);
     }
 
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {

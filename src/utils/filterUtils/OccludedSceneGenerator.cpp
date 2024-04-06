@@ -214,12 +214,13 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Occlusi
     //std::cout << "Output count: " << scene.filteredSampleMesh.vertexCount << ", " << scene.filteredAdditiveNoise.vertexCount << std::endl;
 }
 
-void ShapeBench::OccludedSceneGenerator::computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings,
-                                                         ShapeBench::FilteredMeshPair &scene) {
+ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene) {
 
     std::vector<float> depthBuffer(offscreenTextureWidth * offscreenTextureHeight);
 
     renderSceneToOffscreenBuffer(scene, settings, nullptr, nullptr, depthBuffer.data());
+
+    std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
 
     glm::mat4 objectProjection = glm::perspective(settings.fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, settings.nearPlaneDistance, settings.farPlaneDistance);
     glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -settings.objectDistanceFromCamera));
@@ -228,11 +229,8 @@ void ShapeBench::OccludedSceneGenerator::computeRGBDMesh(ShapeBench::OcclusionRe
     positionTransformation *= glm::rotate(glm::mat4(1.0), settings.pitch, glm::vec3(0, 1, 0));
     glm::mat4 objectTransformation = objectProjection * positionTransformation;
 
-
-    std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
-
-
     ShapeDescriptor::cpu::PointCloud cloud(offscreenTextureWidth * offscreenTextureHeight);
+    ShapeDescriptor::cpu::Mesh rgbdMesh(6 * offscreenTextureWidth * offscreenTextureHeight);
 
     for(int col = 0; col < offscreenTextureWidth; col++) {
         for(int row = 0; row < offscreenTextureHeight; row++) {
@@ -245,20 +243,81 @@ void ShapeBench::OccludedSceneGenerator::computeRGBDMesh(ShapeBench::OcclusionRe
         }
     }
 
-    float backgroundZ = glm::unProject({0, 0, 1}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight)).z;
 
-    uint32_t foregroundPointCount = 0;
-    for(uint32_t i = 0; i < cloud.pointCount; i++) {
-        if(cloud.vertices[i].z > backgroundZ) {
-            foregroundPointCount++;
+
+    uint32_t nextBaseIndex = 0;
+    for(int col = 0; col < offscreenTextureWidth - 1; col++) {
+        for(int row = 0; row < offscreenTextureHeight - 1; row++) {
+            ShapeDescriptor::cpu::float3 vertex0 = cloud.vertices[(row) * offscreenTextureWidth + (col)];
+            ShapeDescriptor::cpu::float3 vertex1 = cloud.vertices[(row) * offscreenTextureWidth + (col + 1)];
+            ShapeDescriptor::cpu::float3 vertex2 = cloud.vertices[(row + 1) * offscreenTextureWidth + (col + 1)];
+            ShapeDescriptor::cpu::float3 vertex3 = cloud.vertices[(row + 1) * offscreenTextureWidth + (col)];
+
+            glm::vec3 backgroundVertex0GLM = glm::unProject({col, row, 1}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
+            glm::vec3 backgroundVertex1GLM = glm::unProject({col + 1, row, 1}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
+            glm::vec3 backgroundVertex2GLM = glm::unProject({col + 1, row + 1, 1}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
+            glm::vec3 backgroundVertex3GLM = glm::unProject({col, row + 1, 1}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
+            ShapeDescriptor::cpu::float3 backgroundVertex0(backgroundVertex0GLM.x, backgroundVertex0GLM.y, backgroundVertex0GLM.z);
+            ShapeDescriptor::cpu::float3 backgroundVertex1(backgroundVertex1GLM.x, backgroundVertex1GLM.y, backgroundVertex1GLM.z);
+            ShapeDescriptor::cpu::float3 backgroundVertex2(backgroundVertex2GLM.x, backgroundVertex2GLM.y, backgroundVertex2GLM.z);
+            ShapeDescriptor::cpu::float3 backgroundVertex3(backgroundVertex3GLM.x, backgroundVertex3GLM.y, backgroundVertex3GLM.z);
+
+
+            bool flipTriangle = std::abs(vertex0.z - vertex2.z) > std::abs(vertex1.z - vertex3.z);
+            if(flipTriangle) {
+                ShapeDescriptor::cpu::float3 temp = vertex0;
+                vertex0 = vertex1;
+                vertex1 = vertex2;
+                vertex2 = vertex3;
+                vertex3 = temp;
+
+                temp = backgroundVertex0;
+                backgroundVertex0 = backgroundVertex1;
+                backgroundVertex1 = backgroundVertex2;
+                backgroundVertex2 = backgroundVertex3;
+                backgroundVertex3 = temp;
+            }
+
+            ShapeDescriptor::cpu::float3 normal1 = ShapeDescriptor::computeTriangleNormal(vertex0, vertex1, vertex2);
+            ShapeDescriptor::cpu::float3 normal2 = ShapeDescriptor::computeTriangleNormal(vertex0, vertex2, vertex3);
+
+            bool notBackgroundVertex0 = vertex0 != backgroundVertex0;
+            bool notBackgroundVertex1 = vertex1 != backgroundVertex1;
+            bool notBackgroundVertex2 = vertex2 != backgroundVertex2;
+            bool notBackgroundVertex3 = vertex3 != backgroundVertex3;
+
+            bool triangle0Valid = (std::max(vertex0.z, std::max(vertex1.z, vertex2.z)) - std::min(vertex0.z, std::min(vertex1.z, vertex2.z))) <= settings.rgbdDepthCutoff;
+            bool triangle1Valid = (std::max(vertex0.z, std::max(vertex2.z, vertex3.z)) - std::min(vertex0.z, std::min(vertex2.z, vertex3.z))) <= settings.rgbdDepthCutoff;
+
+            if(notBackgroundVertex0 && notBackgroundVertex1 && notBackgroundVertex2 && triangle0Valid) {
+                rgbdMesh.vertices[nextBaseIndex + 0] = vertex0;
+                rgbdMesh.vertices[nextBaseIndex + 1] = vertex1;
+                rgbdMesh.vertices[nextBaseIndex + 2] = vertex2;
+                rgbdMesh.normals[nextBaseIndex + 0] = normal1;
+                rgbdMesh.normals[nextBaseIndex + 1] = normal1;
+                rgbdMesh.normals[nextBaseIndex + 2] = normal1;
+                nextBaseIndex += 3;
+            }
+            if(notBackgroundVertex0 && notBackgroundVertex2 && notBackgroundVertex3 && triangle1Valid) {
+                rgbdMesh.vertices[nextBaseIndex + 0] = vertex0;
+                rgbdMesh.vertices[nextBaseIndex + 1] = vertex2;
+                rgbdMesh.vertices[nextBaseIndex + 2] = vertex3;
+                rgbdMesh.normals[nextBaseIndex + 0] = normal2;
+                rgbdMesh.normals[nextBaseIndex + 1] = normal2;
+                rgbdMesh.normals[nextBaseIndex + 2] = normal2;
+                nextBaseIndex += 3;
+            }
         }
     }
 
+    rgbdMesh.vertexCount = nextBaseIndex;
 
+    //ShapeDescriptor::writeXYZ("cloud.xyz", cloud);
+    ShapeDescriptor::writeOBJ(rgbdMesh, "cloudmeshnew.obj");
 
-    ShapeDescriptor::writeXYZ("cloud.xyz", cloud);
-    ShapeDescriptor::writeOBJ(scene.filteredSampleMesh, "cloudmesh.obj");
-    
+    ShapeDescriptor::free(cloud);
+
+    return rgbdMesh;
 }
 
 

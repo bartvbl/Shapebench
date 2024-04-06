@@ -14,7 +14,7 @@ void main()
 		vec3 value = texture(texture0, texCoords).rgb;
 		color = vec4(value.rgb, 1.0);
 	} else if(mode == 1) {
-		float value = (texture(texture0, texCoords).r + 1) * 0.5;
+		float value = texture(texture0, texCoords).r * 0.5;
 		color = vec4(value, value, value, 1.0);
 	}
 
