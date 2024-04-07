@@ -9,6 +9,7 @@
 ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
     ShapeBench::randomEngine randomEngine(randomSeed);
     ShapeBench::FilterOutput output;
+    uint32_t initialVertexCount = scene.filteredSampleMesh.vertexCount;
 
     OcclusionRendererSettings renderSettings;
     renderSettings.nearPlaneDistance = config.at("filterSettings").at("depthCameraCapture").at("nearPlaneDistance");
@@ -17,7 +18,8 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     renderSettings.rgbdDepthCutoff = config.at("filterSettings").at("depthCameraCapture").at("depthCutoff");
     float objectPlacementMin = float(config.at("filterSettings").at("depthCameraCapture").at("objectDistanceFromCameraLimitNear"));
     float objectPlacementMax = float(config.at("filterSettings").at("depthCameraCapture").at("objectDistanceFromCameraLimitFar"));
-    float displacementCutoff = config.at("filterSettings").at("depthCameraCapture").at("mappedVertexDisplacementCutoff");
+    float displacementDistanceFactor = float(config.at("filterSettings").at("depthCameraCapture").at("mappedVertexDisplacementCutoffFactor"));
+
     std::uniform_real_distribution<float> distanceDistribution(objectPlacementMin, objectPlacementMax);
     renderSettings.objectDistanceFromCamera = distanceDistribution(randomEngine);
 
@@ -26,7 +28,9 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     renderSettings.pitch = float((distribution(randomEngine) - 0.5) * M_PI);
     renderSettings.roll = float(distribution(randomEngine) * 2.0 * M_PI);
 
-    ShapeDescriptor::cpu::Mesh sceneMesh = sceneGenerator.computeRGBDMesh(renderSettings, scene);
+    float displacementCutoff = 0;
+    ShapeDescriptor::cpu::Mesh sceneMesh = sceneGenerator.computeRGBDMesh(renderSettings, scene, displacementCutoff);
+    displacementCutoff *= displacementDistanceFactor;
     ShapeDescriptor::free(scene.filteredSampleMesh);
     ShapeDescriptor::free(scene.filteredAdditiveNoise);
     scene.filteredSampleMesh = sceneMesh;

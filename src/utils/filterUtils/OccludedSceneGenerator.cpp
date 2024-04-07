@@ -214,7 +214,7 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Occlusi
     //std::cout << "Output count: " << scene.filteredSampleMesh.vertexCount << ", " << scene.filteredAdditiveNoise.vertexCount << std::endl;
 }
 
-ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene) {
+ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene, float& out_distanceBetweenPixels) {
 
     std::vector<float> depthBuffer(offscreenTextureWidth * offscreenTextureHeight);
 
@@ -243,7 +243,12 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
         }
     }
 
+    glm::vec4 depthCoordinate = objectTransformation * glm::vec4(0, 0, 0, 1);
+    depthCoordinate /= (depthCoordinate.w != 0 ? depthCoordinate.w : 1);
 
+    glm::vec3 unprojectedSample1 = glm::unProject({0, 0, depthCoordinate.z}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
+    glm::vec3 unprojectedSample2 = glm::unProject({1, 0, depthCoordinate.z}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
+    out_distanceBetweenPixels = length(unprojectedSample1 - unprojectedSample2);
 
     uint32_t nextBaseIndex = 0;
     for(int col = 0; col < offscreenTextureWidth - 1; col++) {
