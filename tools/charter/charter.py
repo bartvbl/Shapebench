@@ -75,6 +75,16 @@ def getProcessingSettings(mode, fileContents):
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
         return settings
+    elif experimentName == "depth-camera-capture-only":
+        settings.title = settings.methodName
+        settings.xAxisTitle = "Object distance from camera"
+        settings.yAxisTitle = sharedYAxisTitle
+        settings.xAxisMin = 2
+        settings.xAxisMax = 9
+        settings.xTick = 1
+        settings.reverse = False
+        settings.readValueX = lambda x: x["filterOutput"]["depth-camera-capture-distance-from-camera"]
+        return settings
     else:
         raise Exception("Failed to determine chart settings: Unknown experiment name: " + experimentName)
 

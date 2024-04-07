@@ -68,6 +68,8 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     entry["depth-camera-capture-yaw"] = renderSettings.yaw;
     entry["depth-camera-capture-roll"] = renderSettings.roll;
     entry["depth-camera-capture-distance-from-camera"] = renderSettings.objectDistanceFromCamera;
+    entry["depth-camera-capture-initial-vertex-count"] = initialVertexCount;
+    entry["depth-camera-capture-filtered-vertex-count"] = scene.filteredSampleMesh.vertexCount;
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         output.metadata.push_back(entry);
         output.metadata.at(i)["depth-camera-capture-displaced-distance"] = bestDistances.at(i);
