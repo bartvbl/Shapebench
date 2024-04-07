@@ -21,7 +21,7 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
         std::filesystem::path bakPath = metadataFile;
         bakPath.replace_extension(".bak.json");
         if(!std::filesystem::exists(bakPath) || std::filesystem::file_size(bakPath) != std::filesystem::file_size(metadataFile)) {
-            std::filesystem::copy_file(metadataFile, bakPath);
+            std::filesystem::copy(metadataFile, bakPath, std::filesystem::copy_options::overwrite_existing);
         }
 
         std::ifstream inputStream{metadataFile};
