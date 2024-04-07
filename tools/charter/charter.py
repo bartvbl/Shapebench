@@ -79,11 +79,12 @@ def getProcessingSettings(mode, fileContents):
         settings.title = settings.methodName
         settings.xAxisTitle = "Object distance from camera"
         settings.yAxisTitle = sharedYAxisTitle
-        settings.xAxisMin = 2
-        settings.xAxisMax = 9
-        settings.xTick = 1
+        settings.xAxisMin = 0
+        settings.xAxisMax = 20
+        settings.xTick = 5
         settings.reverse = False
-        settings.readValueX = lambda x: x["filterOutput"]["depth-camera-capture-distance-from-camera"]
+        settings.readValueX = lambda x: (float(x["filterOutput"]["depth-camera-capture-initial-vertex-count"])
+                                         / float(x["filterOutput"]["depth-camera-capture-filtered-vertex-count"]))
         return settings
     else:
         raise Exception("Failed to determine chart settings: Unknown experiment name: " + experimentName)
