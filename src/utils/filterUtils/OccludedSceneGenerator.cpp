@@ -262,8 +262,10 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
             ShapeDescriptor::cpu::float3 backgroundVertex2(backgroundVertex2GLM.x, backgroundVertex2GLM.y, backgroundVertex2GLM.z);
             ShapeDescriptor::cpu::float3 backgroundVertex3(backgroundVertex3GLM.x, backgroundVertex3GLM.y, backgroundVertex3GLM.z);
 
+            float distance20 = length(vertex0 - vertex2);
+            float distance13 = length(vertex1 - vertex3);
 
-            bool flipTriangle = std::abs(vertex0.z - vertex2.z) > std::abs(vertex1.z - vertex3.z);
+            bool flipTriangle = distance20 > distance13;
             if(flipTriangle) {
                 ShapeDescriptor::cpu::float3 temp = vertex0;
                 vertex0 = vertex1;
@@ -276,6 +278,8 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
                 backgroundVertex1 = backgroundVertex2;
                 backgroundVertex2 = backgroundVertex3;
                 backgroundVertex3 = temp;
+
+                std::swap(distance20, distance13);
             }
 
             ShapeDescriptor::cpu::float3 normal1 = ShapeDescriptor::computeTriangleNormal(vertex0, vertex1, vertex2);
@@ -290,7 +294,6 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
             float distance12 = length(vertex2 - vertex1);
             float distance23 = length(vertex3 - vertex2);
             float distance30 = length(vertex0 - vertex3);
-            float distance20 = length(vertex0 - vertex2);
 
             bool triangle0Valid = std::max(distance01, std::max(distance12, distance20)) <= settings.rgbdDepthCutoff;
             bool triangle1Valid = std::max(distance20, std::max(distance23, distance30)) <= settings.rgbdDepthCutoff;
