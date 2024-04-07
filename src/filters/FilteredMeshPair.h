@@ -20,11 +20,21 @@ namespace ShapeBench {
 
     template<typename DescriptorMethod>
     void writeFilteredMesh(FilteredMeshPair& filteredMesh, std::filesystem::path outputFile, ShapeDescriptor::OrientedPoint referencePoint = {{0, 0, 0}, {0, 0, 0}}, float supportRadius = 0, bool onlyIncludeSupportVolume = false) {
-        uint32_t numberOfIndicators = 0; //filteredMesh.mappedReferenceVertices.size()
-        ShapeDescriptor::cpu::Mesh extendedMesh = filteredMesh.combinedFilteredMesh();
+        uint32_t numberOfIndicators = filteredMesh.mappedReferenceVertices.size();
+        ShapeDescriptor::cpu::Mesh tempExtendedMesh = filteredMesh.combinedFilteredMesh();
+
+        FilteredMeshPair tempScene;
+        tempScene.filteredSampleMesh = tempExtendedMesh;
+        tempScene.filteredAdditiveNoise = ShapeDescriptor::cpu::Mesh(numberOfIndicators * 3);
+
+        ShapeDescriptor::cpu::Mesh extendedMesh = tempScene.combinedFilteredMesh();
+        ShapeDescriptor::free(tempExtendedMesh);
 
         const float arrowSize = 0.1;
         for(uint32_t i = 0; i < numberOfIndicators; i++) {
+            if(!filteredMesh.mappedVertexIncluded.at(i)) {
+                continue;
+            }
             ShapeDescriptor::OrientedPoint baseVertex = filteredMesh.mappedReferenceVertices.at(i);
             ShapeDescriptor::cpu::float3 vertex0 = baseVertex.vertex;
             ShapeDescriptor::cpu::float3 vertex1 = baseVertex.vertex + baseVertex.normal + ShapeDescriptor::cpu::float3(arrowSize / 2.0f, 0, 0);

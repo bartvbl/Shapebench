@@ -195,8 +195,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     std::cout << "Running experiments.." << std::endl;
     uint64_t experimentBaseRandomSeed = engine();
 
-    const uint32_t intermediateSaveFrequency = configuration.at("commonExperimentSettings").at(
-            "intermediateSaveFrequency");
+    const uint32_t intermediateSaveFrequency = configuration.at("commonExperimentSettings").at("intermediateSaveFrequency");
     std::mutex resultWriteLock;
 
     bool enableIllustrationGenerationMode = configuration.at("illustrationDataGenerationOverride").at("enableIllustrationDataGeneration");
@@ -374,6 +373,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
                     if(!resultsEntries.at(i).included) {
+                        if(DescriptorMethod::getName() == "QUICCI") {
+                            illustrationImages.content[(sampleVertexIndex/illustrativeObjectStride) + i] = filteredDescriptors.at(i);
+                        }
                         continue;
                     }
 
