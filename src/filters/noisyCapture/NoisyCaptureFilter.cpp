@@ -49,7 +49,8 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
             if (distanceToReferenceVertex < bestDistances.at(i)) {
                 bestDistances.at(i) = distanceToReferenceVertex;
                 scene.mappedReferenceVertices.at(i).vertex = meshVertex;
-                scene.mappedReferenceVertices.at(i).normal = scene.filteredSampleMesh.normals[meshVertexIndex];
+                // Leave the normal intact
+                //scene.mappedReferenceVertices.at(i).normal = scene.filteredSampleMesh.normals[meshVertexIndex];
                 scene.mappedReferenceVertexIndices.at(i) = meshVertexIndex;
             }
         }
