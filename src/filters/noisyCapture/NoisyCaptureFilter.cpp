@@ -11,15 +11,15 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     ShapeBench::FilterOutput output;
 
     OcclusionRendererSettings renderSettings;
-    renderSettings.nearPlaneDistance = config.at("filterSettings").at("noisyCapture").at("nearPlaneDistance");
-    renderSettings.farPlaneDistance = config.at("filterSettings").at("noisyCapture").at("farPlaneDistance");
-    renderSettings.fovy = config.at("filterSettings").at("noisyCapture").at("fovYAngleRadians");
-    renderSettings.rgbdDepthCutoff = config.at("filterSettings").at("noisyCapture").at("depthCutoff");
-    float objectPlacementMin = float(config.at("filterSettings").at("noisyCapture").at("objectDistanceFromCameraLimitNear"));
-    float objectPlacementMax = float(config.at("filterSettings").at("noisyCapture").at("objectDistanceFromCameraLimitFar"));
-    float displacementCutoff = config.at("filterSettings").at("noisyCapture").at("mappedVertexDisplacementCutoff");
+    renderSettings.nearPlaneDistance = config.at("filterSettings").at("depthCameraCapture").at("nearPlaneDistance");
+    renderSettings.farPlaneDistance = config.at("filterSettings").at("depthCameraCapture").at("farPlaneDistance");
+    renderSettings.fovy = config.at("filterSettings").at("depthCameraCapture").at("fovYAngleRadians");
+    renderSettings.rgbdDepthCutoff = config.at("filterSettings").at("depthCameraCapture").at("depthCutoff");
+    float objectPlacementMin = float(config.at("filterSettings").at("depthCameraCapture").at("objectDistanceFromCameraLimitNear"));
+    float objectPlacementMax = float(config.at("filterSettings").at("depthCameraCapture").at("objectDistanceFromCameraLimitFar"));
+    float displacementCutoff = config.at("filterSettings").at("depthCameraCapture").at("mappedVertexDisplacementCutoff");
     std::uniform_real_distribution<float> distanceDistribution(objectPlacementMin, objectPlacementMax);
-    renderSettings.objectDistanceFromCamera = objectPlacementMin;//distanceDistribution(randomEngine);
+    renderSettings.objectDistanceFromCamera = distanceDistribution(randomEngine);
 
     std::uniform_real_distribution<float> distribution(0, 1);
     renderSettings.yaw = float(distribution(randomEngine) * 2.0 * M_PI);
@@ -59,18 +59,18 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     }
 
     nlohmann::json entry;
-    entry["noisy-capture-pitch"] = renderSettings.pitch;
-    entry["noisy-capture-yaw"] = renderSettings.yaw;
-    entry["noisy-capture-roll"] = renderSettings.roll;
-    entry["noisy-capture-distance-from-camera"] = renderSettings.objectDistanceFromCamera;
+    entry["depth-camera-capture-pitch"] = renderSettings.pitch;
+    entry["depth-camera-capture-yaw"] = renderSettings.yaw;
+    entry["depth-camera-capture-roll"] = renderSettings.roll;
+    entry["depth-camera-capture-distance-from-camera"] = renderSettings.objectDistanceFromCamera;
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         output.metadata.push_back(entry);
-        output.metadata.at(i)["noisy-capture-displaced-distance"] = bestDistances.at(i);
+        output.metadata.at(i)["depth-camera-capture-displaced-distance"] = bestDistances.at(i);
     }
 
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         nlohmann::json entry;
-        entry["noisy-capture-vertex-displacement"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
+        entry["depth-camera-capture-vertex-displacement"] = length(scene.mappedReferenceVertexIndices.at(i) - originalReferenceVertices.at(i).vertex);
         output.metadata.push_back(entry);
     }
 
@@ -78,8 +78,8 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
 }
 
 void ShapeBench::NoisyCaptureFilter::init(const nlohmann::json &config) {
-    uint32_t visibilityImageWidth = config.at("filterSettings").at("noisyCapture").at("visibilityImageResolution").at(0);
-    uint32_t visibilityImageHeight = config.at("filterSettings").at("noisyCapture").at("visibilityImageResolution").at(1);
+    uint32_t visibilityImageWidth = config.at("filterSettings").at("depthCameraCapture").at("visibilityImageResolution").at(0);
+    uint32_t visibilityImageHeight = config.at("filterSettings").at("depthCameraCapture").at("visibilityImageResolution").at(1);
     sceneGenerator.init(visibilityImageWidth, visibilityImageHeight);
 }
 
