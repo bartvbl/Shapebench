@@ -322,7 +322,7 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
     rgbdMesh.vertexCount = nextBaseIndex;
 
     //ShapeDescriptor::writeXYZ("cloud.xyz", cloud);
-    ShapeDescriptor::writeOBJ(rgbdMesh, "cloudmeshnew.obj");
+    //ShapeDescriptor::writeOBJ(rgbdMesh, "cloudmeshnew.obj");
 
     ShapeDescriptor::free(cloud);
 
