@@ -15,7 +15,7 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     renderSettings.nearPlaneDistance = config.at("filterSettings").at("depthCameraCapture").at("nearPlaneDistance");
     renderSettings.farPlaneDistance = config.at("filterSettings").at("depthCameraCapture").at("farPlaneDistance");
     renderSettings.fovy = config.at("filterSettings").at("depthCameraCapture").at("fovYAngleRadians");
-    renderSettings.rgbdDepthCutoff = config.at("filterSettings").at("depthCameraCapture").at("depthCutoff");
+    renderSettings.rgbdDepthCutoffFactor = config.at("filterSettings").at("depthCameraCapture").at("depthCutoffFactor");
     float objectPlacementMin = float(config.at("filterSettings").at("depthCameraCapture").at("objectDistanceFromCameraLimitNear"));
     float objectPlacementMax = float(config.at("filterSettings").at("depthCameraCapture").at("objectDistanceFromCameraLimitFar"));
     float displacementDistanceFactor = float(config.at("filterSettings").at("depthCameraCapture").at("mappedVertexDisplacementCutoffFactor"));

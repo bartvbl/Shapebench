@@ -249,6 +249,7 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
     glm::vec3 unprojectedSample1 = glm::unProject({0, 0, depthCoordinate.z}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
     glm::vec3 unprojectedSample2 = glm::unProject({1, 0, depthCoordinate.z}, positionTransformation, objectProjection, glm::vec4(0.0f, 0.0f, offscreenTextureWidth, offscreenTextureHeight));
     out_distanceBetweenPixels = length(unprojectedSample1 - unprojectedSample2);
+    float cutoffDistance = settings.rgbdDepthCutoffFactor * out_distanceBetweenPixels;
 
     uint32_t nextBaseIndex = 0;
     for(int col = 0; col < offscreenTextureWidth - 1; col++) {
@@ -300,8 +301,8 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
             float distance23 = length(vertex3 - vertex2);
             float distance30 = length(vertex0 - vertex3);
 
-            bool triangle0Valid = std::max(distance01, std::max(distance12, distance20)) <= settings.rgbdDepthCutoff;
-            bool triangle1Valid = std::max(distance20, std::max(distance23, distance30)) <= settings.rgbdDepthCutoff;
+            bool triangle0Valid = std::max(distance01, std::max(distance12, distance20)) <= cutoffDistance;
+            bool triangle1Valid = std::max(distance20, std::max(distance23, distance30)) <= cutoffDistance;
 
             if(notBackgroundVertex0 && notBackgroundVertex1 && notBackgroundVertex2 && triangle0Valid) {
                 rgbdMesh.vertices[nextBaseIndex + 0] = vertex0;

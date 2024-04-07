@@ -15,7 +15,7 @@ namespace ShapeBench {
         float roll = 0;
         float yaw = 0;
         float pitch = 0;
-        float rgbdDepthCutoff = 0.2;
+        float rgbdDepthCutoffFactor = 0.2;
     };
 
     class OccludedSceneGenerator {

@@ -112,11 +112,11 @@
         "depthCameraCapture": {
             "visibilityImageResolution": [640, 480],
             "nearPlaneDistance": 0.02,
-            "farPlaneDistance": 10.0,
+            "farPlaneDistance": 11.0,
             "fovYAngleRadians": 1.047197551,
-            "depthCutoff": 0.2,
+            "depthCutoffFactor": 25,
             "objectDistanceFromCameraLimitNear": 2.0,
-            "objectDistanceFromCameraLimitFar": 9.0,
+            "objectDistanceFromCameraLimitFar": 10.0,
             "mappedVertexDisplacementCutoffFactor": 2
         },
         "gaussianNoise": {
@@ -134,7 +134,7 @@
             "enabled": true
         },
         "QUICCI": {
-            "enabled": true
+            "enabled": false
         },
         "3DSC": {
             "enabled": false,
