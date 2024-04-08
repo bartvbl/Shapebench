@@ -21,6 +21,10 @@ void applyGaussianNoise(ShapeDescriptor::cpu::Mesh& mesh, uint64_t randomSeed, f
 
     for(unsigned int i = 0; i < mesh.vertexCount; i++) {
         const ShapeDescriptor::cpu::float3 vertex = mesh.vertices[i];
+        if(std::isnan(vertex.x) || std::isnan(vertex.y) || std::isnan(vertex.z)
+        || std::isinf(vertex.x) || std::isinf(vertex.y) || std::isinf(vertex.z)) {
+            continue;
+        }
         if(!seenVerticesIndex.contains(vertex)) {
             // Vertex has not been seen before
             seenVerticesIndex.insert({vertex, condensedVertices.size()});
@@ -76,6 +80,8 @@ ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::
         metadataEntry["gaussian-noise-vertex-deviation"] = length(originalVertex - scene.mappedReferenceVertices.at(i).vertex);
         meta.metadata.push_back(metadataEntry);
     }
+
+    //std::cout << randomSeed << " -> " << deviation << std::endl;
 
     return meta;
 }
