@@ -59,9 +59,16 @@
         },
         {
             "name": "depth-camera-capture-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "depth-camera-capture"}
+            ]
+        },
+        {
+            "name": "gaussian-noise-only",
+            "enabled": true,
+            "filters": [
+                {"type": "gaussian-noise"}
             ]
         },
         {
@@ -131,7 +138,7 @@
             "supportAngle": 180
         },
         "RICI": {
-            "enabled": true
+            "enabled": false
         },
         "QUICCI": {
             "enabled": false
@@ -144,7 +151,7 @@
             "normaliseDescriptorWhenComputingSupportRadius": false
         },
         "USC": {
-            "enabled": true,
+            "enabled": false,
             "minSupportRadiusFactor": 0.1,
             "pointDensityScaleFactor": 0.01,
             "pointDensityRadius": 0.1,
@@ -154,7 +161,7 @@
             "enabled": false
         },
         "RoPS": {
-            "enabled": true,
+            "enabled": false,
             "pointSamplingDensity": 100000,
             "pointSampleLimit": 5000000
         }
@@ -167,7 +174,7 @@
             "radiusSearchStep": 0.01,
             "sampleDescriptorSetSize": 10000,
             "representativeSetObjectCount": 10000,
-            "useGPU": true
+            "useGPU": false
         }
     },
 
