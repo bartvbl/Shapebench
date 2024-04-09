@@ -436,8 +436,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 }
 
                 if(!enableIllustrationGenerationMode){
-                    std::unique_lock<std::mutex> writeLock{resultWriteLock};
-
                     std::cout << "Processing method " << DescriptorMethod::getName() << ", experiment " << experimentName << ": completed " << sampleVertexIndex << "/" << sampleSetSize << " - " << entry.vertexCount << " vertices - Threads: (";
                     for(uint32_t i = 0; i < threadActivity.size(); i++) {
                         std::cout << threadActivity.at(i) << (i + 1 < threadActivity.size() ? ", " : "");
