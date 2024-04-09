@@ -26,40 +26,40 @@ def getProcessingSettings(mode, fileContents):
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
     settings.methodName = "Spin Image" if settings.methodName == "SI" else settings.methodName
+    settings.title = settings.methodName
     sharedYAxisTitle = "Proportion of DDI"
     if experimentName == "normal-noise-only":
-        settings.title = settings.methodName
         settings.xAxisTitle = "Normal vector rotation (degrees)"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = fileContents['configuration']['filterSettings']['normalVectorNoise'][
             'maxAngleDeviationDegrees']
         settings.xTick = 5
+        settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["normal-noise-deviationAngle"]
         return settings
     elif experimentName == "subtractive-noise-only":
-        settings.title = settings.methodName
         settings.xAxisTitle = "Fraction of surface removed"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 1
         settings.xTick = 0.2
+        settings.enable2D = False
         settings.reverse = True
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
         return settings
     elif experimentName == "additive-noise-only":
-        settings.title = settings.methodName
         settings.xAxisTitle = "Fraction of clutter added"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 10
         settings.xTick = 1
+        settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["fractionAddedNoise"]
         return settings
     elif experimentName == "support-radius-deviation-only":
-        settings.title = settings.methodName
         settings.xAxisTitle = "Support radius scale factor"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 1 - fileContents['configuration']['filterSettings']['supportRadiusDeviation'][
@@ -67,39 +67,51 @@ def getProcessingSettings(mode, fileContents):
         settings.xAxisMax = 1 + fileContents['configuration']['filterSettings']['supportRadiusDeviation'][
             'maxRadiusDeviation']
         settings.xTick = 0.125
+        settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
         return settings
     elif experimentName == "repeated-capture-only":
-        settings.title = settings.methodName
         settings.xAxisTitle = "Vertex displacement distance"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 0.15
         settings.xTick = 0.03
+        settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
         return settings
     elif experimentName == "gaussian-noise-only":
-        settings.title = settings.methodName
         settings.xAxisTitle = "Standard Deviation"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 0.01
         settings.xTick = 0.005
+        settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     elif experimentName == "depth-camera-capture-only":
-        settings.title = settings.methodName
         settings.xAxisTitle = "Object distance from camera"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 2
         settings.xAxisMax = 10
         settings.xTick = 1
+        settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"][
             "depth-camera-capture-distance-from-camera"]  # (float(x["filterOutput"]["depth-camera-capture-initial-vertex-count"])
+        # / float(x["filterOutput"]["depth-camera-capture-filtered-vertex-count"]))
+        return settings
+    elif experimentName == "additive-and-gaussian-noise":
+        settings.xAxisTitle = "Fraction added clutter"
+        settings.yAxisTitle = "Standard Deviation"
+        settings.xAxisBounds = [0, 10]
+        settings.yAxisBounds = [0, 0.01]
+        settings.enable2D = True
+        settings.reverse = False
+        settings.readValueX = lambda x: x["fractionAddedNoise"]  # (float(x["filterOutput"]["depth-camera-capture-initial-vertex-count"])
+        settings.readValueY = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         # / float(x["filterOutput"]["depth-camera-capture-filtered-vertex-count"]))
         return settings
     else:
@@ -111,14 +123,21 @@ def processSingleFile(jsonContent, settings):
     chartDataSequence["name"] = settings.methodName
     chartDataSequence["x"] = []
     chartDataSequence["y"] = []
+    if settings.enable2D:
+        chartDataSequence["ranks"] = []
 
     rawResults = []
 
     for result in jsonContent["results"]:
-        rawResult = [settings.readValueX(result), result['filteredDescriptorRank']]
+        if not settings.enable2D:
+            rawResult = [settings.readValueX(result), result['filteredDescriptorRank']]
+        else:
+            rawResult = [settings.readValueX(result), settings.readValueY(result), result['filteredDescriptorRank']]
         rawResults.append(rawResult)
         chartDataSequence["x"].append(rawResult[0])
         chartDataSequence["y"].append(rawResult[1])
+        if settings.enable2D:
+            chartDataSequence["ranks"].append(rawResult[2])
 
     return chartDataSequence, rawResults
 
@@ -259,6 +278,71 @@ def generateSupportRadiusChart(results_directory, output_directory):
     print('Done.')
 
 
+def create2DChart(rawResults, configuration, settings, output_directory, jsonFilePath, jsonFilePaths):
+    histogramAccepted = [[0] * settings.binCount for i in range(settings.binCount)]
+    histogramTotal = [[0] * settings.binCount for i in range(settings.binCount)]
+
+    removedCount = 0
+
+    deltaX = (settings.xAxisBounds[1] - settings.xAxisBounds[0]) / settings.binCount
+    deltaY = (settings.yAxisBounds[1] - settings.yAxisBounds[0]) / settings.binCount
+
+    for rawResult in rawResults:
+        if rawResult[0] is None:
+            rawResult[0] = 0
+        if rawResult[0] < settings.xAxisBounds[0] or rawResult[0] > settings.xAxisBounds[1]:
+            removedCount += 1
+            continue
+        if rawResult[1] < settings.yAxisBounds[0] or rawResult[1] > settings.yAxisBounds[1]:
+            removedCount += 1
+            continue
+
+        binIndexX = int((rawResult[0] - settings.xAxisBounds[0]) / deltaX)
+        binIndexY = int((rawResult[1] - settings.yAxisBounds[0]) / deltaY)
+        rank = rawResult[2]
+        if rank < 10:
+            histogramAccepted[binIndexY][binIndexX] += 1
+        histogramTotal[binIndexY][binIndexX] += 1
+
+    dataRangeX = []
+    dataRangeY = []
+    dataRangeZ = []
+
+    for row in range(0, settings.binCount):
+        for col in range(0, settings.binCount):
+            dataRangeX.append(row * deltaX)
+            dataRangeY.append(col * deltaY)
+            if histogramAccepted[row][col] < 5:
+                histogramAccepted[row][col] = 0
+                dataRangeZ.append(0)
+            else:
+                dataRangeZ.append(histogramAccepted[row][col] / histogramTotal[row][col])
+
+    stackFigure = go.Figure(go.Heatmap(x=dataRangeX, y=dataRangeY, z=dataRangeZ))
+
+    if jsonFilePath is not jsonFilePaths[-1]:
+        stackFigure.update_coloraxes(showscale=False)
+        stackFigure.update_traces(showscale=False)
+        pio.kaleido.scope.default_width = 300
+        pio.kaleido.scope.default_height = 300
+    else:
+        pio.kaleido.scope.default_width = 368
+        pio.kaleido.scope.default_height = 300
+
+    #stackFigure.update_yaxes(range=[0, 1])
+    #stackFigure.update_xaxes(range=[settings.xAxisMin, settings.xAxisMax])
+
+    stackFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle,
+                              margin={'t': 0, 'l': 0, 'b': 45, 'r': 15}, font=dict(size=18),
+                              xaxis=dict(autorange=False, range=settings.xAxisBounds), yaxis=dict(autorange=False, range=settings.yAxisBounds))
+    #stackFigure.show()
+
+    outputFile = os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
+    pio.write_image(stackFigure, outputFile, engine="kaleido", validate=True)
+
+
+
+
 def createChart(results_directory, output_directory, mode):
     pio.templates[pio.templates.default].layout.colorway = [
         '#%02x%02x%02x' % (0, 128, 64),
@@ -302,8 +386,11 @@ def createChart(results_directory, output_directory, mode):
             lastSettings = settings
             dataSequence, rawResults = processSingleFile(jsonContents, settings)
 
-            stackedXValues, stackedYValues, stackedLabels, counts = computeStackedHistogram(rawResults, jsonContents[
-                "configuration"], settings)
+            if settings.enable2D:
+                create2DChart(rawResults, jsonContents["configuration"], settings, output_directory, jsonFilePath, jsonFilePaths)
+                continue
+            else:
+                stackedXValues, stackedYValues, stackedLabels, counts = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
             allCounts.append(counts)
             countLabels.append(settings.methodName)
             countXValues = stackedXValues
@@ -333,27 +420,28 @@ def createChart(results_directory, output_directory, mode):
             outputFile = os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
             pio.write_image(stackFigure, outputFile, engine="kaleido", validate=True)
 
-    print('Writing counts chart..')
-    countsFigure = go.Figure()
-    for index, countSet in enumerate(allCounts):
-        countSet = [x if x >= settings.minSamplesPerBin else None for x in countSet]
-        countsFigure.add_trace(go.Scatter(x=countXValues, y=countSet, mode='lines', name=countLabels[index]))
-    countsFigure.update_yaxes(range=[0, math.log10(max([max(x) for x in allCounts]))], type="log")
-    countsFigure.update_xaxes(range=[lastSettings.xAxisMin, lastSettings.xAxisMax])
-    countsFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title='Sample Count',
-                               title_x=0.5, margin={'t': 0, 'l': 0, 'b': 0, 'r': 0}, width=440, height=270,
-                               font=dict(size=18), xaxis=dict(
-            tickmode='linear',
-            dtick=settings.xTick * 2,
-            range=(lastSettings.xAxisMin, lastSettings.xAxisMax)
+    if not settings.enable2D:
+        print('Writing counts chart..')
+        countsFigure = go.Figure()
+        for index, countSet in enumerate(allCounts):
+            countSet = [x if x >= settings.minSamplesPerBin else None for x in countSet]
+            countsFigure.add_trace(go.Scatter(x=countXValues, y=countSet, mode='lines', name=countLabels[index]))
+        countsFigure.update_yaxes(range=[0, math.log10(max([max(x) for x in allCounts]))], type="log")
+        countsFigure.update_xaxes(range=[lastSettings.xAxisMin, lastSettings.xAxisMax])
+        countsFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title='Sample Count',
+                                   title_x=0.5, margin={'t': 0, 'l': 0, 'b': 0, 'r': 0}, width=440, height=270,
+                                   font=dict(size=18), xaxis=dict(
+                tickmode='linear',
+                dtick=settings.xTick * 2,
+                range=(lastSettings.xAxisMin, lastSettings.xAxisMax)
 
-        ))
-    #countsFigure.update_layout(
-    #    legend=dict(y=0, orientation="h", yanchor="bottom", yref="container", xref="paper", xanchor="left"))
-    outputFile = os.path.join(output_directory, lastSettings.experimentName + "-counts.pdf")
-    pio.kaleido.scope.default_width = 475
-    pio.kaleido.scope.default_height = 300
-    pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
+            ))
+        #countsFigure.update_layout(
+        #    legend=dict(y=0, orientation="h", yanchor="bottom", yref="container", xref="paper", xanchor="left"))
+        outputFile = os.path.join(output_directory, lastSettings.experimentName + "-counts.pdf")
+        pio.kaleido.scope.default_width = 475
+        pio.kaleido.scope.default_height = 300
+        pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
 
     print('Done.')
 
