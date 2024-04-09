@@ -22,7 +22,7 @@ def getProcessingSettings(mode, fileContents):
     experimentName = fileContents["configuration"]["experimentsToRun"][experimentID]["name"]
     settings = ExperimentSettings()
     settings.minSamplesPerBin = 25
-    settings.binCount = 150
+    settings.binCount = 75
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
     settings.methodName = "Spin Image" if settings.methodName == "SI" else settings.methodName
@@ -44,7 +44,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 1
-        settings.xTick = 0.1
+        settings.xTick = 0.2
         settings.reverse = True
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
         return settings
@@ -66,7 +66,7 @@ def getProcessingSettings(mode, fileContents):
             'maxRadiusDeviation']
         settings.xAxisMax = 1 + fileContents['configuration']['filterSettings']['supportRadiusDeviation'][
             'maxRadiusDeviation']
-        settings.xTick = 0.05
+        settings.xTick = 0.125
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
         return settings
@@ -76,7 +76,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 0.15
-        settings.xTick = 0.01
+        settings.xTick = 0.03
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
         return settings
@@ -86,7 +86,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 0.01
-        settings.xTick = 0.001
+        settings.xTick = 0.005
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
@@ -319,7 +319,7 @@ def createChart(results_directory, output_directory, mode):
                 pio.kaleido.scope.default_width = 300
                 pio.kaleido.scope.default_height = 300
             else:
-                pio.kaleido.scope.default_width = 425
+                pio.kaleido.scope.default_width = 475
                 pio.kaleido.scope.default_height = 286
                 titleX = (float(200) / float(500)) * 0.5
 
@@ -327,10 +327,7 @@ def createChart(results_directory, output_directory, mode):
             stackFigure.update_xaxes(range=[settings.xAxisMin, settings.xAxisMax])
 
             stackFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle, title_x=titleX,
-                                      margin={'t': 0, 'l': 0, 'b': 45, 'r': 0}, xaxis=dict(
-                    tickmode='linear',
-                    dtick=settings.xTick
-                ))
+                                      margin={'t': 0, 'l': 0, 'b': 45, 'r': 15}, font=dict(size=18), xaxis=dict(tickmode='linear', dtick=settings.xTick))
             # stackFigure.show()
 
             outputFile = os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
@@ -344,17 +341,17 @@ def createChart(results_directory, output_directory, mode):
     countsFigure.update_yaxes(range=[0, math.log10(max([max(x) for x in allCounts]))], type="log")
     countsFigure.update_xaxes(range=[lastSettings.xAxisMin, lastSettings.xAxisMax])
     countsFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title='Sample Count',
-                               title_x=0.5, margin={'t': 2, 'l': 0, 'b': 0, 'r': 0}, width=285, height=270,
-                               font=dict(size=10), xaxis=dict(
+                               title_x=0.5, margin={'t': 0, 'l': 0, 'b': 0, 'r': 0}, width=440, height=270,
+                               font=dict(size=18), xaxis=dict(
             tickmode='linear',
             dtick=settings.xTick * 2,
             range=(lastSettings.xAxisMin, lastSettings.xAxisMax)
 
         ))
-    countsFigure.update_layout(
-        legend=dict(y=0, orientation="h", yanchor="bottom", yref="container", xref="paper", xanchor="left"))
+    #countsFigure.update_layout(
+    #    legend=dict(y=0, orientation="h", yanchor="bottom", yref="container", xref="paper", xanchor="left"))
     outputFile = os.path.join(output_directory, lastSettings.experimentName + "-counts.pdf")
-    pio.kaleido.scope.default_width = 225
+    pio.kaleido.scope.default_width = 475
     pio.kaleido.scope.default_height = 300
     pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
 
