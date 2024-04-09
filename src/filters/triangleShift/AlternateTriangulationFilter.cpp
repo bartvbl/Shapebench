@@ -14,21 +14,9 @@
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel   CGALK;
 typedef CGAL::Surface_mesh<CGALK::Point_3>                    CGALMesh;
-typedef boost::graph_traits<CGALMesh>::halfedge_descriptor        halfedge_descriptor;
 typedef boost::graph_traits<CGALMesh>::edge_descriptor            edge_descriptor;
 namespace PMP = CGAL::Polygon_mesh_processing;
-struct halfedge2edge
-{
-    halfedge2edge(const CGALMesh& m, std::vector<edge_descriptor>& edges)
-            : m_mesh(m), m_edges(edges)
-    {}
-    void operator()(const halfedge_descriptor& h) const
-    {
-        m_edges.push_back(edge(h, m_mesh));
-    }
-    const CGALMesh& m_mesh;
-    std::vector<edge_descriptor>& m_edges;
-};
+
 
 void remeshMesh(ShapeDescriptor::cpu::Mesh& meshToRemesh, uint32_t iterationCount, uint32_t& sharpEdgeCount) {
     CGALMesh mesh = ShapeBench::convertSDMeshToCGAL(meshToRemesh);

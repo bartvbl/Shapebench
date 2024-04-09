@@ -70,6 +70,12 @@ ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::
     applyGaussianNoise(scene.filteredAdditiveNoise, engine(), deviation);
 
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
+        if(!scene.mappedVertexIncluded.at(i)) {
+            nlohmann::json metadataEntry;
+            metadataEntry["gaussian-noise-max-deviation"] = deviation;
+            meta.metadata.push_back(metadataEntry);
+            continue;
+        }
         ShapeDescriptor::cpu::float3 originalVertex = scene.mappedReferenceVertices.at(i).vertex;
 
         // Update vertex location to the displaced location
