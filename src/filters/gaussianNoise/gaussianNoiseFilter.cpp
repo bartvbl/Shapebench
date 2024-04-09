@@ -4,6 +4,9 @@
 #include "glm/ext/matrix_transform.hpp"
 
 void applyGaussianNoise(ShapeDescriptor::cpu::Mesh& mesh, uint64_t randomSeed, float maxDeviation) {
+    if(mesh.vertexCount == 0 || mesh.vertices == nullptr) {
+        return;
+    }
     std::vector<unsigned int> vertexIndexBuffer(mesh.vertexCount);
 
     ShapeBench::randomEngine engine(randomSeed);

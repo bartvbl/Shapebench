@@ -181,10 +181,20 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Occlusi
                 // There is no need to also compare the normal
                 for(uint32_t i = 0; i < scene.mappedVertexIncluded.size(); i++) {
                     ShapeDescriptor::cpu::float3 mappedVertex = scene.mappedReferenceVertices.at(i).vertex;
-                    if(mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 0]
-                       || mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 1]
-                       || mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 2]) {
+                    bool isVertex0 = mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 0];
+                    bool isVertex1 = mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 1];
+                    bool isVertex2 = mappedVertex == scene.filteredSampleMesh.vertices[3 * triangle + 2];
+                    if(isVertex0 || isVertex1 || isVertex2) {
                         scene.mappedVertexIncluded.at(i) = true;
+                        if(isVertex0) {
+                            scene.mappedReferenceVertexIndices.at(i) = 3 * triangle + 0;
+                        }
+                        if(isVertex1) {
+                            scene.mappedReferenceVertexIndices.at(i) = 3 * triangle + 1;
+                        }
+                        if(isVertex2) {
+                            scene.mappedReferenceVertexIndices.at(i) = 3 * triangle + 2;
+                        }
                     }
                 }
             } else {
