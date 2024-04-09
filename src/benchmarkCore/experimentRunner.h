@@ -281,11 +281,6 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     threadActivity.resize(omp_get_num_threads());
                 }
                 threadActivity.at(omp_get_thread_num()) = sampleVertexIndex;
-                std::cout << "Processing " << sampleVertexIndex << "/" << sampleSetSize << " - " << entry.vertexCount << " - Threads: (";
-                for(uint32_t i = 0; i < threadActivity.size(); i++) {
-                    std::cout << threadActivity.at(i) << (i + 1 < threadActivity.size() ? ", " : "");
-                }
-                std::cout << ")" << std::endl;
             }
 
             if(enableIllustrationGenerationMode && sampleVertexIndex >= illustrativeObjectLimit) {
@@ -438,6 +433,19 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 if (sampleVertexIndex % intermediateSaveFrequency == 0 && !enableIllustrationGenerationMode) {
                     std::cout << std::endl << "    Writing caches.." << std::endl;
                     writeExperimentResults(experimentResult, resultsDirectory, false);
+                }
+
+                if(!enableIllustrationGenerationMode){
+                    std::unique_lock<std::mutex> writeLock{resultWriteLock};
+
+                    std::cout << "Processing method " << DescriptorMethod::getName() << ", experiment " << experimentName << ": completed " << sampleVertexIndex << "/" << sampleSetSize << " - " << entry.vertexCount << " vertices - Threads: (";
+                    for(uint32_t i = 0; i < threadActivity.size(); i++) {
+                        std::cout << threadActivity.at(i) << (i + 1 < threadActivity.size() ? ", " : "");
+                    }
+                    std::cout << ")" << std::endl;
+
+                    // Some slight race condition here, but does not matter since it's only used for printing
+                    threadActivity.at(omp_get_thread_num()) = 0;
                 }
             }
         }
