@@ -66,7 +66,7 @@
         },
         {
             "name": "gaussian-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "gaussian-noise"}
             ]
@@ -78,7 +78,22 @@
                 {"type": "additive-noise"},
                 {"type": "subtractive-noise"}
             ]
-        }
+        },
+        {
+            "name": "additive-and-gaussian-noise",
+            "enabled": false,
+            "filters": [
+                {"type": "additive-noise"},
+                {"type": "gaussian-noise"}
+            ]
+        },
+        {
+            "name": "subtractive-and-gaussian-noise",
+            "enabled": true,
+            "filters": [
+              {"type": "subtractive-noise"},
+              {"type": "gaussian-noise"}
+         ]}
     ],
 
     "filterSettings": {
@@ -138,10 +153,10 @@
             "supportAngle": 180
         },
         "RICI": {
-            "enabled": false
+            "enabled": true
         },
         "QUICCI": {
-            "enabled": false
+            "enabled": true
         },
         "3DSC": {
             "enabled": false,
@@ -151,7 +166,7 @@
             "normaliseDescriptorWhenComputingSupportRadius": false
         },
         "USC": {
-            "enabled": false,
+            "enabled": true,
             "minSupportRadiusFactor": 0.1,
             "pointDensityScaleFactor": 0.01,
             "pointDensityRadius": 0.1,
@@ -161,7 +176,7 @@
             "enabled": false
         },
         "RoPS": {
-            "enabled": false,
+            "enabled": true,
             "pointSamplingDensity": 100000,
             "pointSampleLimit": 5000000
         }

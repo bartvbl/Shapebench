@@ -373,7 +373,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
                     if(!resultsEntries.at(i).included) {
-                        if(DescriptorMethod::getName() == "QUICCI") {
+                        if(DescriptorMethod::getName() == "QUICCI" && enableIllustrationGenerationMode) {
                             illustrationImages.content[(sampleVertexIndex/illustrativeObjectStride) + i] = filteredDescriptors.at(i);
                         }
                         continue;
