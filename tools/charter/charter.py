@@ -106,7 +106,7 @@ def getProcessingSettings(mode, fileContents):
     elif experimentName == "additive-and-gaussian-noise":
         settings.xAxisTitle = "Fraction added clutter"
         settings.yAxisTitle = "Standard Deviation"
-        settings.xAxisBounds = [0, 10]
+        settings.xAxisBounds = [0, 25]
         settings.yAxisBounds = [0, 0.01]
         settings.enable2D = True
         settings.reverse = False
@@ -300,13 +300,14 @@ def create2DChart(rawResults, configuration, settings, output_directory, jsonFil
         binIndexX = int((rawResult[0] - settings.xAxisBounds[0]) / deltaX)
         binIndexY = int((rawResult[1] - settings.yAxisBounds[0]) / deltaY)
         rank = rawResult[2]
-        if rank < 10:
+        if rank < 1:
             histogramAccepted[binIndexY][binIndexX] += 1
         histogramTotal[binIndexY][binIndexX] += 1
 
     dataRangeX = []
     dataRangeY = []
     dataRangeZ = []
+    print("Removed", removedCount, "samples")
 
     for row in range(0, settings.binCount):
         for col in range(0, settings.binCount):
@@ -318,7 +319,14 @@ def create2DChart(rawResults, configuration, settings, output_directory, jsonFil
             else:
                 dataRangeZ.append(histogramAccepted[row][col] / histogramTotal[row][col])
 
-    stackFigure = go.Figure(go.Heatmap(x=dataRangeX, y=dataRangeY, z=dataRangeZ))
+    stackFigure = go.Figure(go.Heatmap(x=dataRangeX, y=dataRangeY, z=dataRangeZ, colorscale=
+        [
+            [0, 'rgb(200, 200, 200)'],
+            [0.25, 'rgb(220, 50, 47)'],
+            [0.5, 'rgb(203, 75, 22)'],
+            [0.75, 'rgb(181, 137, 000)'],
+            [1.0, 'rgb(0, 128, 64)']
+        ]))
 
     if jsonFilePath is not jsonFilePaths[-1]:
         stackFigure.update_coloraxes(showscale=False)
@@ -334,7 +342,7 @@ def create2DChart(rawResults, configuration, settings, output_directory, jsonFil
 
     stackFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle,
                               margin={'t': 0, 'l': 0, 'b': 45, 'r': 15}, font=dict(size=18),
-                              xaxis=dict(autorange=False, range=settings.xAxisBounds), yaxis=dict(autorange=False, range=settings.yAxisBounds))
+                              xaxis=dict(autorange=False, range=settings.xAxisBounds, automargin=True), yaxis=dict(autorange=False, automargin=True, range=settings.yAxisBounds))
     #stackFigure.show()
 
     outputFile = os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
