@@ -23,6 +23,7 @@ def getProcessingSettings(mode, fileContents):
     settings = ExperimentSettings()
     settings.minSamplesPerBin = 25
     settings.binCount = 75
+    settings.heatmapRankLimit = 0
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
     settings.methodName = "Spin Image" if settings.methodName == "SI" else settings.methodName
@@ -108,11 +109,39 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = "Standard Deviation"
         settings.xAxisBounds = [0, 25]
         settings.yAxisBounds = [0, 0.01]
+        settings.xTick = 5
+        settings.yTick = 0.002
+        settings.binCount = 50
         settings.enable2D = True
-        settings.reverse = False
-        settings.readValueX = lambda x: x["fractionAddedNoise"]  # (float(x["filterOutput"]["depth-camera-capture-initial-vertex-count"])
+        settings.reverseX = False
+        settings.readValueX = lambda x: x["fractionAddedNoise"]
         settings.readValueY = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
-        # / float(x["filterOutput"]["depth-camera-capture-filtered-vertex-count"]))
+        return settings
+    elif experimentName == "additive-and-subtractive-noise":
+        settings.xAxisTitle = "Fraction of surface removed"
+        settings.yAxisTitle = "Fraction of added clutter"
+        settings.xAxisBounds = [0, 1]
+        settings.yAxisBounds = [0, 25]
+        settings.xTick = 0.2
+        settings.yTick = 5
+        settings.binCount = 50
+        settings.enable2D = True
+        settings.reverseX = True
+        settings.readValueX = lambda x: x["fractionSurfacePartiality"]
+        settings.readValueY = lambda x: x["fractionAddedNoise"]
+        return settings
+    elif experimentName == "subtractive-and-gaussian-noise":
+        settings.xAxisTitle = "Fraction of surface removed"
+        settings.yAxisTitle = "Standard Deviation"
+        settings.xAxisBounds = [0, 1]
+        settings.yAxisBounds = [0, 0.01]
+        settings.xTick = 0.2
+        settings.yTick = 0.002
+        settings.binCount = 35
+        settings.enable2D = True
+        settings.reverseX = True
+        settings.readValueX = lambda x: x["fractionSurfacePartiality"]
+        settings.readValueY = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     else:
         raise Exception("Failed to determine chart settings: Unknown experiment name: " + experimentName)
@@ -173,9 +202,11 @@ def computeStackedHistogram(rawResults, config, settings):
             removedCount += 1
             continue
 
-        binIndexX = int((rawResult[0] - histogramMin) / delta)
+
         if settings.reverse:
-            binIndexX = int((histogramMax - rawResult[0] - histogramMin) / delta)
+            rawResult[0] = histogramMax - rawResult[0]
+
+        binIndexX = int((rawResult[0] - histogramMin) / delta)
         binIndexY = int(0 if rawResult[1] == 0 else (math.log10(rawResult[1]) + 1))
         if rawResult[1] == representativeSetSize:
             binIndexY -= 1
@@ -288,19 +319,24 @@ def create2DChart(rawResults, configuration, settings, output_directory, jsonFil
     deltaY = (settings.yAxisBounds[1] - settings.yAxisBounds[0]) / settings.binCount
 
     for rawResult in rawResults:
-        if rawResult[0] is None:
-            rawResult[0] = 0
-        if rawResult[0] < settings.xAxisBounds[0] or rawResult[0] > settings.xAxisBounds[1]:
+        resultX, resultY, rank = rawResult
+        if resultX is None:
+            resultX = 0
+        if resultY is None:
+            resultY = 0
+        if settings.reverseX:
+            resultX = settings.xAxisBounds[1] - resultX
+
+        if resultX < settings.xAxisBounds[0] or resultX > settings.xAxisBounds[1]:
             removedCount += 1
             continue
-        if rawResult[1] < settings.yAxisBounds[0] or rawResult[1] > settings.yAxisBounds[1]:
+        if resultY < settings.yAxisBounds[0] or resultY > settings.yAxisBounds[1]:
             removedCount += 1
             continue
 
-        binIndexX = int((rawResult[0] - settings.xAxisBounds[0]) / deltaX)
-        binIndexY = int((rawResult[1] - settings.yAxisBounds[0]) / deltaY)
-        rank = rawResult[2]
-        if rank < 1:
+        binIndexX = max(0, min(settings.binCount - 1, int((resultX - settings.xAxisBounds[0]) / deltaX)))
+        binIndexY = max(0, min(settings.binCount - 1, int((resultY - settings.yAxisBounds[0]) / deltaY)))
+        if rank <= settings.heatmapRankLimit:
             histogramAccepted[binIndexY][binIndexX] += 1
         histogramTotal[binIndexY][binIndexX] += 1
 
@@ -311,15 +347,15 @@ def create2DChart(rawResults, configuration, settings, output_directory, jsonFil
 
     for row in range(0, settings.binCount):
         for col in range(0, settings.binCount):
-            dataRangeX.append(row * deltaX)
-            dataRangeY.append(col * deltaY)
-            if histogramAccepted[row][col] < 5:
-                histogramAccepted[row][col] = 0
-                dataRangeZ.append(0)
+            dataRangeX.append(col * deltaX + 0.5 * deltaX)
+            dataRangeY.append(row * deltaY + 0.5 * deltaY)
+            if histogramTotal[row][col] < 10:
+                dataRangeZ.append(None)
             else:
-                dataRangeZ.append(histogramAccepted[row][col] / histogramTotal[row][col])
+                dataRangeZ.append(float(histogramAccepted[row][col]) / histogramTotal[row][col])
 
-    stackFigure = go.Figure(go.Heatmap(x=dataRangeX, y=dataRangeY, z=dataRangeZ, colorscale=
+    stackFigure = go.Figure(go.Heatmap(x=dataRangeX, y=dataRangeY, z=dataRangeZ,
+                                       zmin=0, zmax=1, colorscale=
         [
             [0, 'rgb(200, 200, 200)'],
             [0.25, 'rgb(220, 50, 47)'],
@@ -337,12 +373,10 @@ def create2DChart(rawResults, configuration, settings, output_directory, jsonFil
         pio.kaleido.scope.default_width = 368
         pio.kaleido.scope.default_height = 300
 
-    #stackFigure.update_yaxes(range=[0, 1])
-    #stackFigure.update_xaxes(range=[settings.xAxisMin, settings.xAxisMax])
-
     stackFigure.update_layout(xaxis_title=settings.xAxisTitle, yaxis_title=settings.yAxisTitle,
                               margin={'t': 0, 'l': 0, 'b': 45, 'r': 15}, font=dict(size=18),
-                              xaxis=dict(autorange=False, range=settings.xAxisBounds, automargin=True), yaxis=dict(autorange=False, automargin=True, range=settings.yAxisBounds))
+                              xaxis=dict(autorange=False, automargin=True, dtick=settings.xTick, range=settings.xAxisBounds),
+                              yaxis=dict(autorange=False, automargin=True, dtick=settings.yTick, range=settings.yAxisBounds))
     #stackFigure.show()
 
     outputFile = os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
