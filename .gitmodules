@@ -18,7 +18,7 @@
 	url = https://github.com/jrouwe/JoltPhysics
 [submodule "lib/v-hacd"]
 	path = lib/v-hacd
-	url = https://github.com/kmammou/v-hacd
+	url = https://github.com/bartvbl/v-hacd
 [submodule "lib/glfw"]
 	path = lib/glfw
 	url = https://github.com/glfw/glfw
@@ -26,6 +26,3 @@
 	path = lib/glad
 	url = https://github.com/Dav1dde/glad.git
 	branch = glad2
-[submodule "lib/pmp-library"]
-	path = lib/pmp-library
-	url = https://github.com/pmp-library/pmp-library
