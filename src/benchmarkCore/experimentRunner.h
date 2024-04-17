@@ -433,6 +433,10 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 if (sampleVertexIndex % intermediateSaveFrequency == 0 && !enableIllustrationGenerationMode) {
                     std::cout << std::endl << "    Writing caches.." << std::endl;
                     writeExperimentResults(experimentResult, resultsDirectory, false);
+                    for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                        std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
+                        filterInstanceMap.at(filterName)->saveCaches(configuration);
+                    }
                 }
 
                 if(!enableIllustrationGenerationMode){
