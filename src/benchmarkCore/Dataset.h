@@ -29,8 +29,7 @@ namespace ShapeBench {
         const DatasetEntry& at(uint32_t meshID) const;
 
         static ShapeBench::Dataset
-        computeOrLoadCached(const std::filesystem::path baseDatasetDirectory,
-                            const std::filesystem::path derivedDatasetDirectory,
-                            const std::filesystem::path datasetCacheFile);
+        computeOrLoadCached(const nlohmann::json& configuration,
+                            const std::filesystem::path& cacheDirectory);
     };
 }

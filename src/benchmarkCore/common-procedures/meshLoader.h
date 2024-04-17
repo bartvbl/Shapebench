@@ -28,10 +28,10 @@ namespace ShapeBench {
     }
 
     inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, const DatasetEntry &datasetEntry) {
-        std::filesystem::path datasetBasePath = config.at("objaverseDatasetRootDir");
-        bool preferCompressed = config.at("preferUsingCompressedDataset");
-        if(!std::filesystem::exists(datasetBasePath) || preferCompressed) {
-            datasetBasePath = std::string(config.at("compressedDatasetRootDir"));
+        std::filesystem::path datasetBasePath = config.at("datasetSettings").at("objaverseRootDir");
+        bool compressionEnabled = config.at("datasetSettings").at("enableDatasetCompression");
+        if(!std::filesystem::exists(datasetBasePath) || compressionEnabled) {
+            datasetBasePath = std::string(config.at("datasetSettings").at("compressedRootDir"));
         }
 
         return readDatasetMesh(datasetBasePath, datasetEntry);

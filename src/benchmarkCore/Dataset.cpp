@@ -2,11 +2,11 @@
 #include <fstream>
 #include <random>
 #include <iostream>
-#include "json.hpp"
 #include "randomEngine.h"
 #include "nlohmann/json.hpp"
 #include "constants.h"
 #include "CompressedDatasetCreator.h"
+#include "MissingBenchmarkConfigurationException.h"
 
 void ShapeBench::Dataset::load(const nlohmann::json& cacheFileContents) {
     assert(cacheFileContents.contains("files"));
@@ -73,9 +73,15 @@ bool ShapeBench::DatasetEntry::operator<(DatasetEntry &other) {
 }
 
 ShapeBench::Dataset ShapeBench::Dataset::computeOrLoadCached(
-        const std::filesystem::path baseDatasetDirectory,
-        const std::filesystem::path derivedDatasetDirectory,
-        const std::filesystem::path datasetCacheFile) {
+        const nlohmann::json& configuration,
+        const std::filesystem::path& cacheDirectory) {
+    if(!configuration.at("datasetSettings").contains("compressedRootDir")) {
+        throw ShapeBench::MissingBenchmarkConfigurationException("compressedRootDir");
+    }
+    const std::filesystem::path baseDatasetDirectory = configuration.at("datasetSettings").at("objaverseRootDir");
+    const std::filesystem::path derivedDatasetDirectory = configuration.at("datasetSettings").at("compressedRootDir");
+    const std::filesystem::path datasetCacheFile = cacheDirectory / ShapeBench::datasetCacheFileName;
+
     nlohmann::json datasetCacheJson = ShapeBench::computeOrReadDatasetCache(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
     ShapeBench::Dataset dataset;
     dataset.load(datasetCacheJson);
