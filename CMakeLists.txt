@@ -44,6 +44,10 @@ add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
 add_subdirectory(lib/glfw)
 
+set(BUILD_STATIC_LIBS ON)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(lib/libcurl-8.7.1)
+
 # sudo apt install libcgal-dev libceres-dev
 # For 5.6.1 I had to install through the debian channel, it's not available yet
 add_definitions(-DCGAL_DISABLE_ROUNDING_MATH_CHECK)
@@ -72,6 +76,7 @@ include_directories (
         lib/pmp-library/external/eigen-3.4.0
         lib/cmake-git
         ../libShapeDescriptor/lib/glm
+        lib/libcurl-8.7.1/include
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
         #${PCL_INCLUDE_DIRS}
@@ -92,7 +97,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo CGAL::CGAL ceres glog) # lsan ${PCL_LIBRARIES}
+target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo CGAL::CGAL ceres glog CURL::libcurl) # lsan ${PCL_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
 #target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
