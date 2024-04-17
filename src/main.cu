@@ -1,9 +1,8 @@
 #include "arrrgh.hpp"
+#include "benchmarkCore/Dataset.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "benchmarkCore/MissingBenchmarkConfigurationException.h"
 #include "benchmarkCore/constants.h"
-#include "benchmarkCore/CompressedDatasetCreator.h"
-#include "benchmarkCore/Dataset.h"
 #include "methods/QUICCIMethod.h"
 #include "methods/SIMethod.h"
 #include "benchmarkCore/ComputedConfig.h"
@@ -117,15 +116,7 @@ int main(int argc, const char** argv) {
         std::filesystem::create_directories(cacheDirectory);
     }
 
-
-    if(!configuration.contains("compressedDatasetRootDir")) {
-        throw ShapeBench::MissingBenchmarkConfigurationException("compressedDatasetRootDir");
-    }
-    const std::filesystem::path baseDatasetDirectory = configuration.at("objaverseDatasetRootDir");
-    const std::filesystem::path derivedDatasetDirectory = configuration.at("compressedDatasetRootDir");
-    const std::filesystem::path datasetCacheFile = cacheDirectory / ShapeBench::datasetCacheFileName;
-
-    ShapeBench::Dataset dataset = ShapeBench::Dataset::computeOrLoadCached(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
+    ShapeBench::Dataset dataset = ShapeBench::Dataset::computeOrLoadCached(configuration, cacheDirectory);
 
     uint64_t randomSeed = configuration.at("randomSeed");
     const nlohmann::json& methodSettings = configuration.at("methodSettings");

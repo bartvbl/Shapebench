@@ -23,7 +23,7 @@ namespace ShapeBench {
 
     inline AdditiveNoiseFilterSettings readAdditiveNoiseFilterSettings(const nlohmann::json &config, const nlohmann::json &filterSettings) {
         AdditiveNoiseFilterSettings settings;
-        settings.compressedDatasetRootDir = std::string(config.at("compressedDatasetRootDir"));
+        settings.compressedDatasetRootDir = std::string(config.at("datasetSettings").at("compressedRootDir"));
         settings.addedClutterObjectCount = filterSettings.at("addedObjectCount");
         settings.enableDebugRenderer = filterSettings.at("enableDebugCamera");
         settings.runSimulationUntilManualExit = filterSettings.at("runSimulationUntilManualExit");

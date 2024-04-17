@@ -170,14 +170,12 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     VHACD::IVHACD *subdivider = VHACD::CreateVHACD();
 
     std::vector<double> meshVertices(3 * mesh.vertexCount);
+    std::vector<uint32_t> indices(mesh.vertexCount);
+
     for(uint32_t i = 0; i < mesh.vertexCount; i++) {
         meshVertices.at(3 * i + 0) = mesh.vertices[i].x;
         meshVertices.at(3 * i + 1) = mesh.vertices[i].y;
         meshVertices.at(3 * i + 2) = mesh.vertices[i].z;
-    }
-
-    std::vector<uint32_t> indices(mesh.vertexCount);
-    for(uint32_t i = 0; i < mesh.vertexCount; i++) {
         indices.at(i) = i;
     }
 

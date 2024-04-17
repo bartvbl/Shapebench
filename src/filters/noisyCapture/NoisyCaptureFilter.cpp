@@ -1,8 +1,6 @@
 #include <iostream>
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "NoisyCaptureFilter.h"
-#include "pmp/surface_mesh.h"
-#include "pmp/algorithms/decimation.h"
 #include "benchmarkCore/randomEngine.h"
 
 
