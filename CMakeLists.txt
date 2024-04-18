@@ -48,6 +48,8 @@ set(BUILD_STATIC_LIBS ON)
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(lib/libcurl-8.7.1)
 
+add_subdirectory(lib/fmt-10.2.1)
+
 # sudo apt install libcgal-dev libceres-dev
 # For 5.6.1 I had to install through the debian channel, it's not available yet
 add_definitions(-DCGAL_DISABLE_ROUNDING_MATH_CHECK)
@@ -72,8 +74,7 @@ include_directories (
         lib/JoltPhysics
         lib/v-hacd/include
         lib/glad/include
-        lib/pmp-library/src
-        lib/pmp-library/external/eigen-3.4.0
+        lib/fmt-10.2.1/include
         lib/cmake-git
         ../libShapeDescriptor/lib/glm
         lib/libcurl-8.7.1/include

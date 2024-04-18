@@ -8,7 +8,7 @@
 #include "CompressedDatasetCreator.h"
 #include "MissingBenchmarkConfigurationException.h"
 
-void ShapeBench::Dataset::load(const nlohmann::json& cacheFileContents) {
+void ShapeBench::Dataset::loadCache(const nlohmann::json& cacheFileContents) {
     assert(cacheFileContents.contains("files"));
     uint32_t fileCount = cacheFileContents.at("files").size();
     entries.reserve(fileCount);
@@ -72,7 +72,7 @@ bool ShapeBench::DatasetEntry::operator<(DatasetEntry &other) {
     return id < other.id;
 }
 
-ShapeBench::Dataset ShapeBench::Dataset::computeOrLoadCached(
+ShapeBench::Dataset ShapeBench::Dataset::computeOrLoadCache(
         const nlohmann::json& configuration,
         const std::filesystem::path& cacheDirectory) {
     if(!configuration.at("datasetSettings").contains("compressedRootDir")) {
@@ -84,6 +84,10 @@ ShapeBench::Dataset ShapeBench::Dataset::computeOrLoadCached(
 
     nlohmann::json datasetCacheJson = ShapeBench::computeOrReadDatasetCache(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
     ShapeBench::Dataset dataset;
-    dataset.load(datasetCacheJson);
+    dataset.loadCache(datasetCacheJson);
     return dataset;
+}
+
+ShapeDescriptor::cpu::Mesh ShapeBench::Dataset::loadMesh(const ShapeBench::DatasetEntry &entry) {
+    return ShapeDescriptor::cpu::Mesh();
 }

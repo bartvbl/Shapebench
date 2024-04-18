@@ -24,12 +24,10 @@ namespace ShapeBench {
     class Dataset {
         std::vector<DatasetEntry> entries;
     public:
-        void load(const nlohmann::json& cacheJson);
         std::vector<VertexInDataset> sampleVertices(uint64_t randomSeed, uint32_t count, uint32_t verticesPerObject) const;
         const DatasetEntry& at(uint32_t meshID) const;
-
-        static ShapeBench::Dataset
-        computeOrLoadCached(const nlohmann::json& configuration,
-                            const std::filesystem::path& cacheDirectory);
+        ShapeDescriptor::cpu::Mesh loadMesh(const DatasetEntry& entry);
+        void loadCache(const nlohmann::json& cacheJson);
+        static ShapeBench::Dataset computeOrLoadCache(const nlohmann::json& configuration, const std::filesystem::path& cacheDirectory);
     };
 }
