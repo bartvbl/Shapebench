@@ -1,7 +1,7 @@
 #pragma once
 
 #include "shapeDescriptor/shapeDescriptor.h"
-#include "benchmarkCore/Dataset.h"
+#include "dataset/Dataset.h"
 #include "json.hpp"
 #include "benchmarkCore/Batch.h"
 #include "supportRadiusEstimation/SupportRadiusEstimation.h"

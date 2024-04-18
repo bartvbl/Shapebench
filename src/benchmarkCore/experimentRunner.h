@@ -7,7 +7,7 @@
 #include <omp.h>
 #include "json.hpp"
 #include <semaphore>
-#include "Dataset.h"
+#include "dataset/Dataset.h"
 #include "ComputedConfig.h"
 #include "supportRadiusEstimation/SupportRadiusEstimation.h"
 #include "utils/prettyprint.h"

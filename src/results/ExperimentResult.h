@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <vector>
-#include "benchmarkCore/Dataset.h"
+#include "dataset/Dataset.h"
 #include "json.hpp"
 #include "benchmarkCore/ComputedConfig.h"
 

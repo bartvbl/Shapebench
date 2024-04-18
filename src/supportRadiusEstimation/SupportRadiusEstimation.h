@@ -4,7 +4,7 @@
 #include <iostream>
 #include <random>
 #include <malloc.h>
-#include "benchmarkCore/Dataset.h"
+#include "dataset/Dataset.h"
 #include "json.hpp"
 #include "benchmarkCore/Batch.h"
 #include "methods/Method.h"

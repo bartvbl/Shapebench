@@ -2,7 +2,7 @@
 
 #include "json.hpp"
 #include "FilteredMeshPair.h"
-#include "benchmarkCore/Dataset.h"
+#include "dataset/Dataset.h"
 
 namespace ShapeBench {
     struct FilterOutput {

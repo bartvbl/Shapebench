@@ -2,11 +2,11 @@
 #include <fstream>
 #include <random>
 #include <iostream>
-#include "randomEngine.h"
+#include "benchmarkCore/randomEngine.h"
 #include "nlohmann/json.hpp"
-#include "constants.h"
-#include "CompressedDatasetCreator.h"
-#include "MissingBenchmarkConfigurationException.h"
+#include "benchmarkCore/constants.h"
+#include "benchmarkCore/CompressedDatasetCreator.h"
+#include "benchmarkCore/MissingBenchmarkConfigurationException.h"
 
 void ShapeBench::Dataset::loadCache(const nlohmann::json& cacheFileContents) {
     assert(cacheFileContents.contains("files"));

@@ -1,5 +1,5 @@
 #include "arrrgh.hpp"
-#include "benchmarkCore/Dataset.h"
+#include "dataset/Dataset.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "benchmarkCore/MissingBenchmarkConfigurationException.h"
 #include "benchmarkCore/constants.h"
@@ -116,7 +116,7 @@ int main(int argc, const char** argv) {
         std::filesystem::create_directories(cacheDirectory);
     }
 
-    ShapeBench::Dataset dataset = ShapeBench::Dataset::computeOrLoadCached(configuration, cacheDirectory);
+    ShapeBench::Dataset dataset = ShapeBench::Dataset::computeOrLoadCache(configuration, cacheDirectory);
 
     uint64_t randomSeed = configuration.at("randomSeed");
     const nlohmann::json& methodSettings = configuration.at("methodSettings");
