@@ -42,18 +42,40 @@ set(ENABLE_ALL_WARNINGS OFF)
 add_definitions(-DJPH_ENABLE_ASSERTS -DJPH_DEBUG_RENDERER)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
-add_subdirectory(lib/glfw)
+add_subdirectory(lib/glfw-3.4)
 
 set(BUILD_STATIC_LIBS ON)
 set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(lib/libcurl-8.7.1)
+# requires sudo apt install libssl-dev
+add_subdirectory(lib/curl-8.7.1)
 
 add_subdirectory(lib/fmt-10.2.1)
 
 # sudo apt install libcgal-dev libceres-dev
 # For 5.6.1 I had to install through the debian channel, it's not available yet
+set(BUILD_EXAMPLES OFF)
+set(BUILD_TESTING OFF)
+set(MINIGLOG ON)
+set(PROVIDE_UNINSTALL_TARGET OFF)
+add_subdirectory(lib/ceres-solver-2.2.0)
 add_definitions(-DCGAL_DISABLE_ROUNDING_MATH_CHECK)
-find_package(CGAL REQUIRED)
+
+include(ExternalProject)
+ExternalProject_Add(
+        GMP
+        SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0"
+        CONFIGURE_COMMAND "./configure"
+        BUILD_COMMAND make && make check
+        TEST_COMMAND ""
+        INSTALL_COMMAND ""
+        BUILD_IN_SOURCE 1
+)
+
+add_library(GMP_Interface INTERFACE)
+add_dependencies(GMP_Interface GMP)
+target_link_libraries(GMP_Interface INTERFACE ${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0/.libs/libgmp.a)
+
+#find_package(CGAL REQUIRED)
 #set(CGAL_BINARY_DIR ${CMAKE_BINARY_DIR}/lib/CGAL)
 #set(CGAL_MODULES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/CGAL-5.6.1/cmake/modules)
 #set(CGAL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/CGAL-5.6.1)
@@ -78,6 +100,7 @@ include_directories (
         lib/cmake-git
         ../libShapeDescriptor/lib/glm
         lib/libcurl-8.7.1/include
+        lib/CGAL-5.6.1/include
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
         #${PCL_INCLUDE_DIRS}
@@ -98,7 +121,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries (shapebench ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo CGAL::CGAL ceres glog CURL::libcurl) # lsan ${PCL_LIBRARIES}
+target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface) # lsan ${PCL_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
 #target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
