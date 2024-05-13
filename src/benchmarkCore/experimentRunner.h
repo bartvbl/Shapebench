@@ -126,6 +126,15 @@ ShapeDescriptor::cpu::array<DescriptorType> computeDescriptorsOrLoadCached(
         std::cout << "    Loading cached " + name + " descriptors.." << std::endl;
         referenceDescriptors = ShapeDescriptor::readCompressedDescriptors<DescriptorType>(descriptorCacheFile, 8);
         std::cout << "    Successfully loaded " << referenceDescriptors.length << " descriptors" << std::endl;
+        std::string errorMessage = "Mismatch detected between the cached number of descriptors ("
+                + std::to_string(referenceDescriptors.length) + ") and the requested number of descriptors ("
+                + std::to_string(representativeSet.size()) + ").";
+        if(referenceDescriptors.length < representativeSet.size()) {
+            throw std::runtime_error("ERROR: " + errorMessage + " The number of cached descriptors is not sufficient. "
+                                                                "Consider regenerating the cache by deleting the file: " + descriptorCacheFile.string());
+        } else if(referenceDescriptors.length > representativeSet.size()) {
+            std::cout << "    WARNING: " + errorMessage + " Since the cache contains more descriptors than necessary, execution will continue." << std::endl;
+        }
     }
     return referenceDescriptors;
 }
