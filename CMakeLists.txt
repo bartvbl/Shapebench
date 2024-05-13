@@ -69,11 +69,12 @@ ExternalProject_Add(
         TEST_COMMAND ""
         INSTALL_COMMAND ""
         BUILD_IN_SOURCE 1
+        BUILD_BYPRODUCTS ${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0/.libs/libgmp.a
 )
 
-add_library(GMP_Interface INTERFACE)
+add_library(GMP_Interface SHARED IMPORTED)
 add_dependencies(GMP_Interface GMP)
-target_link_libraries(GMP_Interface INTERFACE ${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0/.libs/libgmp.a)
+set_target_properties(GMP_Interface PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0/.libs/libgmp.a)
 
 #find_package(CGAL REQUIRED)
 #set(CGAL_BINARY_DIR ${CMAKE_BINARY_DIR}/lib/CGAL)
