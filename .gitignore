@@ -39,3 +39,8 @@ res/*
 output/*
 src/clutter-simulator/.idea/*
 *build*/*
+tools/charter/.idea*
+tools/*.pdf
+tools/charter/old/*
+*.bak*
+cfg/previousconfigs/*
