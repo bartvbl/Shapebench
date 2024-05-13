@@ -16,6 +16,7 @@ namespace ShapeBench {
         uint32_t maxConvexHulls = 64;
         uint32_t convexHullGenerationResolution = 400000;
         uint32_t convexHullGenerationRecursionDepth = 64;
+        uint32_t convexHullGenerationMaxIntermediateHulls = 30000;
         uint32_t convexHullGenerationMaxVerticesPerHull = 256;
         float floorFriction = 0.5;
         float minRequiredObjectVolume = 0.000000001;
@@ -34,6 +35,7 @@ namespace ShapeBench {
         settings.maxConvexHulls = filterSettings.at("maxConvexHulls");
         settings.convexHullGenerationResolution = filterSettings.at("convexHullGenerationResolution");
         settings.convexHullGenerationRecursionDepth = filterSettings.at("convexHullGenerationRecursionDepth");
+        settings.convexHullGenerationMaxIntermediateHulls = filterSettings.at("convexHullGenerationMaxIntermediateHulls");
         settings.convexHullGenerationMaxVerticesPerHull = filterSettings.at("convexHullGenerationMaxVerticesPerHull");
         settings.floorFriction = filterSettings.at("floorFriction");
         settings.minRequiredObjectVolume = filterSettings.at("minRequiredObjectVolume");

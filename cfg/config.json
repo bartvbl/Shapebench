@@ -114,6 +114,7 @@
             "maxConvexHulls": 64,
             "convexHullGenerationResolution": 400000,
             "convexHullGenerationRecursionDepth": 64,
+            "convexHullGenerationMaxIntermediateHulls": 30000,
             "convexHullGenerationMaxVerticesPerHull": 256,
             "floorFriction": 0.5,
             "minRequiredObjectVolume": 0.00000000001

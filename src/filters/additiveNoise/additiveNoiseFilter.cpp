@@ -184,6 +184,7 @@ inline JPH::StaticCompoundShapeSettings* convertMeshToConvexHulls(const ShapeDes
     parameters.m_resolution = settings.convexHullGenerationResolution;//400000;
     parameters.m_maxRecursionDepth = settings.convexHullGenerationRecursionDepth;//64; // max allowed by the library
     parameters.m_maxNumVerticesPerCH = settings.convexHullGenerationMaxVerticesPerHull;//256; // Jolt physics limitation
+    parameters.PATCHED_IN_maxAllowedHullCount = settings.convexHullGenerationMaxIntermediateHulls; // avoid out of memory errors. Default value is calibrated for a system with 64GB of RAM.
 
     subdivider->Compute(meshVertices.data(), mesh.vertexCount, indices.data(), mesh.vertexCount / 3, parameters);
 
