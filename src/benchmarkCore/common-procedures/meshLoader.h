@@ -5,7 +5,7 @@
 #include "dataset/Dataset.h"
 
 namespace ShapeBench {
-    inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const std::filesystem::path& meshFilePath, const DatasetEntry &datasetEntry, bool test) {
+    inline ShapeDescriptor::cpu::Mesh readMeshFile(const std::filesystem::path& meshFilePath, const DatasetEntry &datasetEntry) {
         float computedBoundingSphereRadius = std::max<float>(datasetEntry.computedObjectRadius, 0.0000001);
         ShapeDescriptor::cpu::float3 computedBoundingSphereCentre = datasetEntry.computedObjectCentre;
 
@@ -20,7 +20,14 @@ namespace ShapeBench {
         return mesh;
     }
 
+    inline void downloadDatasetMesh(const nlohmann::json &config, std::filesystem::path meshDestinationPath, const DatasetEntry &datasetEntry, bool enableCompression) {
+        throw std::runtime_error("Not implemented!");
+    }
+
     inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, const DatasetEntry &datasetEntry) {
+        if(!config.contains("datasetSettings")) {
+            throw std::runtime_error("Configuration is missing the key 'datasetSettings'. Aborting.");
+        }
         std::filesystem::path datasetBasePath = config.at("datasetSettings").at("objaverseRootDir");
         std::filesystem::path compressedDatasetBasePath = config.at("datasetSettings").at("compressedRootDir");
         const std::filesystem::path &pathInDataset = datasetEntry.meshFile;
@@ -33,13 +40,16 @@ namespace ShapeBench {
         bool compressedDatabaseMeshExists = std::filesystem::exists(compressedMeshPath);
 
         bool compressionEnabled = config.at("datasetSettings").at("enableDatasetCompression");
-        if(compressionEnabled && compressedDatabaseMeshExists) {
-            return readDatasetMesh(compressedMeshPath, datasetEntry);
-        } else if(originalDatabaseMeshExists) {
-            return readDatasetMesh(originalMeshPath, datasetEntry);
+        if(compressionEnabled) {
+            if(!compressedDatabaseMeshExists) {
+                downloadDatasetMesh(config, compressedMeshPath, datasetEntry, true);
+            }
+            return readMeshFile(compressedMeshPath, datasetEntry);
         } else {
-            // Mesh is not loaded
-
+            if(!originalDatabaseMeshExists) {
+                downloadDatasetMesh(config, compressedMeshPath, datasetEntry, false);
+            }
+            return readMeshFile(originalMeshPath, datasetEntry);
         }
     }
 }

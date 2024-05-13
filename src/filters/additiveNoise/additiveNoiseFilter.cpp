@@ -482,10 +482,10 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     meshes.at(0) = scene.filteredSampleMesh;
 
     // Load meshes
-    #pragma omp parallel for default(none) shared(meshes, dataset, chosenVertices, datasetRootDir)
+    #pragma omp parallel for default(none) shared(meshes, dataset, chosenVertices, datasetRootDir, config)
     for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
-        meshes.at(i) = ShapeBench::readDatasetMesh(datasetRootDir, entry);
+        meshes.at(i) = ShapeBench::readDatasetMesh(config, entry);
     }
     /*for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
