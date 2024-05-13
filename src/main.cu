@@ -14,6 +14,8 @@
 #include "methods/USCMethod.h"
 
 
+nlohmann::json readConfiguration(std::filesystem::path filePath);
+
 int main(int argc, const char** argv) {
     arrrgh::parser parser("shapebench", "Benchmark tool for 3D local shape descriptors");
     const auto& showHelp = parser.add<bool>(
@@ -103,9 +105,8 @@ int main(int argc, const char** argv) {
     if(!std::filesystem::exists(configurationFileLocation)) {
         throw std::runtime_error("The specified configuration file was not found at: " + std::filesystem::absolute(configurationFileLocation).string());
     }
-    std::ifstream inputStream(configurationFile.value());
-    const nlohmann::json configuration = nlohmann::json::parse(inputStream);
 
+    const nlohmann::json configuration = readConfiguration(configurationFile.value());
 
     if(!configuration.contains("cacheDirectory")) {
         throw ShapeBench::MissingBenchmarkConfigurationException("cacheDirectory");
@@ -142,4 +143,17 @@ int main(int argc, const char** argv) {
 
     // WIP:
     //testMethod<ShapeBench::FPFHMethod, ShapeDescriptor::FPFHDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+}
+
+nlohmann::json readConfiguration(std::filesystem::path filePath) {
+    std::ifstream inputStream(filePath);
+    nlohmann::json configuration = nlohmann::json::parse(inputStream);
+    if(configuration.contains("includes")) {
+        std::filesystem::path containingDirectory = filePath.parent_path();
+        for(std::string dependencyPathString : configuration.at("includes")) {
+            nlohmann::json subConfiguration = readConfiguration(containingDirectory / dependencyPathString);
+            configuration.merge_patch(subConfiguration);
+        }
+    }
+    return configuration;
 }
