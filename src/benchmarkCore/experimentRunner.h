@@ -51,26 +51,47 @@ ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const st
 
     ShapeDescriptor::cpu::array<DescriptorType> representativeDescriptors(representativeSet.size());
     uint32_t completedCount = 0;
-    std::vector<float> radii(1, supportRadius);
 
-    #pragma omp parallel for schedule(dynamic) default(none) shared(radii, representativeSet, dataset, config, randomSeeds, representativeDescriptors, completedCount, std::cout)
+    #pragma omp parallel for schedule(dynamic) default(none) shared(representativeSet, supportRadius, dataset, config, randomSeeds, representativeDescriptors, completedCount, std::cout)
     for(int i = 0; i < representativeSet.size(); i++) {
-        std::vector<DescriptorType> tempDescriptor(1);
-        ShapeDescriptor::OrientedPoint descriptorOrigin;
-        ShapeBench::VertexInDataset vertex = representativeSet.at(i);
-        const ShapeBench::DatasetEntry& entry = dataset.at(vertex.meshID);
+        uint32_t currentMeshID = representativeSet.at(i).meshID;
+        if(i > 0 && representativeSet.at(i - 1).meshID == currentMeshID) {
+            continue;
+        }
+        uint32_t sameMeshCount = 1;
+        for(int j = i + 1; j < representativeSet.size(); j++) {
+            uint32_t meshID = representativeSet.at(j).meshID;
+            if(currentMeshID != meshID) {
+                break;
+            }
+            sameMeshCount++;
+        }
+        std::vector<DescriptorType> outputDescriptors(sameMeshCount);
+        std::vector<ShapeDescriptor::OrientedPoint> descriptorOrigins(sameMeshCount);
+        std::vector<float> radii(sameMeshCount, supportRadius);
+
+        const ShapeBench::DatasetEntry& entry = dataset.at(representativeSet.at(i).meshID);
         ShapeDescriptor::cpu::Mesh mesh = ShapeBench::readDatasetMesh(config, entry);
-        descriptorOrigin.vertex = mesh.vertices[vertex.vertexIndex];
-        descriptorOrigin.normal = mesh.normals[vertex.vertexIndex];
-        ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray(1, &descriptorOrigin);
 
+        for(int j = 0; j < sameMeshCount; j++) {
+            uint32_t entryIndex = j + i;
+            ShapeBench::VertexInDataset vertex = representativeSet.at(entryIndex);
+            descriptorOrigins.at(j).vertex = mesh.vertices[vertex.vertexIndex];
+            descriptorOrigins.at(j).normal = mesh.normals[vertex.vertexIndex];
+        }
 
-        ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(mesh, originArray, config, radii, randomSeeds.at(i), randomSeeds.at(i), tempDescriptor);
-        representativeDescriptors[i] = tempDescriptor.at(0);
+        ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint> originArray(descriptorOrigins.size(), descriptorOrigins.data());
+
+        ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(mesh, originArray, config, radii, randomSeeds.at(i), randomSeeds.at(i), outputDescriptors);
+        for(int j = 0; j < sameMeshCount; j++) {
+            uint32_t entryIndex = j + i;
+            representativeDescriptors[entryIndex] = outputDescriptors.at(j);
+        }
+
         ShapeDescriptor::free(mesh);
 
         #pragma omp atomic
-        completedCount++;
+        completedCount += sameMeshCount;
 
         if(completedCount % 100 == 0 || completedCount == representativeSet.size()) {
             std::cout << "\r    ";
@@ -144,8 +165,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
     std::cout << "Initialising.." << std::endl;
     ShapeBench::randomEngine engine(randomSeed);
-    std::filesystem::path computedConfigFilePath =
-            configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
+    std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
     DescriptorMethod::init(configuration);
     std::cout << "    Main config file: " << configFileLocation.string() << std::endl;
     std::cout << "    Computed values config file: " << computedConfigFilePath.string() << std::endl;
@@ -158,14 +178,18 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         std::filesystem::create_directories(resultsDirectory);
     }
 
+    bool enablePRCComparisonMode = configuration.contains("enableComparisonToPRC") && configuration.at("enableComparisonToPRC");
+    if(enablePRCComparisonMode) {
+        std::cout << "Comparison against the Precision-Recall Curve evaluation strategy is enabled." << std::endl;
+    }
+
     // Getting a support radius
     std::cout << "Determining support radius.." << std::endl;
     float supportRadius = 0;
     if (!computedConfig.containsKey(methodName, "supportRadius")) {
         std::cout << "    No support radius has been computed yet for this method." << std::endl;
         std::cout << "    Performing support radius estimation.." << std::endl;
-        supportRadius = ShapeBench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset,
-                                                                                            engine());
+        supportRadius = ShapeBench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, engine());
         std::cout << "    Chosen support radius: " << supportRadius << std::endl;
         computedConfig.setFloatAndSave(methodName, "supportRadius", supportRadius);
     } else {
@@ -181,7 +205,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
     // Compute reference descriptors, or load them from a cache file
     std::cout << "Computing reference descriptor set.." << std::endl;
-    std::vector<ShapeBench::VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize, 1);
+    uint32_t referenceSetNumberOfVerticesPerObject = 1;
+    if(enablePRCComparisonMode) {
+        // Using a value intended for sample objects on the reference set here is intentional
+        referenceSetNumberOfVerticesPerObject = configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject");
+    }
+    std::vector<ShapeBench::VertexInDataset> representativeSet = dataset.sampleVertices(engine(), representativeSetSize, referenceSetNumberOfVerticesPerObject);
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
 
     // Computing sample descriptors, or load them from a cache file
@@ -231,6 +260,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         }
     }
 
+
+
+
+
+    // --- Running experiments ---
     for (uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
         ShapeBench::ExperimentResult experimentResult;
         experimentResult.methodName = DescriptorMethod::getName();
@@ -249,10 +283,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         }
 
         std::string experimentName = experimentConfig.at("name");
-        std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": "
-                  << experimentName << std::endl;
-
-
+        std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": " << experimentName << std::endl;
 
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
         uint32_t testedObjectCount = sampleSetSize / verticesPerSampleObject;
