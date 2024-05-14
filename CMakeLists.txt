@@ -42,6 +42,12 @@ set(ENABLE_ALL_WARNINGS OFF)
 add_definitions(-DJPH_ENABLE_ASSERTS -DJPH_DEBUG_RENDERER)
 add_subdirectory(lib/JoltPhysics/Build joltPhysics)
 
+# One of the libraries uses old behaviour.
+if(DEFINED GLFW_USE_WAYLAND)
+    unset(GLFW_USE_WAYLAND CACHE)
+endif()
+set(GLFW_BUILD_WAYLAND ON)
+set(GLFW_BUILD_X11 ON)
 add_subdirectory(lib/glfw-3.4)
 
 set(BUILD_STATIC_LIBS ON)
