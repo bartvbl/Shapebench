@@ -345,11 +345,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ChosenVertexPRC>(configuration, dataset, supportRadius, engine(), sampleVerticesPRC, "sample_PRC");
 
     } else {
-        std::cout << "Computing reference descriptor set.." << std::endl;
+        std::cout << "Computing reference descriptor set.. (" << verticesPerReferenceObject << " vertices per object)" << std::endl;
         representativeSet = dataset.sampleVertices(engine(), representativeSetSize, verticesPerReferenceObject);
         referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ShapeBench::VertexInDataset>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
 
-        std::cout << "Computing sample descriptor set.." << std::endl;
+        std::cout << "Computing sample descriptor set.. (" << verticesPerSampleObject << " vertices per object)"<< std::endl;
         sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize, verticesPerSampleObject);
         cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ShapeBench::VertexInDataset>(configuration, dataset, supportRadius, engine(), sampleVerticesSet, "sample");
     }
