@@ -2,6 +2,7 @@
 #include <fstream>
 #include <random>
 #include <iostream>
+#include <unordered_set>
 #include "benchmarkCore/randomEngine.h"
 #include "nlohmann/json.hpp"
 #include "benchmarkCore/constants.h"
@@ -52,16 +53,54 @@ std::vector<ShapeBench::VertexInDataset> ShapeBench::Dataset::sampleVertices(uin
         sampleHistogram.at(chosenMeshIndex)++;
     }
     uint32_t nextIndex = 0;
+    std::unordered_set<uint32_t> seenVertexIndices;
     for(uint32_t i = 0; i < entries.size(); i++) {
+        seenVertexIndices.clear();
         for(uint32_t j = 0; j < sampleHistogram.at(i) * verticesPerObject; j++) {
             sampledEntries.at(nextIndex).meshID = i;
             std::uniform_int_distribution<uint32_t> vertexIndexDistribution(0, entries.at(i).vertexCount - 1);
-            sampledEntries.at(nextIndex).vertexIndex = vertexIndexDistribution(engine);
+            uint32_t chosenVertexIndex = vertexIndexDistribution(engine);
+            // Avoid duplicate vertices, but only if we need to pick more than one vertex,
+            // and if selecting unique vertices is possible
+            if(sampleHistogram.at(i) * verticesPerObject > 1 && sampleHistogram.at(i) * verticesPerObject < entries.at(i).vertexCount) {
+                while(seenVertexIndices.contains(chosenVertexIndex)) {
+                    chosenVertexIndex = vertexIndexDistribution(engine);
+                }
+                seenVertexIndices.insert(chosenVertexIndex);
+            }
+            sampledEntries.at(nextIndex).vertexIndex = chosenVertexIndex;
             nextIndex++;
         }
     }
     assert(nextIndex == count);
     return sampledEntries;
+}
+
+std::vector<ShapeBench::VertexInDataset> ShapeBench::Dataset::resampleVerticesInSameObject(unsigned long randomSeed, const uint32_t verticesPerObject, const std::vector<ShapeBench::VertexInDataset>& originalVertexList) const {
+    std::vector<VertexInDataset> alteredVertexList = originalVertexList;
+
+    ShapeBench::randomEngine engine(randomSeed);
+    uint32_t objectCount = originalVertexList.size() / verticesPerObject;
+    std::unordered_set<uint32_t> seenVertexIndices;
+    for(uint32_t objectIndex = 0; objectIndex < objectCount; objectIndex++) {
+        seenVertexIndices.clear();
+        uint32_t objectBaseIndex = objectIndex * verticesPerObject;
+        uint32_t objectMeshID = originalVertexList.at(objectBaseIndex).meshID;
+        uint32_t objectVertexCount = entries.at(objectMeshID).vertexCount;
+        std::uniform_int_distribution<uint32_t> objectVertexDistribution(0, objectVertexCount - 1);
+        for(uint32_t vertexIndex = 0; vertexIndex < verticesPerObject; vertexIndex++) {
+            uint32_t chosenVertexIndex = objectVertexDistribution(engine);
+            if(verticesPerObject > 1 && verticesPerObject < objectVertexCount) {
+                while(seenVertexIndices.contains(chosenVertexIndex)) {
+                    chosenVertexIndex = objectVertexDistribution(engine);
+                }
+                seenVertexIndices.insert(chosenVertexIndex);
+            }
+            alteredVertexList.at(objectBaseIndex + vertexIndex).vertexIndex = chosenVertexIndex;
+        }
+    }
+
+    return alteredVertexList;
 }
 
 const ShapeBench::DatasetEntry &ShapeBench::Dataset::at(uint32_t meshID) const {
@@ -91,3 +130,5 @@ ShapeBench::Dataset ShapeBench::Dataset::computeOrLoadCache(
 ShapeDescriptor::cpu::Mesh ShapeBench::Dataset::loadMesh(const ShapeBench::DatasetEntry &entry) {
     return ShapeDescriptor::cpu::Mesh();
 }
+
+
