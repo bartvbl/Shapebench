@@ -40,13 +40,8 @@ public:
     }
 };
 
-struct ChosenVertexPRC {
-    uint32_t meshID = 0;
-    ShapeDescriptor::OrientedPoint vertex = {{0, 0, 0}, {0, 0, 0}};
-};
-
 template<typename DescriptorMethod, typename DescriptorType>
-ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ChosenVertexPRC>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
+ShapeDescriptor::cpu::array<DescriptorType> computeReferenceDescriptors(const std::vector<ShapeBench::ChosenVertexPRC>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     ShapeBench::randomEngine randomEngine(randomSeed);
     std::vector<uint64_t> randomSeeds(representativeSet.size());
@@ -279,23 +274,35 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     const uint32_t sampleSetObjectCount = sampleSetSize / verticesPerSampleObject;
 
     // Compute reference descriptors, or load them from a cache file
-    std::vector<ChosenVertexPRC> referenceVerticesPRC;
-    std::vector<ChosenVertexPRC> sampleVerticesPRC;
-
     ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors;
+    ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptorsPRC;
     ShapeDescriptor::cpu::array<DescriptorType> cleanSampleDescriptors;
     std::vector<ShapeBench::VertexInDataset> representativeSet;
+    std::vector<ShapeBench::ChosenVertexPRC> representativeSetPRC;
     std::vector<ShapeBench::VertexInDataset> sampleVerticesSet;
+    std::vector<ShapeBench::ChosenVertexPRC> sampleSetPRC;
 
-    if(enablePRCComparisonMode) {
+    std::cout << "Computing reference descriptor set.. (" << verticesPerReferenceObject << " vertices per object)" << std::endl;
+    representativeSet = dataset.sampleVertices(engine(), representativeSetSize, verticesPerReferenceObject);
+    referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ShapeBench::VertexInDataset>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
+
+    if(!enablePRCComparisonMode) {
+        std::cout << "Computing sample descriptor set.. (" << verticesPerSampleObject << " vertices per object)" << std::endl;
+        sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize, verticesPerSampleObject);
+        cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ShapeBench::VertexInDataset>(configuration, dataset, supportRadius, engine(), sampleVerticesSet, "sample");
+    } else {
+        assert(representativeSetSize == sampleSetSize);
+        assert(verticesPerReferenceObject == verticesPerSampleObject);
+        // Both the PRC and ShapeBench strategies have the same set of sample vertices
+        // The reference set of ShapeBench is the same it always was
+        // The one for PRC is the same set of objects, but different vertices.
+
         // Both paths of this if statement use the primary random number generator 4 times
-        // TODO: add another use of engine() here such that different objects are used compared to main experiment?
         std::cout << "Computing reference and sample descriptor set.." << std::endl;
         std::cout << "    The reference and sampling set generation mode has been overridden (caused by PRC comparison mode)" << std::endl;
         std::vector<ShapeBench::VertexInDataset> randomObjectList = dataset.sampleVertices(engine(), sampleSetObjectCount, 1);
-        assert(representativeSetSize == sampleSetSize);
-        referenceVerticesPRC.resize(representativeSetObjectCount * verticesPerReferenceObject);
-        sampleVerticesPRC.resize(sampleSetObjectCount * verticesPerReferenceObject);
+        representativeSetPRC.resize(representativeSetObjectCount * verticesPerReferenceObject);
+        sampleSetPRC.resize(sampleSetObjectCount * verticesPerSampleObject);
         uint32_t completedCount = 0;
 
         ShapeBench::randomEngine PRCEngine(engine());
@@ -316,16 +323,18 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             for(uint32_t vertexInObjectIndex = 0; vertexInObjectIndex < verticesPerReferenceObject; vertexInObjectIndex++) {
                 uint32_t vertexIndex = vertexBaseIndex + vertexInObjectIndex;
                 uint32_t chosenMeshID = randomObjectList.at(objectIndex).meshID;
-                referenceVerticesPRC.at(vertexIndex).meshID = chosenMeshID;
-                sampleVerticesPRC.at(vertexIndex).meshID = chosenMeshID;
+
                 ShapeDescriptor::OrientedPoint referenceVertex;
                 referenceVertex.vertex = referenceCloud.vertices[vertexInObjectIndex];
                 referenceVertex.normal = referenceCloud.normals[vertexInObjectIndex];
-                referenceVerticesPRC.at(vertexIndex).vertex = referenceVertex;
+                representativeSetPRC.at(vertexIndex).meshID = chosenMeshID;
+                representativeSetPRC.at(vertexIndex).vertex = referenceVertex;
+
                 ShapeDescriptor::OrientedPoint sampleVertex;
                 sampleVertex.vertex = sampleCloud.vertices[vertexInObjectIndex];
                 sampleVertex.normal = sampleCloud.normals[vertexInObjectIndex];
-                sampleVerticesPRC.at(vertexIndex).vertex = sampleVertex;
+                sampleSetPRC.at(vertexIndex).meshID = chosenMeshID;
+                sampleSetPRC.at(vertexIndex).vertex = sampleVertex;
             }
 
             #pragma omp atomic
@@ -341,18 +350,8 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             malloc_trim(0);
         }
         std::cout << std::endl;
-        referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ChosenVertexPRC>(configuration, dataset, supportRadius, engine(), referenceVerticesPRC, "reference_PRC");
-        cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ChosenVertexPRC>(configuration, dataset, supportRadius, engine(), sampleVerticesPRC, "sample_PRC");
-
-    } else {
-        std::cout << "Computing reference descriptor set.. (" << verticesPerReferenceObject << " vertices per object)" << std::endl;
-        representativeSet = dataset.sampleVertices(engine(), representativeSetSize, verticesPerReferenceObject);
-        referenceDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ShapeBench::VertexInDataset>(configuration, dataset, supportRadius, engine(), representativeSet, "reference");
-
-        std::cout << "Computing sample descriptor set.. (" << verticesPerSampleObject << " vertices per object)"<< std::endl;
-        sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize, verticesPerSampleObject);
-        cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorType, DescriptorMethod, ShapeBench::VertexInDataset>(configuration, dataset, supportRadius, engine(), sampleVerticesSet, "sample");
     }
+
 
 
     // Initialise filters
@@ -402,7 +401,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
 
     // --- Running experiments ---
-    for (uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
+    for(uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
         ShapeBench::ExperimentResult experimentResult;
         experimentResult.methodName = DescriptorMethod::getName();
         experimentResult.usedConfiguration = configuration;
@@ -425,14 +424,14 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
         uint32_t testedObjectCount = sampleSetSize / verticesPerSampleObject;
         std::vector<uint64_t> experimentRandomSeeds(testedObjectCount);
-        for (uint32_t i = 0; i < testedObjectCount; i++) {
+        for(uint32_t i = 0; i < testedObjectCount; i++) {
             experimentRandomSeeds.at(i) = experimentSeedEngine();
         }
-        for (uint32_t i = 0; i < sampleSetSize; i++) {
+        for(uint32_t i = 0; i < sampleSetSize; i++) {
             experimentResult.vertexResults.at(i).included = false;
         }
 
-        for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+        for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
             std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
             filterInstanceMap.at(filterName)->init(configuration);
         }
@@ -444,7 +443,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             threadsToLaunch = experimentConfig.at("threadLimit");
         }
 
-        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(resultsDirectory, intermediateSaveFrequency, experimentResult, sampleVerticesPRC, enablePRCComparisonMode, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, filterInstanceMap)
+        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(resultsDirectory, intermediateSaveFrequency, experimentResult, sampleSetPRC, enablePRCComparisonMode, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, filterInstanceMap)
         for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject * illustrativeObjectStride) {
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
@@ -453,7 +452,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                 ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
                 meshID = firstSampleVertex.meshID;
             } else {
-                meshID = sampleVerticesPRC.at(sampleVertexIndex).meshID;
+                meshID = sampleSetPRC.at(sampleVertexIndex).meshID;
             }
 
             const ShapeBench::DatasetEntry &entry = dataset.at(meshID);
@@ -495,7 +494,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     filteredMesh.originalReferenceVertices.at(i).normal = filteredMesh.originalMesh.normals[sampleVertex.vertexIndex];
                     filteredMesh.mappedReferenceVertexIndices.at(i) = sampleVertex.vertexIndex;
                 } else {
-                    filteredMesh.originalReferenceVertices.at(i) = sampleVerticesPRC.at(i).vertex;
+                    filteredMesh.originalReferenceVertices.at(i) = sampleSetPRC.at(i).vertex;
                     filteredMesh.mappedReferenceVertexIndices.at(i) = 0xFFFFFFFF; // These are surface samples, not indexed vertices
                 }
                 filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
@@ -513,9 +512,10 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             std::vector<ShapeBench::ExperimentResultsEntry> resultsEntries(verticesPerSampleObject);
 
             try {
+                // Run filters
                 nlohmann::json filterMetadata;
 
-                for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
                     uint64_t filterRandomSeed = experimentInstanceRandomEngine();
                     const nlohmann::json &filterConfig = experimentConfig.at("filters").at(filterStepIndex);
                     const std::string &filterType = filterConfig.at("type");
@@ -530,7 +530,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     }
                 }
 
-                // Collect data here
+                // Filter execution complete, computing DDI and relevant statistics
                 const uint64_t areaEstimationRandomSeed = experimentInstanceRandomEngine();
                 const uint64_t pointCloudSamplingSeed = experimentInstanceRandomEngine();
                 const uint64_t sampleDescriptorGenerationSeed = experimentInstanceRandomEngine();
@@ -566,7 +566,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     if(!enablePRCComparisonMode) {
                         resultsEntries.at(i).sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                     } else {
-                        resultsEntries.at(i).sourceVertex = {sampleVerticesPRC.at(sampleVertexIndex + i).meshID, 0xFFFFFFFF};
+                        resultsEntries.at(i).sourceVertex = {sampleSetPRC.at(sampleVertexIndex + i).meshID, 0xFFFFFFFF};
                     }
                     resultsEntries.at(i).filteredDescriptorRank = 0;
                     resultsEntries.at(i).originalVertexLocation = filteredMesh.originalReferenceVertices.at(i);
@@ -580,6 +580,16 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     }
 
                     uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors[sampleVertexIndex + i], filteredDescriptors.at(i), referenceDescriptors);
+
+                    if(enablePRCComparisonMode) {
+                        //TODO: compute PRC info struct
+                        resultsEntries.at(i).prcMetadata = ShapeBench::computePRCInfo<DescriptorMethod, DescriptorType>(
+                                filteredDescriptors.at(i),
+                                referenceDescriptorsPRC,
+                                sampleSetPRC.at(sampleVertexIndex),
+                                filteredMesh.mappedReferenceVertices.at(i),
+                                representativeSetPRC);
+                    }
 
                     ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
 
@@ -596,7 +606,14 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                         experimentResult.vertexResults.at(sampleVertexIndex + i) = resultsEntries.at(i);
                         if(resultsEntries.at(i).included) {
-                            std::cout << "Result: " << resultsEntries.at(i).fractionAddedNoise << ", " << resultsEntries.at(i).fractionSurfacePartiality << ", " << resultsEntries.at(i).filteredDescriptorRank << std::endl;
+                            std::cout << "Result: added area: " << resultsEntries.at(i).fractionAddedNoise << "\tremaining area: " << resultsEntries.at(i).fractionSurfacePartiality << "\trank: " << resultsEntries.at(i).filteredDescriptorRank;
+                            if(enablePRCComparisonMode) {
+                                float tao = resultsEntries.at(i).prcMetadata.distanceToNearestNeighbour / resultsEntries.at(i).prcMetadata.distanceToSecondNearestNeighbour;
+                                bool isInRange = length(resultsEntries.at(i).prcMetadata.nearestNeighbourVertexModel - resultsEntries.at(i).prcMetadata.nearestNeighbourVertexScene) <= (supportRadius/2.0);
+                                bool isSameObject = resultsEntries.at(i).prcMetadata.modelPointMeshID == resultsEntries.at(i).prcMetadata.scenePointMeshID;
+                                std::cout << "\tTao: " << tao << "\tIn range: " << (isInRange ? "true" : "false") << "\tSame object: " << (isSameObject ? "true" : "false");
+                            }
+                            std::cout << std::endl;
                         }
                     }
                 };
@@ -616,20 +633,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             {
                 std::unique_lock<std::mutex> writeLock{resultWriteLock};
                 bool isLastVertexIndex = sampleVertexIndex + 1 == sampleSetSize;
-                if (sampleVertexIndex % 100 == 0 || isLastVertexIndex) {
+                if(sampleVertexIndex % 100 == 0 || isLastVertexIndex) {
                     std::cout << "\r    ";
                     ShapeBench::drawProgressBar(sampleVertexIndex, sampleSetSize);
                     std::cout << " " << (sampleVertexIndex) << "/" << sampleSetSize << std::endl;
                     malloc_trim(0);
-                }
-
-                if (sampleVertexIndex % intermediateSaveFrequency == 0 && !enableIllustrationGenerationMode) {
-                    std::cout << std::endl << "    Writing caches.." << std::endl;
-                    writeExperimentResults(experimentResult, resultsDirectory, false);
-                    for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
-                        std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
-                        filterInstanceMap.at(filterName)->saveCaches(configuration);
-                    }
                 }
 
                 if(!enableIllustrationGenerationMode){
@@ -638,6 +646,15 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                         std::cout << threadActivity.at(i) << (i + 1 < threadActivity.size() ? ", " : "");
                     }
                     std::cout << ")" << std::endl;
+
+                    if(sampleVertexIndex % intermediateSaveFrequency == 0) {
+                        std::cout << std::endl << "    Writing caches.." << std::endl;
+                        writeExperimentResults(experimentResult, resultsDirectory, false);
+                        for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                            std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
+                            filterInstanceMap.at(filterName)->saveCaches(configuration);
+                        }
+                    }
 
                     // Some slight race condition here, but does not matter since it's only used for printing
                     threadActivity.at(omp_get_thread_num()) = 0;

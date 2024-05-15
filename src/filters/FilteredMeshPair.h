@@ -4,6 +4,11 @@
 #include "glm/glm.hpp"
 
 namespace ShapeBench {
+    struct ChosenVertexPRC {
+        uint32_t meshID = 0;
+        ShapeDescriptor::OrientedPoint vertex = {{0, 0, 0}, {0, 0, 0}};
+    };
+
     struct AdditiveNoiseObjectInfo {
         uint32_t vertexCount = 0;
         uint32_t meshID = 0;
