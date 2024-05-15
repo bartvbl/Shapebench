@@ -69,6 +69,13 @@ ShapeBench::FilterOutput ShapeBench::NormalNoiseFilter::apply(const nlohmann::js
         normal = computeDeviatedNormal(normal, deviationAngleDegrees, rotationAngleDegrees);
     }
 
+    // The mesh itself does not move, so we don't modify these values
+    // They're included here for the sake of completion
+    scene.sampleMeshTransformation *= glm::mat4(1.0);
+    for(uint32_t i = 0; i < scene.additiveNoiseInfo.size(); i++) {
+        scene.additiveNoiseInfo.at(i).transformation *= glm::mat4(1.0);
+    }
+
     return meta;
 }
 

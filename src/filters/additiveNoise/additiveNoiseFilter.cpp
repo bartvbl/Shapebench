@@ -467,8 +467,6 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     body_interface.RemoveBody(floor->GetID());
     body_interface.DestroyBody(floor->GetID());
 
-
-
     return orientations;
 }
 
@@ -476,18 +474,24 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
     ShapeBench::FilterOutput output;
     AdditiveNoiseFilterSettings settings = readAdditiveNoiseFilterSettings(config, filterSettings);
+    uint32_t clutterObjectCount = settings.addedClutterObjectCount;
+    // The filter overrides the additive noise objects, so we also reset the metadata vector
+    scene.additiveNoiseInfo.clear();
+    scene.additiveNoiseInfo.resize(clutterObjectCount);
 
     std::filesystem::path datasetRootDir = settings.compressedDatasetRootDir;
-    uint32_t clutterObjectCount = settings.addedClutterObjectCount;
     std::vector<ShapeBench::VertexInDataset> chosenVertices = dataset.sampleVertices(randomSeed, clutterObjectCount, 1);
     std::vector<ShapeDescriptor::cpu::Mesh> meshes(chosenVertices.size() + 1);
     meshes.at(0) = scene.filteredSampleMesh;
 
     // Load meshes
     //#pragma omp parallel for default(none) shared(meshes, dataset, chosenVertices, datasetRootDir, config)
-    for(uint32_t i = 1; i < meshes.size(); i++) {
-        ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
-        meshes.at(i) = ShapeBench::readDatasetMesh(config, entry);
+    for(uint32_t i = 0; i < clutterObjectCount; i++) {
+        uint32_t chosenMeshID = chosenVertices.at(i).meshID;
+        const ShapeBench::DatasetEntry& entry = dataset.at(chosenMeshID);
+        meshes.at(i + 1) = ShapeBench::readDatasetMesh(config, entry);
+        scene.additiveNoiseInfo.at(i).meshID = chosenMeshID;
+        scene.additiveNoiseInfo.at(i).vertexCount = meshes.at(i + 1).vertexCount;
     }
     /*for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
@@ -512,12 +516,14 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     // Constructing cluttered scene
 
     uint32_t totalAdditiveNoiseVertexCount = 0;
-    for(int i = 1; i < meshes.size(); i++) {
-        if(std::isnan(objectOrientations.at(i).position.x)) {
+    for(int i = 0; i < clutterObjectCount; i++) {
+        if(std::isnan(objectOrientations.at(i + 1).position.x)) {
             std::cout << "    Mesh " << i << " was excluded." << std::endl;
+            scene.additiveNoiseInfo.at(i).included = false;
             continue;
         }
-        totalAdditiveNoiseVertexCount += meshes.at(i).vertexCount;
+        scene.additiveNoiseInfo.at(i).included = true;
+        totalAdditiveNoiseVertexCount += meshes.at(i + 1).vertexCount;
     }
 
     ShapeDescriptor::cpu::Mesh outputSampleMesh(meshes.at(0).vertexCount);
@@ -525,8 +531,9 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     uint32_t nextVertexIndex = 0;
 
     glm::mat4 referenceObjectTranslation = glm::translate(glm::mat4(1.0), glm::vec3(-objectOrientations.at(0).position.x,
-                                                                                    -objectOrientations.at(0).position.y,
-                                                                                    -objectOrientations.at(0).position.z));
+                                                                                             -objectOrientations.at(0).position.y,
+                                                                                             -objectOrientations.at(0).position.z));
+
 
     for(int i = 0; i < meshes.size(); i++) {
         if(std::isnan(objectOrientations.at(i).position.x)) {
@@ -546,6 +553,7 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
         //std::cout << "Mesh " << i << ": " << orientation.position << ", " << orientation.rotation << std::endl;
 
         if(i == 0) {
+            scene.sampleMeshTransformation *= transformationMatrix;
             for(uint32_t index = 0; index < scene.mappedReferenceVertices.size(); index++) {
                 // Move the vertices we intend to use for measurements to the updated location
                 ShapeDescriptor::cpu::float3 inputVertex = scene.mappedReferenceVertices.at(index).vertex;
@@ -560,6 +568,8 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
                 metadataEntry["additive-noise-transformed-normals"] = {transformedNormal.x, transformedNormal.y, transformedNormal.z};
                 output.metadata.push_back(metadataEntry);
             }
+        } else {
+            scene.additiveNoiseInfo.at(i - 1).transformation = transformationMatrix;
         }
 
         ShapeDescriptor::cpu::Mesh& meshToWriteTo = (i == 0) ? outputSampleMesh : outputAdditiveNoiseMesh;

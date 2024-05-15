@@ -40,6 +40,7 @@ namespace ShapeBench {
         ~OccludedSceneGenerator();
         void computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene);
         ShapeDescriptor::cpu::Mesh computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair& scene, float& out_distanceBetweenPixels);
+        static glm::mat4 computeTransformationMatrix(float pitch, float roll, float yaw, float objectDistanceFromCamera);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };

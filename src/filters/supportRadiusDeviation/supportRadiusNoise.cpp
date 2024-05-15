@@ -1,5 +1,6 @@
 #include <iostream>
 #include <shapeDescriptor/shapeDescriptor.h>
+#include <glm/ext/matrix_transform.hpp>
 #include "supportRadiusNoise.h"
 #include "benchmarkCore/randomEngine.h"
 
@@ -26,6 +27,13 @@ ShapeBench::FilterOutput ShapeBench::SupportRadiusNoiseFilter::apply(const nlohm
         nlohmann::json entry;
         entry["support-radius-scale-factor"] = scaleFactor;
         output.metadata.push_back(entry);
+    }
+
+    // The mesh itself does not move, so we don't modify these values
+    // They're included here for the sake of completion
+    scene.sampleMeshTransformation = glm::scale(scene.sampleMeshTransformation, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+    for(uint32_t i = 0; i < scene.additiveNoiseInfo.size(); i++) {
+        scene.additiveNoiseInfo.at(i).transformation *= glm::scale(scene.additiveNoiseInfo.at(i).transformation, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
     }
 
     return output;

@@ -51,5 +51,12 @@ ShapeBench::OcclusionFilter::apply(const nlohmann::json &config, ShapeBench::Fil
 
     sceneGenerator.computeOccludedMesh(renderSettings, scene);
 
+    // Not an entirely correct way to map all vertices, but this is the closest you can probably get
+    // In any case, the portion that is not visible from the camera is straight up removed, so no orientation changes
+    scene.sampleMeshTransformation *= glm::mat4(1.0);
+    for(uint32_t i = 0; i < scene.additiveNoiseInfo.size(); i++) {
+        scene.additiveNoiseInfo.at(i).transformation *= glm::mat4(1.0);
+    }
+
     return output;
 }

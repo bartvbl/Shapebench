@@ -1,8 +1,16 @@
 #pragma once
 
 #include <shapeDescriptor/shapeDescriptor.h>
+#include "glm/glm.hpp"
 
 namespace ShapeBench {
+    struct AdditiveNoiseObjectInfo {
+        uint32_t vertexCount = 0;
+        uint32_t meshID = 0;
+        glm::mat4 transformation = glm::mat4(1.0);
+        bool included = false;
+    };
+
     struct FilteredMeshPair {
         ShapeDescriptor::cpu::Mesh originalMesh;
         ShapeDescriptor::cpu::Mesh filteredSampleMesh;
@@ -13,9 +21,12 @@ namespace ShapeBench {
         std::vector<ShapeDescriptor::OrientedPoint> mappedReferenceVertices;
         std::vector<bool> mappedVertexIncluded;
 
+        // PRC related data
+        std::vector<AdditiveNoiseObjectInfo> additiveNoiseInfo;
+        glm::mat4 sampleMeshTransformation;
+
         void free();
         ShapeDescriptor::cpu::Mesh combinedFilteredMesh();
-
     };
 
     template<typename DescriptorMethod>
