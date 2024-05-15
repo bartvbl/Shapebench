@@ -12,6 +12,7 @@
 #include "methods/RoPSMethod.h"
 #include "methods/RICIMethod.h"
 #include "methods/USCMethod.h"
+#include "methods/SHOTMethod.h"
 
 
 nlohmann::json readConfiguration(std::filesystem::path filePath);
@@ -139,6 +140,9 @@ int main(int argc, const char** argv) {
     }
     if(methodSettings.at(ShapeBench::ShapeContextMethod::getName()).at("enabled")) {
         testMethod<ShapeBench::ShapeContextMethod, ShapeDescriptor::ShapeContextDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+    }
+    if(methodSettings.at(ShapeBench::SHOTMethod<>::getName()).at("enabled")) {
+        testMethod<ShapeBench::SHOTMethod<>, ShapeDescriptor::SHOTDescriptor<>>(configuration, configurationFile.value(), dataset, randomSeed);
     }
 
     // WIP:
