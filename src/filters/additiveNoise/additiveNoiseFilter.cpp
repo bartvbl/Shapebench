@@ -288,7 +288,8 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
 
     std::vector<bool> meshIncluded(meshes.size(), true);
 
-#pragma omp parallel for default(none) shared(meshes, settings, meshHullReplacements, meshIncluded)
+// Do not make this parallel, will stop the program if it throws an exception
+//#pragma omp parallel for default(none) shared(meshes, settings, meshHullReplacements, meshIncluded)
     for(uint32_t i = 0; i < meshes.size(); i++) {
         JPH::StaticCompoundShapeSettings* hullSettings = convertMeshToConvexHulls(meshes.at(i), settings);
         if(hullSettings != nullptr && hullSettings->mSubShapes.size() > 0) {
@@ -483,7 +484,7 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     meshes.at(0) = scene.filteredSampleMesh;
 
     // Load meshes
-    #pragma omp parallel for default(none) shared(meshes, dataset, chosenVertices, datasetRootDir, config)
+    //#pragma omp parallel for default(none) shared(meshes, dataset, chosenVertices, datasetRootDir, config)
     for(uint32_t i = 1; i < meshes.size(); i++) {
         ShapeBench::DatasetEntry entry = dataset.at(chosenVertices.at(i - 1).meshID);
         meshes.at(i) = ShapeBench::readDatasetMesh(config, entry);
