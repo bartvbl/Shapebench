@@ -23,6 +23,7 @@
 #include "filters/supportRadiusDeviation/supportRadiusNoise.h"
 #include "filters/noisyCapture/NoisyCaptureFilter.h"
 #include "filters/gaussianNoise/gaussianNoiseFilter.h"
+#include "fmt/format.h"
 
 template <typename T>
 class lockGuard
@@ -609,12 +610,22 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                     for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                         experimentResult.vertexResults.at(sampleVertexIndex + i) = resultsEntries.at(i);
                         if(resultsEntries.at(i).included) {
-                            std::cout << "Result: added area: " << resultsEntries.at(i).fractionAddedNoise << "\tremaining area: " << resultsEntries.at(i).fractionSurfacePartiality << "\trank: " << resultsEntries.at(i).filteredDescriptorRank;
+                            std::cout << fmt::format("Result: added area: {:<10} remaining area: {:<10} rank: {:<6}", resultsEntries.at(i).fractionAddedNoise, resultsEntries.at(i).fractionSurfacePartiality, resultsEntries.at(i).filteredDescriptorRank);
                             if(enablePRCComparisonMode) {
-                                float tao = resultsEntries.at(i).prcMetadata.distanceToNearestNeighbour / resultsEntries.at(i).prcMetadata.distanceToSecondNearestNeighbour;
-                                bool isInRange = length(resultsEntries.at(i).prcMetadata.nearestNeighbourVertexModel - resultsEntries.at(i).prcMetadata.nearestNeighbourVertexScene) <= (supportRadius/2.0);
-                                bool isSameObject = resultsEntries.at(i).prcMetadata.modelPointMeshID == resultsEntries.at(i).prcMetadata.scenePointMeshID;
-                                std::cout << "\tTao: " << tao << "\tIn range: " << (isInRange ? "true" : "false") << "\tSame object: " << (isSameObject ? "true" : "false");
+                                float nearestNeighbourDistance = resultsEntries.at(i).prcMetadata.distanceToNearestNeighbour;
+                                float secondNearestNeighbourDistance = resultsEntries.at(i).prcMetadata.distanceToSecondNearestNeighbour;
+                                float tao = secondNearestNeighbourDistance == 0 ? 0 : nearestNeighbourDistance / secondNearestNeighbourDistance;
+
+                                float distanceToNearestNeighbourVertex = length(resultsEntries.at(i).prcMetadata.nearestNeighbourVertexModel - resultsEntries.at(i).prcMetadata.nearestNeighbourVertexScene);
+                                bool isInRange = distanceToNearestNeighbourVertex <= (supportRadius/2.0);
+
+                                uint32_t modelMeshID = resultsEntries.at(i).prcMetadata.modelPointMeshID;
+                                uint32_t sceneMeshID = resultsEntries.at(i).prcMetadata.scenePointMeshID;
+                                bool isSameObject = modelMeshID == sceneMeshID;
+                                std::cout << fmt::format(" Tao: {:<6}/{:<6} = {:<10} in range: {:<6}<={:<6} -> {:<5} same object: {:<6} == {:<6} -> {:<5}",
+                                                         nearestNeighbourDistance, secondNearestNeighbourDistance, tao,
+                                                         distanceToNearestNeighbourVertex, supportRadius/2.0f, (isInRange ? "true" : "false"),
+                                                         modelMeshID, sceneMeshID, (isSameObject ? "true" : "false"));
                             }
                             std::cout << std::endl;
                         }
