@@ -23,7 +23,7 @@ namespace ShapeBench {
     ShapeBench::PRCInfo computePRCInfo(const DescriptorType& filteredDescriptor,
                                        ShapeDescriptor::cpu::array<DescriptorType> referenceSet,
                                        ShapeBench::ChosenVertexPRC sampleVertex,
-                                       ShapeDescriptor::cpu::float3 filteredSampleSurfacePoint,
+                                       ShapeDescriptor::OrientedPoint filteredSampleSurfacePoint,
                                        const std::vector<ShapeBench::ChosenVertexPRC>& representativeSetPRC) {
         ShapeBench::PRCInfo outputMetadata;
         /*
@@ -52,7 +52,7 @@ namespace ShapeBench {
         outputMetadata.modelPointMeshID = representativeSetPRC.at(nearestNeighbourVertexIndex).meshID;
 
         // Determine coordinates of nearest neighbour and filtered descriptor
-        outputMetadata.nearestNeighbourVertexScene = filteredSampleSurfacePoint;
+        outputMetadata.nearestNeighbourVertexScene = filteredSampleSurfacePoint.vertex;
         outputMetadata.nearestNeighbourVertexModel = representativeSetPRC.at(nearestNeighbourVertexIndex).vertex.vertex;
 
         return outputMetadata;
