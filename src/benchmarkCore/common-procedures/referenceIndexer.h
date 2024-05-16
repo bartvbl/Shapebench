@@ -36,16 +36,17 @@ namespace ShapeBench {
         float nearestNeighbourDistance = std::numeric_limits<float>::max();
         float secondNearestNeighbourDistance = std::numeric_limits<float>::max();
         uint32_t nearestNeighbourVertexIndex = 0xFFFFFFFF;
-        uint32_t secondNearestNeighbourVertexIndex = 0xFFFFFFFF;
         for(uint32_t i = 0; i < referenceSet.length; i++) {
             float referenceDescriptorDistance = DescriptorMethod::computeDescriptorDistance(filteredDescriptor, referenceSet[i]);
             if(referenceDescriptorDistance < nearestNeighbourDistance) {
                 secondNearestNeighbourDistance = nearestNeighbourDistance;
-                secondNearestNeighbourVertexIndex = nearestNeighbourVertexIndex;
                 nearestNeighbourDistance = referenceDescriptorDistance;
                 nearestNeighbourVertexIndex = i;
             }
         }
+
+        outputMetadata.distanceToNearestNeighbour = nearestNeighbourDistance;
+        outputMetadata.distanceToSecondNearestNeighbour = secondNearestNeighbourDistance;
 
         // Determine mesh ID of nearest neighbour and filtered descriptor
         outputMetadata.scenePointMeshID = sampleVertex.meshID;
