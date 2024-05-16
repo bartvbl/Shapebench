@@ -350,6 +350,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
             malloc_trim(0);
         }
         std::cout << std::endl;
+        
+        referenceDescriptorsPRC = computeDescriptorsOrLoadCached<DescriptorMethod, DescriptorType, ShapeBench::ChosenVertexPRC>(configuration, dataset, supportRadius, PRCEngine(), representativeSetPRC, "reference_PRC");
+        cleanSampleDescriptors = computeDescriptorsOrLoadCached<DescriptorMethod, DescriptorType, ShapeBench::ChosenVertexPRC>(configuration, dataset, supportRadius, PRCEngine(), sampleSetPRC, "sample_PRC");
     }
 
 
