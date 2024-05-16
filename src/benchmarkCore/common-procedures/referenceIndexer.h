@@ -22,7 +22,7 @@ namespace ShapeBench {
     template<typename DescriptorMethod, typename DescriptorType>
     ShapeBench::PRCInfo computePRCInfo(const DescriptorType& filteredDescriptor,
                                        ShapeDescriptor::cpu::array<DescriptorType> referenceSet,
-                                       uint32_t sampleMeshID,
+                                       ShapeBench::ChosenVertexPRC sampleVertex,
                                        ShapeDescriptor::cpu::float3 filteredSampleSurfacePoint,
                                        const std::vector<ShapeBench::ChosenVertexPRC>& representativeSetPRC) {
         ShapeBench::PRCInfo outputMetadata;
@@ -48,7 +48,7 @@ namespace ShapeBench {
         }
 
         // Determine mesh ID of nearest neighbour and filtered descriptor
-        outputMetadata.scenePointMeshID = sampleMeshID;
+        outputMetadata.scenePointMeshID = sampleVertex.meshID;
         outputMetadata.modelPointMeshID = representativeSetPRC.at(nearestNeighbourVertexIndex).meshID;
 
         // Determine coordinates of nearest neighbour and filtered descriptor
