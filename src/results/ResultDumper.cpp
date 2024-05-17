@@ -7,7 +7,10 @@ nlohmann::json getGPUInfo() {
     int32_t deviceID;
     cudaGetDevice(&deviceID);
     nlohmann::json deviceInfo = {};
-    cudaGetDeviceProperties(&device_information, deviceID);
+    cudaError_t errorCode = cudaGetDeviceProperties(&device_information, deviceID);
+    if(errorCode == cudaErrorInvalidDevice) {
+        return deviceInfo;
+    }
     deviceInfo["gpuName"] = std::string(device_information.name);
     deviceInfo["gpuClock"] = device_information.clockRate;
     deviceInfo["gpuVRAM"] = device_information.totalGlobalMem / (1024 * 1024);
