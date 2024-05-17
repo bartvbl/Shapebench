@@ -11,6 +11,14 @@ namespace ShapeBench {
         uint32_t vertexIndex = 0;
     };
 
+    template<typename DescriptorType>
+    struct DescriptorOfVertexInDataset {
+        uint32_t meshID = 0;
+        uint32_t vertexIndex = 0;
+        DescriptorType descriptor;
+        ShapeDescriptor::OrientedPoint vertex = {{0, 0, 0}, {0, 0, 0}};
+    };
+
     struct DatasetEntry {
         std::filesystem::path meshFile;
         uint32_t vertexCount = 0;
