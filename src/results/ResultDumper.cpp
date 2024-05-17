@@ -25,7 +25,7 @@ nlohmann::json toJSON(ShapeDescriptor::cpu::float3 in) {
     return out;
 }
 
-void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputBaseDirectory, bool isFinalResult) {
+void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputBaseDirectory, bool isFinalResult, bool isPRCEnabled) {
 
     // 1: Initial version
     // 1.1: Added information about each filter
@@ -70,6 +70,14 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
         entryJson["meshID"] = entry.sourceVertex.meshID;
         entryJson["vertexIndex"] = entry.sourceVertex.vertexIndex;
         entryJson["filterOutput"] = entry.filterOutput;
+        if(isPRCEnabled) {
+            entryJson["PRC"]["distanceToNearestNeighbour"] = entry.prcMetadata.distanceToNearestNeighbour;
+            entryJson["PRC"]["distanceToSecondNearestNeighbour"] = entry.prcMetadata.distanceToSecondNearestNeighbour;
+            entryJson["PRC"]["modelPointMeshID"] = entry.prcMetadata.modelPointMeshID;
+            entryJson["PRC"]["scenePointMeshID"] = entry.prcMetadata.scenePointMeshID;
+            entryJson["PRC"]["nearestNeighbourVertexModel"] = toJSON(entry.prcMetadata.nearestNeighbourVertexModel);
+            entryJson["PRC"]["nearestNeighbourVertexScene"] = toJSON(entry.prcMetadata.nearestNeighbourVertexScene);
+        }
 
         jsonOutput["results"].push_back(entryJson);
     }

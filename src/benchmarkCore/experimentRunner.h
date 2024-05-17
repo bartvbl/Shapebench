@@ -468,10 +468,11 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 if(!enableIllustrationGenerationMode) {
                     std::unique_lock<std::mutex> writeLock{resultWriteLock};
+                    std::cout << "Added area, Remaining area, Rank" << (enablePRCComparisonMode ? ", NN distance, SNN distance, Tao, Vertex distance, In range, MeshID 1, MeshID 2, Same MeshID" : "") << std::endl;
                     for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                         experimentResult.vertexResults.at(sampleVertexIndex + i) = resultsEntries.at(i);
                         if(resultsEntries.at(i).included) {
-                            std::cout << fmt::format("Result: added area: {:<10} remaining area: {:<10} rank: {:<6}", resultsEntries.at(i).fractionAddedNoise, resultsEntries.at(i).fractionSurfacePartiality, resultsEntries.at(i).filteredDescriptorRank);
+                            std::cout << fmt::format("Result: {:<10}, {:<10}, {:<10}", resultsEntries.at(i).fractionAddedNoise, resultsEntries.at(i).fractionSurfacePartiality, resultsEntries.at(i).filteredDescriptorRank);
                             if(enablePRCComparisonMode) {
                                 float nearestNeighbourDistance = resultsEntries.at(i).prcMetadata.distanceToNearestNeighbour;
                                 float secondNearestNeighbourDistance = resultsEntries.at(i).prcMetadata.distanceToSecondNearestNeighbour;
@@ -483,9 +484,9 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
                                 uint32_t modelMeshID = resultsEntries.at(i).prcMetadata.modelPointMeshID;
                                 uint32_t sceneMeshID = resultsEntries.at(i).prcMetadata.scenePointMeshID;
                                 bool isSameObject = modelMeshID == sceneMeshID;
-                                std::cout << fmt::format(" Tao: {:<6}/{:<6} = {:<10} in range: {:<6}<={:<6} -> {:<5} same object: {:<6} == {:<6} -> {:<5}",
-                                                         nearestNeighbourDistance, secondNearestNeighbourDistance, tao,
-                                                         distanceToNearestNeighbourVertex, supportRadius/2.0f, (isInRange ? "true" : "false"),
+                                std::cout << fmt::format(", {:<10}, {:<10}, {:<6}, {:<10}, {:<10}, {:<6}",
+                                                         tao,
+                                                         distanceToNearestNeighbourVertex, (isInRange ? "true" : "false"),
                                                          modelMeshID, sceneMeshID, (isSameObject ? "true" : "false"));
                             }
                             std::cout << std::endl;
@@ -524,7 +525,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                     if(sampleVertexIndex % intermediateSaveFrequency == 0) {
                         std::cout << std::endl << "    Writing caches.." << std::endl;
-                        writeExperimentResults(experimentResult, resultsDirectory, false);
+                        writeExperimentResults(experimentResult, resultsDirectory, false, enablePRCComparisonMode);
                         for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
                             std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
                             filterInstanceMap.at(filterName)->saveCaches(configuration);
@@ -539,7 +540,7 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
         if(!enableIllustrationGenerationMode) {
             std::cout << "Writing experiment results file.." << std::endl;
-            writeExperimentResults(experimentResult, resultsDirectory, true);
+            writeExperimentResults(experimentResult, resultsDirectory, true, enablePRCComparisonMode);
             std::cout << "Experiment complete." << std::endl;
         } else {
             std::string fileName = "descriptors_" + DescriptorMethod::getName() + "_" + ShapeDescriptor::generateUniqueFilenameString() + "_" + std::string(experimentConfig.at("name")) + ".png";
