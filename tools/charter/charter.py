@@ -31,6 +31,9 @@ def getProcessingSettings(mode, fileContents):
     settings.methodName = "Spin Image" if settings.methodName == "SI" else settings.methodName
     settings.title = settings.methodName
     sharedYAxisTitle = "Proportion of DDI"
+    settings.PRCEnabled = "enableComparisonToPRC" in fileContents["configuration"] and fileContents["configuration"]["enableComparisonToPRC"]
+    settings.PRCSupportRadius = fileContents["computedConfiguration"][settings.methodName]["supportRadius"]
+
     if experimentName == "normal-noise-only":
         settings.xAxisTitle = "Normal vector rotation (°)"
         settings.yAxisTitle = sharedYAxisTitle
@@ -156,6 +159,10 @@ def getProcessingSettings(mode, fileContents):
         raise Exception("Failed to determine chart settings: Unknown experiment name: " + experimentName)
 
 
+def dot(vec1, vec2):
+    return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2]
+
+
 def processSingleFile(jsonContent, settings):
     chartDataSequence = {}
     chartDataSequence["name"] = settings.methodName
@@ -163,6 +170,8 @@ def processSingleFile(jsonContent, settings):
     chartDataSequence["y"] = []
     if settings.enable2D:
         chartDataSequence["ranks"] = []
+    if settings.PRCEnabled:
+        chartDataSequence["PRC"] = []
 
     rawResults = []
 
@@ -171,6 +180,14 @@ def processSingleFile(jsonContent, settings):
             rawResult = [settings.readValueX(result), result['filteredDescriptorRank']]
         else:
             rawResult = [settings.readValueX(result), settings.readValueY(result), result['filteredDescriptorRank']]
+        if settings.PRCEnabled:
+            tao = result["PRC"]["distanceToNearestNeighbour"] / result["PRC"]["distanceToSecondNearestNeighbour"]
+            delta = [result["PRC"]["nearestNeighbourVertexModel"][i] - result["PRC"]["nearestNeighbourVertexScene"][i] for i in range(0, 3)]
+            distanceBetweenVertices = math.sqrt(dot(delta, delta))
+            meshIDsEquivalent = result["PRC"]["modelPointMeshID"] == result["PRC"]["scenePointMeshID"]
+
+            rawResult.append((tao, distanceBetweenVertices, meshIDsEquivalent))
+
         rawResults.append(rawResult)
         chartDataSequence["x"].append(rawResult[0])
         chartDataSequence["y"].append(rawResult[1])
@@ -190,6 +207,7 @@ def computeStackedHistogram(rawResults, config, settings):
     stepsPerBin = int(math.log10(representativeSetSize)) + 1
 
     histogram = []
+    prcInfo = [[] for _ in range(0, settings.binCount + 1)]
     labels = []
     for i in range(stepsPerBin):
         if i != stepsPerBin:
@@ -222,6 +240,44 @@ def computeStackedHistogram(rawResults, config, settings):
         if rawResult[1] == representativeSetSize:
             binIndexY -= 1
         histogram[binIndexY][binIndexX] += 1
+        if settings.PRCEnabled:
+            tao, distanceBetweenVertices, meshIDsEquivalent = rawResult[-1]
+            criterion1_isWithinRange = distanceBetweenVertices <= settings.PRCSupportRadius / 2
+            criterion2_meshIDIsEquivalent = meshIDsEquivalent
+            isValidMatch = criterion1_isWithinRange and criterion2_meshIDIsEquivalent
+            prcInfo[binIndexX].append((tao, isValidMatch))
+
+
+    if settings.PRCEnabled:
+        taoStep = 0.01
+        taoStepCount = int(1 / taoStep)
+        print(taoStepCount)
+
+        areaUnderCurves = []
+
+        countsFigure = go.Figure()
+        for binIndex, prcBin in enumerate(prcInfo):
+            # compute a PRC curve for each of these
+
+            prcCurvePoints = []
+            for taoValue in [x * taoStep for x in range(0, taoStepCount)]:
+                correctMatchCount = 0
+                matchCount = 0
+                for computedTao, satisfiesMatchCriteria in prcBin:
+                    isMatch = computedTao <= taoValue
+                    if isMatch:
+                        matchCount += 1
+                    if isMatch and satisfiesMatchCriteria:
+                        correctMatchCount += 1
+
+                precision = 0 if matchCount == 0 else correctMatchCount / matchCount
+                recall = 0 if len(prcBin) == 0 else correctMatchCount / len(prcBin)
+                #print(matchCount, correctMatchCount, len(prcBin), precision, recall)
+                prcCurvePoints.append((precision, recall))
+            countsFigure.add_trace(go.Scatter(x=[x[0] for x in prcCurvePoints], y=[x[1] for x in prcCurvePoints], mode='lines', name="PRC_" + str(binIndex)))
+        countsFigure.show()
+
+
 
     counts = [sum(x) for x in zip(*histogram)]
 
