@@ -174,6 +174,16 @@ namespace ShapeBench {
                 referenceDescriptors.at(representativeSetSize * i + referenceIndex) = generatedDescriptors.at(i);
             }
 
+            if(referenceIndex == 0) {
+                uint64_t descriptorDigest = 0;
+                for(uint32_t descriptorIndex = 0; descriptorIndex < generatedDescriptors.size(); descriptorIndex++) {
+                    for(uint32_t i = 0; i + sizeof(uint64_t) - 1 < sizeof(DescriptorType); i += sizeof(uint64_t)) {
+                        descriptorDigest ^= *(reinterpret_cast<uint64_t*>(((void*) generatedDescriptors.at(descriptorIndex).contents)) + i);
+                    }
+                }
+                std::cout << std::endl << "Digest of first descriptor set: " << std::hex << descriptorDigest << std::dec << std::endl;
+            }
+
             if(DescriptorMethod::usesPointCloudInput()) {
                 ShapeDescriptor::free(representativeSetPointCloud);
             }
