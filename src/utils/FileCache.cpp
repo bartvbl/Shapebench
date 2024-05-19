@@ -37,8 +37,8 @@ void ShapeBench::FileCache::deleteLeastRecentlyUsedFile() {
     typename std::list<CachedFile>::iterator it = std::next(leastRecentlyUsedItem).base();
     totalDirectorySize -= evictedItem.fileSizeInBytes;
     this->lruItemQueue.erase(it);
-    this->randomAccessMap.erase(evictedItem.filePath);
-    assert(randomAccessMap.find(evictedItem.filePath) == randomAccessMap.end());
+    this->randomAccessMap.erase(std::filesystem::absolute(evictedItem.filePath).string());
+    assert(randomAccessMap.find(std::filesystem::absolute(evictedItem.filePath).string()) == randomAccessMap.end());
 }
 
 void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePath) {
@@ -63,7 +63,7 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePath) {
     // When the node is inserted, it is by definition the most recently used one
     // We therefore put it in the front of the queue right away
     lruItemQueue.emplace_front(cachedItem);
-    randomAccessMap[filePath] = lruItemQueue.begin();
+    randomAccessMap[std::filesystem::absolute(filePath).string()] = lruItemQueue.begin();
 
     statistics.insertions++;
 }
@@ -71,7 +71,7 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePath) {
 // Mark an item present in the cache as most recently used
 void ShapeBench::FileCache::touchFileEntry(const std::filesystem::path& path) {
     // Move the desired node to the front of the LRU queue
-    typename std::unordered_map<std::filesystem::path, typename std::list<CachedFile>::iterator>::iterator it = randomAccessMap.find(path);
+    typename std::unordered_map<std::string, typename std::list<CachedFile>::iterator>::iterator it = randomAccessMap.find(path);
     assert(it != randomAccessMap.end());
     assert(it->second->filePath == path);
     lruItemQueue.splice(lruItemQueue.begin(), lruItemQueue, it->second);
@@ -79,8 +79,8 @@ void ShapeBench::FileCache::touchFileEntry(const std::filesystem::path& path) {
 
 void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePath) {
     std::unique_lock<std::mutex> mainLock(queueLock);
-    typename std::unordered_map<std::filesystem::path, typename std::list<CachedFile>::iterator>::iterator
-            it = randomAccessMap.find(filePath);
+    typename std::unordered_map<std::string, typename std::list<CachedFile>::iterator>::iterator
+            it = randomAccessMap.find(std::filesystem::absolute(filePath).string());
 
     if(it != randomAccessMap.end())
     {
@@ -91,15 +91,15 @@ void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePath) {
         // FileCache miss. Load the item into the cache instead
         statistics.misses++;
         insertFile(filePath);
-        it = randomAccessMap.find(filePath);
+        it = randomAccessMap.find(std::filesystem::absolute(filePath).string());
     }
     it->second->usedByThreadCount++;
 }
 
 void ShapeBench::FileCache::returnFile(const std::filesystem::path& filePath) {
     std::unique_lock<std::mutex> mainLock(queueLock);
-    typename std::unordered_map<std::filesystem::path, typename std::list<CachedFile>::iterator>::iterator
-            it = randomAccessMap.find(filePath);
+    typename std::unordered_map<std::string, typename std::list<CachedFile>::iterator>::iterator
+            it = randomAccessMap.find(std::filesystem::absolute(filePath).string());
     assert(it != randomAccessMap.end());
     assert(it->second->usedByThreadCount > 0);
     it->second->usedByThreadCount--;

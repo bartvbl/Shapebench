@@ -12,12 +12,11 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
                                            std::filesystem::path metadataFile) {
 
     std::cout << "Searching for uncompressed dataset files.." << std::endl;
-    const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::listDirectoryAndSubdirectories(originalDatasetDirectory);
 
+    const std::vector<std::filesystem::path> datasetFiles = ShapeDescriptor::listDirectoryAndSubdirectories(originalDatasetDirectory);
     nlohmann::json datasetCache = {};
     bool previousCacheFound = std::filesystem::exists(metadataFile);
     if(previousCacheFound) {
-        std::cout << "Loading dataset cache.. (found " << datasetFiles.size() << " files)" << std::endl;
         std::filesystem::path bakPath = metadataFile;
         bakPath.replace_extension(".bak.json");
         if(!std::filesystem::exists(bakPath) || std::filesystem::file_size(bakPath) != std::filesystem::file_size(metadataFile)) {
@@ -26,8 +25,9 @@ nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path
 
         std::ifstream inputStream{metadataFile};
         datasetCache = nlohmann::json::parse(inputStream);
+        std::cout << "Loaded dataset cache.. (contains " << datasetCache.at("files").size() << " files)" << std::endl;
 
-        if(datasetFiles.empty()) {
+        if(!std::filesystem::exists(originalDatasetDirectory)) {
             std::cout << "    Uncompressed dataset was not found. Falling back to using compressed dataset as-is" << std::endl;
             return datasetCache;
         }

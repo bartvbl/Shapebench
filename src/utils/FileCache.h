@@ -18,7 +18,9 @@ namespace ShapeBench {
     struct CachedFile {
         uint32_t usedByThreadCount = 0;
         size_t fileSizeInBytes = 0;
-        std::filesystem::path filePath;
+        std::filesystem::path filePath = "";
+
+        CachedFile() = default;
     };
 
     struct CacheStatistics {
@@ -42,7 +44,7 @@ namespace ShapeBench {
         std::list<CachedFile> lruItemQueue;
 
         // These hash tables allow efficient fetching of nodes from the cache
-        std::unordered_map<std::filesystem::path, typename std::list<CachedFile>::iterator> randomAccessMap;
+        std::unordered_map<std::string, typename std::list<CachedFile>::iterator> randomAccessMap;
 
         // Lock used for modification of the cache data structures.
         std::mutex queueLock;

@@ -66,6 +66,8 @@ set(PROVIDE_UNINSTALL_TARGET OFF)
 add_subdirectory(lib/ceres-solver-2.2.0)
 add_definitions(-DCGAL_DISABLE_ROUNDING_MATH_CHECK)
 
+add_definitions(-DFMT_USE_NONTYPE_TEMPLATE_ARGS=0)
+
 include(ExternalProject)
 ExternalProject_Add(
         GMP
@@ -98,7 +100,7 @@ include_directories (
         src/
         lib/arrrgh
         lib/tinygltf
-        lib/json/include
+        lib/json-3.11.3/include
         lib/miniball/cpp/main
         lib/JoltPhysics
         lib/v-hacd/include
