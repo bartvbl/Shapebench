@@ -33,7 +33,6 @@ namespace ShapeBench {
         std::vector<DatasetEntry> entries;
     public:
         std::vector<VertexInDataset> sampleVertices(uint64_t randomSeed, uint32_t count, uint32_t verticesPerObject) const;
-        std::vector<VertexInDataset> resampleVerticesInSameObject(unsigned long randomSeed, const uint32_t verticesPerObject, const std::vector<ShapeBench::VertexInDataset>& originalSampleVertexList) const;
         const DatasetEntry& at(uint32_t meshID) const;
         ShapeDescriptor::cpu::Mesh loadMesh(const DatasetEntry& entry);
         void loadCache(const nlohmann::json& cacheJson);
