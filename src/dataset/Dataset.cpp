@@ -53,22 +53,13 @@ std::vector<ShapeBench::VertexInDataset> ShapeBench::Dataset::sampleVertices(uin
         sampleHistogram.at(chosenMeshIndex)++;
     }
     uint32_t nextIndex = 0;
-    std::unordered_set<uint32_t> seenVertexIndices;
+
     for(uint32_t i = 0; i < entries.size(); i++) {
-        seenVertexIndices.clear();
+
         for(uint32_t j = 0; j < sampleHistogram.at(i) * verticesPerObject; j++) {
             sampledEntries.at(nextIndex).meshID = i;
             std::uniform_int_distribution<uint32_t> vertexIndexDistribution(0, entries.at(i).vertexCount - 1);
-            uint32_t chosenVertexIndex = vertexIndexDistribution(engine);
-            // Avoid duplicate vertices, but only if we need to pick more than one vertex,
-            // and if selecting unique vertices is possible
-            if(sampleHistogram.at(i) * verticesPerObject > 1 && sampleHistogram.at(i) * verticesPerObject < entries.at(i).vertexCount) {
-                while(seenVertexIndices.contains(chosenVertexIndex)) {
-                    chosenVertexIndex = vertexIndexDistribution(engine);
-                }
-                seenVertexIndices.insert(chosenVertexIndex);
-            }
-            sampledEntries.at(nextIndex).vertexIndex = chosenVertexIndex;
+            sampledEntries.at(nextIndex).vertexIndex = vertexIndexDistribution(engine);
             nextIndex++;
         }
     }
