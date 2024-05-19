@@ -36,49 +36,49 @@
         },
         {
             "name": "subtractive-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "subtractive-noise"}
             ]
         },
         {
             "name": "normal-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "normal-noise"}
             ]
         },
         {
             "name": "repeated-capture-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "repeated-capture"}
             ]
         },
         {
             "name": "support-radius-deviation-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "support-radius-deviation"}
             ]
         },
         {
             "name": "depth-camera-capture-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "depth-camera-capture"}
             ]
         },
         {
             "name": "gaussian-noise-only",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "gaussian-noise"}
             ]
         },
         {
             "name": "additive-and-subtractive-noise",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "additive-noise"},
                 {"type": "subtractive-noise"}
@@ -87,7 +87,7 @@
         },
         {
             "name": "additive-and-gaussian-noise",
-            "enabled": true,
+            "enabled": false,
             "filters": [
                 {"type": "additive-noise"},
                 {"type": "gaussian-noise"}
@@ -95,7 +95,7 @@
         },
         {
             "name": "subtractive-and-gaussian-noise",
-            "enabled": true,
+            "enabled": false,
             "filters": [
               {"type": "subtractive-noise"},
               {"type": "gaussian-noise"}
@@ -157,14 +157,14 @@
 
     "methodSettings": {
         "SI": {
-            "enabled": true,
+            "enabled": false,
             "supportAngle": 180
         },
         "RICI": {
             "enabled": true
         },
         "QUICCI": {
-            "enabled": true
+            "enabled": false
         },
         "3DSC": {
             "enabled": false,
@@ -174,7 +174,7 @@
             "normaliseDescriptorWhenComputingSupportRadius": false
         },
         "USC": {
-            "enabled": true,
+            "enabled": false,
             "minSupportRadiusFactor": 0.1,
             "pointDensityScaleFactor": 0.01,
             "pointDensityRadius": 0.1,
@@ -184,7 +184,7 @@
             "enabled": false
         },
         "RoPS": {
-            "enabled": true,
+            "enabled": false,
             "pointSamplingDensity": 100000,
             "pointSampleLimit": 5000000
         }
