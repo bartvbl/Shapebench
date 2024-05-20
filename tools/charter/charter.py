@@ -252,6 +252,7 @@ def computeStackedHistogram(rawResults, config, settings):
         taoStep = 0.01
         taoStepCount = int(1 / taoStep)
         print(taoStepCount)
+        taoValues = [x * taoStep for x in range(0, taoStepCount)]
 
         areaUnderCurves = []
 
@@ -260,7 +261,7 @@ def computeStackedHistogram(rawResults, config, settings):
             # compute a PRC curve for each of these
 
             prcCurvePoints = []
-            for taoValue in [x * taoStep for x in range(0, taoStepCount)]:
+            for taoValue in taoValues:
                 correctMatchCount = 0
                 matchCount = 0
                 for computedTao, satisfiesMatchCriteria in prcBin:
@@ -273,8 +274,18 @@ def computeStackedHistogram(rawResults, config, settings):
                 precision = 0 if matchCount == 0 else correctMatchCount / matchCount
                 recall = 0 if len(prcBin) == 0 else correctMatchCount / len(prcBin)
                 #print(matchCount, correctMatchCount, len(prcBin), precision, recall)
-                prcCurvePoints.append((precision, recall))
-            countsFigure.add_trace(go.Scatter(x=[x[0] for x in prcCurvePoints], y=[x[1] for x in prcCurvePoints], mode='lines', name="PRC_" + str(binIndex)))
+                prcCurvePoints.append((recall, precision))
+            sortedPRCPoints = sorted(prcCurvePoints, key=lambda tup: tup[0])
+            prcArea = 0
+            for i in range(0, len(sortedPRCPoints) - 1):
+                point1 = sortedPRCPoints[i]
+                point2 = sortedPRCPoints[i + 1]
+                deltaX = (point2[0] - point1[0])
+                averageY = (point2[1] + point1[1]) / 2
+                prcArea += averageY * deltaX
+            areaUnderCurves.append(prcArea)
+            #countsFigure.add_trace(go.Scatter(x=[x[0] for x in prcCurvePoints], y=[x[1] for x in prcCurvePoints], mode='lines', name="PRC_" + str(binIndex)))
+        countsFigure.add_trace(go.Scatter(x=xValues, y=areaUnderCurves, mode='lines', name="PRC"))
         countsFigure.show()
 
 
@@ -298,7 +309,7 @@ def computeStackedHistogram(rawResults, config, settings):
             for j in range(stepsPerBin):
                 histogram[j][i] = None
 
-    return xValues, histogram, labels, counts
+    return xValues, histogram, labels, counts, areaUnderCurves
 
 
 def generateSupportRadiusChart(results_directory, output_directory):
@@ -508,7 +519,7 @@ def createChart(results_directory, output_directory, mode):
                 create2DChart(rawResults, jsonContents["configuration"], settings, output_directory, jsonFilePath, jsonFilePaths)
                 continue
             else:
-                stackedXValues, stackedYValues, stackedLabels, counts = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
+                stackedXValues, stackedYValues, stackedLabels, counts, areaUnderCurves = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
             allCounts.append(counts)
             countLabels.append(settings.methodName)
             countXValues = stackedXValues
@@ -517,6 +528,8 @@ def createChart(results_directory, output_directory, mode):
             for index, yValueStack in enumerate(stackedYValues):
                 stackFigure.add_trace(
                     go.Scatter(x=stackedXValues, y=yValueStack, name=stackedLabels[index], stackgroup="main"))
+            if settings.PRCEnabled:
+                stackFigure.add_trace(go.Scatter(x=stackedXValues, y=areaUnderCurves, name="AUC"))
 
             xAxisTitle = settings.xAxisTitle
             if jsonFilePath is not jsonFilePaths[-1]:
