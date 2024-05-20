@@ -22,35 +22,43 @@ def main():
                'additive-and-gaussian-noise',
                'subtractive-and-gaussian-noise']
     filtersEnabled = [
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True
     ]
 
     methods = ['QUICCI', 'RICI', 'SI', 'USC', 'RoPS']
+    methodsEnabled = [True, False, False, False, False]
 
     configIndex = 0
 
     for methodIndex, methodName in enumerate(methods):
+        if not methodsEnabled[methodIndex]:
+            continue
         for filterIndex, filterName in enumerate(filters):
-            if not filtersEnabled[filterIndex]:
+            if not filtersEnabled[filterIndex] and not (not any(filtersEnabled) and filterIndex == 0):
                 continue
 
-            filePath = os.path.join(directory_path, str(configIndex) + ".json")
+            filePath = os.path.join(directory_path, "run_" + str(configIndex) + ".json")
             configIndex += 1
 
             outputData = {}
-
             outputData['includes'] = ['config.json']
-            outputData['experimentsToRun'] = {}
-            outputData['experimentsToRun'][methodName] = {'enabled': True}
+            outputData['enableComparisonToPRC'] = True
+
+            if filtersEnabled[filterIndex]:
+                outputData['experimentsToRun'] = [{'name': filters[x]} for x in range(0, len(filters))]
+                outputData['experimentsToRun'][methodIndex] = {
+                    'name': filterName,
+                    'enabled': True
+                }
 
             outputData['methodSettings'] = {}
             outputData['methodSettings'][methodName] = {'enabled': True}
