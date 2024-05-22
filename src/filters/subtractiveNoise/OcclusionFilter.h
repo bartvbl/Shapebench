@@ -5,7 +5,6 @@
 #include "json.hpp"
 #include "benchmarkCore/ComputedConfig.h"
 #include "dataset/Dataset.h"
-#include "GLFW/glfw3.h"
 #include "utils/gl/Shader.h"
 #include "utils/gl/GeometryBuffer.h"
 #include "filters/FilteredMeshPair.h"

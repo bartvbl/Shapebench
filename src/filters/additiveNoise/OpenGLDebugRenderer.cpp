@@ -2,7 +2,6 @@
 #include "glad/gl.h"
 #include "OpenGLDebugRenderer.h"
 #include "utils/gl/GeometryBuffer.h"
-#include "utils/gl/ShaderLoader.h"
 #include "utils/gl/GLUtils.h"
 #include "GLFW/glfw3.h"
 #include "glm/gtc/matrix_inverse.hpp"
@@ -10,6 +9,7 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "utils/gl/ShaderLoader.h"
 #include <mutex>
 
 class OpenGLBatchImplementation : public JPH::RefTargetVirtual
@@ -109,7 +109,7 @@ ShapeBench::OpenGLDebugRenderer::OpenGLDebugRenderer() {
     window = GLinitialise(1920, 1080);
     printGLError();
 
-    shader = loadShader("../res/shaders", "phong");
+    shader = ShapeBench::loadShader("../res/shaders", "phong");
     printGLError();
     shader.use();
     printGLError();

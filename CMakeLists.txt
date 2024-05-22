@@ -112,6 +112,7 @@ include_directories (
         ../libShapeDescriptor/lib/glm
         lib/libcurl-8.7.1/include
         lib/CGAL-5.6.1/include
+        lib/PortableGL-0.98.0
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
         #${SDL2_INCLUDE_DIRS}
