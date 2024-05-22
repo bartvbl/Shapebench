@@ -4,6 +4,7 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser(description="Generate configurations for each combination of ")
+    parser.add_argument("basefile", help="Path to the base config file")
     parser.add_argument("directory", help="Path to the directory containing files")
 
     args = parser.parse_args()
@@ -49,19 +50,15 @@ def main():
             filePath = os.path.join(directory_path, "run_" + str(configIndex) + ".json")
             configIndex += 1
 
-            outputData = {}
-            outputData['includes'] = ['config.json']
+            with open(args.basefile, "r") as baseFile:
+                outputData = json.load(baseFile)
+            #outputData['includes'] = ['config.json']
             outputData['enableComparisonToPRC'] = True
 
             if filtersEnabled[filterIndex]:
-                outputData['experimentsToRun'] = [{'name': filters[x]} for x in range(0, len(filters))]
-                outputData['experimentsToRun'][methodIndex] = {
-                    'name': filterName,
-                    'enabled': True
-                }
+                outputData['experimentsToRun'][methodIndex]['enabled'] = True
 
-            outputData['methodSettings'] = {}
-            outputData['methodSettings'][methodName] = {'enabled': True}
+            outputData['methodSettings'][methodName]['enabled'] = True
 
             with open(filePath, 'w') as json_file:
                 json.dump(outputData, json_file, indent=4)
