@@ -21,11 +21,11 @@
     "preferUsingCompressedDataset": true,
 
     "commonExperimentSettings": {
-        "verticesToTestPerSampleObject": 100,
-        "verticesToTestPerReferenceObject": 100,
+        "verticesToTestPerSampleObject": 500,
+        "verticesToTestPerReferenceObject": 500,
         "memoryCleanupFrequency": 1000,
-        "sampleSetSize": 5000,
-        "representativeSetSize": 5000,
+        "sampleSetSize": 10000,
+        "representativeSetSize": 10000,
         "pointSampleDensity": 1000000,
         "intermediateSaveFrequency": 5000
     }

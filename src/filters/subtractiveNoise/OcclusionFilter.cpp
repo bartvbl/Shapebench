@@ -1,12 +1,4 @@
-#include "glad/gl.h"
 #include "OcclusionFilter.h"
-#include "utils/gl/GLUtils.h"
-#include "utils/gl/VAOGenerator.h"
-#include "utils/gl/Shader.h"
-#include "utils/gl/ShaderLoader.h"
-#include "glm/gtc/type_ptr.hpp"
-#include <iostream>
-#include "GLFW/glfw3.h"
 #include "benchmarkCore/randomEngine.h"
 #include <random>
 

@@ -1,18 +1,50 @@
-//
-// Created by bart on 03/04/24.
-//
-
-#include "glad/gl.h"
 #include "OccludedSceneGenerator.h"
 #include "benchmarkCore/randomEngine.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
-#include "utils/gl/VAOGenerator.h"
 #include "glm/gtc/type_ptr.hpp"
-#include "utils/gl/GLUtils.h"
-#include "utils/gl/ShaderLoader.h"
+#include "utils/gl/GeometryBuffer.h"
+#include "utils/gl/VAOGenerator.h"
 #include <glm/glm.hpp>
 
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
+
+struct GeomIDUniforms {
+    glm::mat4 mvp_mat;
+    bool writeDepth = false;
+};
+
+void objectID_vertexShader(float* vs_output, vec4* vertex_attribs, Shader_Builtins* builtins, void* uniformPointer)
+{
+    ((vec4*)vs_output)[0] = vertex_attribs[1]; //color
+
+    GeomIDUniforms* uniforms = reinterpret_cast<GeomIDUniforms*>(uniformPointer);
+
+    glm::vec4 inputVertex = glm::vec4(vertex_attribs[0].x, vertex_attribs[0].y, vertex_attribs[0].z, 1);
+    glm::vec4 transformedVertex = uniforms->mvp_mat * inputVertex;
+    vec4 outputVertex = {transformedVertex.x, transformedVertex.y, transformedVertex.z, transformedVertex.w};
+
+    builtins->gl_Position = outputVertex;
+}
+
+void objectID_fragmentShader(float* fs_input, Shader_Builtins* builtins, void* uniformPointer)
+{
+    GeomIDUniforms* uniforms = reinterpret_cast<GeomIDUniforms*>(uniformPointer);
+    if(uniforms->writeDepth) {
+        builtins->gl_FragColor = vec4(builtins->gl_FragDepth, builtins->gl_FragDepth, builtins->gl_FragDepth, 1.0);
+    } else {
+        float depth = builtins->gl_FragDepth;
+        uint32_t* depthAsInt = reinterpret_cast<uint32_t*>(&depth);
+        vec4 colour = {
+                float(((*depthAsInt) >> 24) & 0xFF) / 255.0f,
+                float(((*depthAsInt) >> 16) & 0xFF) / 255.0f,
+                float(((*depthAsInt) >> 8) & 0xFF) / 255.0f,
+                float(((*depthAsInt) >> 0) & 0xFF) / 255.0f
+        };
+        builtins->gl_FragColor = colour;
+    }
+}
 
 ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator() {
 
@@ -27,11 +59,10 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
     glm::mat4 positionTransformation = computeTransformationMatrix(settings.pitch, settings.roll, settings.yaw, settings.objectDistanceFromCamera);
     glm::mat4 objectTransformation = objectProjection * positionTransformation;
 
-    std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
-    glfwMakeContextCurrent(window);
+    GeomIDUniforms geometryIDUniforms;
 
-    // Handle other events
-    glfwPollEvents();
+    std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
+
     GeometryBuffer sampleMeshBuffers = generateVertexArray(scene.filteredSampleMesh.vertices,
                                                            scene.filteredSampleMesh.normals,
                                                            vertexColours,
@@ -40,11 +71,11 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
                                                               scene.filteredAdditiveNoise.normals,
                                                               vertexColours == nullptr ? nullptr : vertexColours + scene.filteredSampleMesh.vertexCount,
                                                               scene.filteredAdditiveNoise.vertexCount);
-    objectIDShader.use();
-    glUniformMatrix4fv(16, 1, false, glm::value_ptr(objectTransformation));
+    glUseProgram(this->GeometryIDShader);
+    geometryIDUniforms.mvp_mat = objectTransformation;
+    geometryIDUniforms.writeDepth = outDepthBuffer != nullptr;
+    pglSetUniform(&geometryIDUniforms);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-    glViewport(0, 0, offscreenTextureWidth, offscreenTextureHeight);
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -57,50 +88,14 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
     // Do visibility testing
 
     if(outFrameBuffer != nullptr) {
-        glBindTexture(GL_TEXTURE_2D, renderTextureID);
-        glReadPixels(0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_RGB, GL_UNSIGNED_BYTE, outFrameBuffer);
-    }
-    if(outDepthBuffer != nullptr) {
-        glBindTexture(GL_TEXTURE_2D, depthTextureID);
-        glReadPixels (0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_DEPTH_COMPONENT, GL_FLOAT, outDepthBuffer);
-    }
-
-    // Draw visible version
-
-    int windowWidth, windowHeight;
-    glfwGetWindowSize(window, &windowWidth, &windowHeight);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, windowWidth, windowHeight);
-    glClearColor(0.5, 0.5, 0.5, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    fullscreenQuadShader.use();
-
-    glBindVertexArray(screenQuadVAO.vaoID);
-    glDisable(GL_DEPTH_TEST);
-    if(outFrameBuffer != nullptr) {
-        glBindTextureUnit(0, renderTextureID);
-        glUniform1i(25, 0);
+        std::copy(this->window.frameBuffer, this->window.frameBuffer + offscreenTextureWidth * offscreenTextureHeight * sizeof(unsigned int), outFrameBuffer);
     } else if(outDepthBuffer != nullptr) {
-        glBindTextureUnit(0, depthTextureID);
-        glUniform1i(25, 1);
+        float* frameBufferAsFloatBuffer = reinterpret_cast<float*>(this->window.frameBuffer);
+        std::copy(frameBufferAsFloatBuffer, frameBufferAsFloatBuffer + offscreenTextureWidth * offscreenTextureHeight, outDepthBuffer);
     }
-
-    glm::mat4 fullscreenProjection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-
-    glUniformMatrix4fv(16, 1, false, glm::value_ptr(fullscreenProjection));
-
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
     sampleMeshBuffers.destroy();
     additiveNoiseBuffers.destroy();
-
-    // Flip buffers
-    glfwSwapBuffers(window);
-
-    // Allow other threads to take control of the context
-    glfwMakeContextCurrent(nullptr);
 }
 
 // Mesh is assumed to be fit inside unit sphere
@@ -329,6 +324,38 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
         }
     }
 
+    SDL_Window* window;
+    SDL_Renderer* ren;
+    SDL_Texture* tex;
+
+    SDL_Event e;
+    bool quit = false;
+
+    int old_time = 0, new_time=0, counter = 0;
+    int ms = 0;
+    int last_frame;
+    float frame_time = 0;
+
+
+    while (!quit) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT)
+                quit = true;
+            if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+                quit = true;
+            if (e.type == SDL_MOUSEBUTTONDOWN)
+                quit = true;
+        }
+
+        //Render the scene
+        SDL_UpdateTexture(tex, NULL, this->window.frameBuffer, offscreenTextureWidth * sizeof(u32));
+
+        SDL_RenderCopy(ren, tex, NULL, NULL);
+        SDL_RenderPresent(ren);
+    }
+
+
+
     rgbdMesh.vertexCount = nextBaseIndex;
 
     //ShapeDescriptor::writeXYZ("cloud.xyz", cloud);
@@ -347,71 +374,38 @@ void ShapeBench::OccludedSceneGenerator::destroy() {
     if(!isCreated) {
         return;
     }
-    screenQuadVAO.destroy();
-    glDeleteFramebuffers(1, &frameBufferID);
-    glDeleteRenderbuffers(1, &renderBufferID);
-    glDeleteTextures(1, &renderTextureID);
-    glDeleteTextures(1, &depthTextureID);
-    glfwDestroyWindow(window);
+
     isDestroyed = true;
+    free_glContext(window.context);
+}
+
+ShapeBench::SoftwareContext InitialiseSoftwareGL(uint32_t windowWidth, uint32_t windowHeight)
+{
+    ShapeBench::SoftwareContext context;
+    context.context = new glContext;
+    context.frameBuffer = new u32[windowWidth * windowHeight];
+
+    if (!init_glContext(context.context, &context.frameBuffer, windowWidth, windowHeight, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF)) {
+        puts("Failed to initialize glContext");
+        exit(0);
+    }
+
+    std::cout << "    Created OpenGL context: " << glGetString(GL_VERSION) << std::endl;
+
+    glClearColor(0.3, 0.3, 0.3, 1.0);
+
+    return context;
 }
 
 void ShapeBench::OccludedSceneGenerator::init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight) {
     offscreenTextureWidth = visibilityImageWidth;
     offscreenTextureHeight = visibilityImageHeight;
 
-    window = GLinitialise(700, 700);
-    objectIDShader = loadShader("../res/shaders/", "objectIDShader");
-    fullscreenQuadShader = loadShader("../res/shaders/", "fullscreenquad");
+    window = InitialiseSoftwareGL(offscreenTextureWidth, offscreenTextureHeight);
 
-    std::vector<ShapeDescriptor::cpu::float3> screenQuadVertices = {{0, 0, 0},
-                                                                    {1, 0, 0},
-                                                                    {1, 1, 0},
-                                                                    {0, 0, 0},
-                                                                    {1, 1, 0},
-                                                                    {0, 1, 0}};
-    std::vector<ShapeDescriptor::cpu::float3> screenQuadTexCoords ={{0, 0, 0},
-                                                                    {1, 0, 0},
-                                                                    {1, 1, 0},
-                                                                    {0, 0, 0},
-                                                                    {1, 1, 0},
-                                                                    {0, 1, 0}};
-    std::vector<ShapeDescriptor::cpu::float3> screenQuadColours =  {{1, 1, 1},
-                                                                    {1, 1, 1},
-                                                                    {1, 1, 1},
-                                                                    {1, 1, 1},
-                                                                    {1, 1, 1},
-                                                                    {1, 1, 1}};
-    screenQuadVAO = generateVertexArray(screenQuadVertices.data(), screenQuadTexCoords.data(), screenQuadColours.data(), 6);
+    GLenum interpolation[4] = { PGL_SMOOTH4 };
+    GeometryIDShader = pglCreateProgram(objectID_vertexShader, objectID_fragmentShader, 4, interpolation, GL_FALSE);
 
-    // Create offscreen renderer
-    glGenFramebuffers(1, &frameBufferID);
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-
-    glGenTextures(1, &renderTextureID);
-    glBindTexture(GL_TEXTURE_2D, renderTextureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, offscreenTextureWidth, offscreenTextureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTextureID, 0);
-
-    glGenTextures(1, &depthTextureID);
-    glBindTexture(GL_TEXTURE_2D, depthTextureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, offscreenTextureWidth, offscreenTextureHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
-
-    glGenRenderbuffers(1, &renderBufferID);
-    glBindRenderbuffer(GL_RENDERBUFFER, renderBufferID);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, offscreenTextureWidth, offscreenTextureHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferID);
-
-
-    glfwMakeContextCurrent(nullptr);
     isCreated = true;
 }
 

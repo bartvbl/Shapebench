@@ -1,4 +1,4 @@
-#include <glad/gl.h>
+#include "portablegl.h"
 #include <vector>
 #include "VAOGenerator.h"
 

@@ -1,10 +1,9 @@
 #pragma once
 
 #include <mutex>
-#include "GLFW/glfw3.h"
-#include "utils/gl/Shader.h"
+#include "portablegl.h"
+#include "filters/FilteredMeshPair.h"
 #include "utils/gl/GeometryBuffer.h"
-#include "filters/Filter.h"
 
 namespace ShapeBench {
     struct OcclusionRendererSettings {
@@ -18,17 +17,17 @@ namespace ShapeBench {
         float rgbdDepthCutoffFactor = 0.2;
     };
 
+    struct SoftwareContext {
+        glContext* context;
+        uint32_t* frameBuffer;
+    };
+
     class OccludedSceneGenerator {
-        GLFWwindow* window = nullptr;
+        ShapeBench::SoftwareContext window;
+        unsigned int GeometryIDShader = 0;
+
         bool isDestroyed = false;
         bool isCreated = false;
-        Shader objectIDShader;
-        Shader fullscreenQuadShader;
-        uint32_t frameBufferID = 0;
-        uint32_t renderBufferID = 0;
-        uint32_t renderTextureID = 0;
-        uint32_t depthTextureID = 0;
-        GeometryBuffer screenQuadVAO;
         uint32_t offscreenTextureWidth = 0;
         uint32_t offscreenTextureHeight = 0;
         std::mutex occlusionFilterLock;

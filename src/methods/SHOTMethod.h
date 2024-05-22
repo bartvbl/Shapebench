@@ -6,7 +6,7 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 #include <cfloat>
-#include <shapeDescriptor/cpu/SHOTGenerator.h>
+#include <shapeDescriptor/descriptors/SHOTGenerator.h>
 
 namespace ShapeBench {
     template<typename SHOTDescriptor = ShapeDescriptor::SHOTDescriptor<>>
