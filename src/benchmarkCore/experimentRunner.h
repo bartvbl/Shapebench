@@ -468,10 +468,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
 
                 if(!enableIllustrationGenerationMode) {
                     std::unique_lock<std::mutex> writeLock{resultWriteLock};
+                    for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                        experimentResult.vertexResults.at(sampleVertexIndex + i) = resultsEntries.at(i);
+                    }
                     if(configuration.contains("verboseOutput") && configuration.at("verboseOutput")) {
                         std::cout << "Added area, Remaining area, Rank" << (enablePRCComparisonMode ? ", NN distance, SNN distance, Tao, Vertex distance, In range, MeshID 1, MeshID 2, Same MeshID" : "") << std::endl;
                         for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
-                            experimentResult.vertexResults.at(sampleVertexIndex + i) = resultsEntries.at(i);
                             if(resultsEntries.at(i).included) {
                                 std::cout << fmt::format("Result: {:<10}, {:<10}, {:<10}", resultsEntries.at(i).fractionAddedNoise, resultsEntries.at(i).fractionSurfacePartiality, resultsEntries.at(i).filteredDescriptorRank);
                                 if(enablePRCComparisonMode) {
