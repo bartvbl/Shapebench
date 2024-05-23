@@ -277,6 +277,7 @@ def computeStackedHistogram(rawResults, config, settings):
                 prcCurvePoints.append((recall, precision))
             sortedPRCPoints = sorted(prcCurvePoints, key=lambda tup: tup[0])
             prcArea = 0
+            #prcArea += sortedPRCPoints[0][0] * sortedPRCPoints[0][1]
             for i in range(0, len(sortedPRCPoints) - 1):
                 point1 = sortedPRCPoints[i]
                 point2 = sortedPRCPoints[i + 1]

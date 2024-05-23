@@ -29,8 +29,8 @@ ShapeBench::GeometryBuffer ShapeBench::generateVertexArray(
     glGenBuffers(1, &buffer.colourBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, buffer.colourBufferID);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertexCount * 3, colours, GL_STATIC_DRAW);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
-    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+    glEnableVertexAttribArray(1);
 
 
     std::vector<unsigned int> indexBuffer;

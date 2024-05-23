@@ -1,3 +1,6 @@
+#define PGL_MAX_VERTICES 1000000000
+#include "portablegl.h"
+
 #include "OccludedSceneGenerator.h"
 #include "benchmarkCore/randomEngine.h"
 #include "glm/ext/matrix_transform.hpp"
@@ -31,16 +34,16 @@ void objectID_vertexShader(float* vs_output, vec4* vertex_attribs, Shader_Builti
 void objectID_fragmentShader(float* fs_input, Shader_Builtins* builtins, void* uniformPointer)
 {
     GeomIDUniforms* uniforms = reinterpret_cast<GeomIDUniforms*>(uniformPointer);
-    if(uniforms->writeDepth) {
-        builtins->gl_FragColor = vec4(builtins->gl_FragDepth, builtins->gl_FragDepth, builtins->gl_FragDepth, 1.0);
+    if(!uniforms->writeDepth) {
+        builtins->gl_FragColor = ((vec4*)fs_input)[0];
     } else {
         float depth = builtins->gl_FragDepth;
-        uint32_t* depthAsInt = reinterpret_cast<uint32_t*>(&depth);
+        uint32_t depthAsInt = *reinterpret_cast<uint32_t*>(&depth);
         vec4 colour = {
-                float(((*depthAsInt) >> 24) & 0xFF) / 255.0f,
-                float(((*depthAsInt) >> 16) & 0xFF) / 255.0f,
-                float(((*depthAsInt) >> 8) & 0xFF) / 255.0f,
-                float(((*depthAsInt) >> 0) & 0xFF) / 255.0f
+                float((depthAsInt >> 24) & 0xFF) / 255.0f,
+                float((depthAsInt >> 16) & 0xFF) / 255.0f,
+                float((depthAsInt >> 8) & 0xFF) / 255.0f,
+                float((depthAsInt >> 0) & 0xFF) / 255.0f
         };
         builtins->gl_FragColor = colour;
     }
@@ -88,7 +91,7 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
     // Do visibility testing
 
     if(outFrameBuffer != nullptr) {
-        std::copy(this->window.frameBuffer, this->window.frameBuffer + offscreenTextureWidth * offscreenTextureHeight * sizeof(unsigned int), outFrameBuffer);
+        std::copy(this->window.frameBuffer, this->window.frameBuffer + offscreenTextureWidth * offscreenTextureHeight, outFrameBuffer);
     } else if(outDepthBuffer != nullptr) {
         float* frameBufferAsFloatBuffer = reinterpret_cast<float*>(this->window.frameBuffer);
         std::copy(frameBufferAsFloatBuffer, frameBufferAsFloatBuffer + offscreenTextureWidth * offscreenTextureHeight, outDepthBuffer);
@@ -100,7 +103,7 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
 
 // Mesh is assumed to be fit inside unit sphere
 void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene) {
-    std::vector<unsigned char> localFramebufferCopy(3 * offscreenTextureWidth * offscreenTextureHeight);
+    std::vector<unsigned char> localFramebufferCopy(4 * offscreenTextureWidth * offscreenTextureHeight);
     const uint32_t totalVertexCount = scene.filteredSampleMesh.vertexCount + scene.filteredAdditiveNoise.vertexCount;
     std::vector<ShapeDescriptor::cpu::float3> vertexColours(totalVertexCount);
     for (unsigned int triangle = 0; triangle < totalVertexCount / 3; triangle++) {
@@ -115,15 +118,49 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Occlusi
 
     renderSceneToOffscreenBuffer(scene, settings, vertexColours.data(), localFramebufferCopy.data());
 
+    SDL_Window* window;
+    SDL_Renderer* ren;
+    SDL_Texture* tex;
+
+    window = SDL_CreateWindow("ex3", 100, 100, 1024, 1024, SDL_WINDOW_SHOWN);
+    if (!window) {
+        std::cerr << "Failed to create window\n";
+        SDL_Quit();
+        exit(0);
+    }
+
+    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 1024, 1024);
+
+    SDL_Event e;
+    bool quit = false;
+
+    while (!quit) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT)
+                quit = true;
+            if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+                quit = true;
+            if (e.type == SDL_MOUSEBUTTONDOWN)
+                quit = true;
+        }
+
+        //Render the scene
+        SDL_UpdateTexture(tex, NULL, this->window.frameBuffer, offscreenTextureWidth * sizeof(u32));
+
+        SDL_RenderCopy(ren, tex, NULL, NULL);
+        SDL_RenderPresent(ren);
+    }
+
     // We are now done with the OpenGL part, so we can allow other threads to run that part
 
     std::vector<bool> triangleAppearsInImage(totalVertexCount / 3);
 
     for (size_t pixel = 0; pixel < offscreenTextureWidth * offscreenTextureHeight; pixel++) {
         unsigned int triangleIndex =
-                (((unsigned int) localFramebufferCopy.at(3 * pixel + 0)) << 16U) |
-                (((unsigned int) localFramebufferCopy.at(3 * pixel + 1)) << 8U) |
-                (((unsigned int) localFramebufferCopy.at(3 * pixel + 2)) << 0U);
+                (((unsigned int) localFramebufferCopy.at(4 * pixel + 0)) << 16U) |
+                (((unsigned int) localFramebufferCopy.at(4 * pixel + 1)) << 8U) |
+                (((unsigned int) localFramebufferCopy.at(4 * pixel + 2)) << 0U);
 
         // Test if pixel is background
         if (triangleIndex == 0x00FFFFFF) {
@@ -221,6 +258,40 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
     std::vector<float> depthBuffer(offscreenTextureWidth * offscreenTextureHeight);
 
     renderSceneToOffscreenBuffer(scene, settings, nullptr, nullptr, depthBuffer.data());
+
+    SDL_Window* window;
+    SDL_Renderer* ren;
+    SDL_Texture* tex;
+
+    window = SDL_CreateWindow("ex3", 100, 100, 1024, 1024, SDL_WINDOW_SHOWN);
+    if (!window) {
+        std::cerr << "Failed to create window\n";
+        SDL_Quit();
+        exit(0);
+    }
+
+    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 1024, 1024);
+
+    SDL_Event e;
+    bool quit = false;
+
+    while (!quit) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT)
+                quit = true;
+            if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+                quit = true;
+            if (e.type == SDL_MOUSEBUTTONDOWN)
+                quit = true;
+        }
+
+        //Render the scene
+        SDL_UpdateTexture(tex, NULL, this->window.frameBuffer, offscreenTextureWidth * sizeof(u32));
+
+        SDL_RenderCopy(ren, tex, NULL, NULL);
+        SDL_RenderPresent(ren);
+    }
 
     std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
 
@@ -324,35 +395,7 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
         }
     }
 
-    SDL_Window* window;
-    SDL_Renderer* ren;
-    SDL_Texture* tex;
 
-    SDL_Event e;
-    bool quit = false;
-
-    int old_time = 0, new_time=0, counter = 0;
-    int ms = 0;
-    int last_frame;
-    float frame_time = 0;
-
-
-    while (!quit) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT)
-                quit = true;
-            if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-                quit = true;
-            if (e.type == SDL_MOUSEBUTTONDOWN)
-                quit = true;
-        }
-
-        //Render the scene
-        SDL_UpdateTexture(tex, NULL, this->window.frameBuffer, offscreenTextureWidth * sizeof(u32));
-
-        SDL_RenderCopy(ren, tex, NULL, NULL);
-        SDL_RenderPresent(ren);
-    }
 
 
 

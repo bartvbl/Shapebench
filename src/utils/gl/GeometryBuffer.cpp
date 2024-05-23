@@ -2,10 +2,7 @@
 #include "GeometryBuffer.h"
 
 void ShapeBench::GeometryBuffer::destroy() {
-    if(vaoID != 0xFFFFFFFF) {
-        glDeleteVertexArrays(1, &vaoID);
-        vaoID = 0xFFFFFFFF;
-    }
+
     if(vertexBufferID != 0xFFFFFFFF) {
         glDeleteBuffers(1, &vertexBufferID);
         vertexBufferID = 0xFFFFFFFF;
@@ -25,5 +22,9 @@ void ShapeBench::GeometryBuffer::destroy() {
     if(indexBufferID != 0xFFFFFFFF) {
         glDeleteBuffers(1, &indexBufferID);
         indexBufferID = 0xFFFFFFFF;
+    }
+    if(vaoID != 0xFFFFFFFF) {
+        glDeleteVertexArrays(1, &vaoID);
+        vaoID = 0xFFFFFFFF;
     }
 }
