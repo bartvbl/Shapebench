@@ -7,8 +7,6 @@
 #include "utils/gl/VAOGenerator.h"
 #include <glm/glm.hpp>
 
-#define SDL_MAIN_HANDLED
-#include <SDL.h>
 
 struct GeomIDUniforms {
     glm::mat4 mvp_mat;
@@ -322,36 +320,6 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
                 nextBaseIndex += 3;
             }
         }
-    }
-
-    SDL_Window* window;
-    SDL_Renderer* ren;
-    SDL_Texture* tex;
-
-    SDL_Event e;
-    bool quit = false;
-
-    int old_time = 0, new_time=0, counter = 0;
-    int ms = 0;
-    int last_frame;
-    float frame_time = 0;
-
-
-    while (!quit) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT)
-                quit = true;
-            if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-                quit = true;
-            if (e.type == SDL_MOUSEBUTTONDOWN)
-                quit = true;
-        }
-
-        //Render the scene
-        SDL_UpdateTexture(tex, NULL, this->window.frameBuffer, offscreenTextureWidth * sizeof(u32));
-
-        SDL_RenderCopy(ren, tex, NULL, NULL);
-        SDL_RenderPresent(ren);
     }
 
 
