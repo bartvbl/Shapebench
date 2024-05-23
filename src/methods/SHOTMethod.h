@@ -109,7 +109,7 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            return ShapeDescriptor::generateSHOTDescriptorsMultiRadius<SHOTDescriptor>(cloud, descriptorOrigins, supportRadii);
+            return ShapeDescriptor::generateSHOTDescriptorsMultiRadius(cloud, descriptorOrigins, supportRadii);
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
