@@ -13,6 +13,44 @@
 #include "utils/gl/ShaderLoader.h"
 #include <glm/glm.hpp>
 
+<<<<<<< HEAD
+=======
+struct GeomIDUniforms {
+    glm::mat4 mvp_mat;
+    bool writeDepth = false;
+};
+
+void objectID_vertexShader(float* vs_output, vec4* vertex_attribs, Shader_Builtins* builtins, void* uniformPointer)
+{
+    ((vec4*)vs_output)[0] = vertex_attribs[1]; //color
+
+    GeomIDUniforms* uniforms = reinterpret_cast<GeomIDUniforms*>(uniformPointer);
+
+    glm::vec4 inputVertex = glm::vec4(vertex_attribs[0].x, vertex_attribs[0].y, vertex_attribs[0].z, 1);
+    glm::vec4 transformedVertex = uniforms->mvp_mat * inputVertex;
+    vec4 outputVertex = {transformedVertex.x, transformedVertex.y, transformedVertex.z, transformedVertex.w};
+
+    builtins->gl_Position = outputVertex;
+}
+
+void objectID_fragmentShader(float* fs_input, Shader_Builtins* builtins, void* uniformPointer)
+{
+    GeomIDUniforms* uniforms = reinterpret_cast<GeomIDUniforms*>(uniformPointer);
+    if(!uniforms->writeDepth) {
+        builtins->gl_FragColor = ((vec4*)fs_input)[0];
+    } else {
+        float depth = builtins->gl_FragDepth;
+        uint32_t depthAsInt = *reinterpret_cast<uint32_t*>(&depth);
+        vec4 colour = {
+                float((depthAsInt >> 24) & 0xFF) / 255.0f,
+                float((depthAsInt >> 16) & 0xFF) / 255.0f,
+                float((depthAsInt >> 8) & 0xFF) / 255.0f,
+                float((depthAsInt >> 0) & 0xFF) / 255.0f
+        };
+        builtins->gl_FragColor = colour;
+    }
+}
+>>>>>>> ab7e73b (Removed SDL dependency from project)
 
 ShapeBench::OccludedSceneGenerator::OccludedSceneGenerator() {
 
