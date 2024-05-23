@@ -10,9 +10,6 @@
 #include "utils/gl/VAOGenerator.h"
 #include <glm/glm.hpp>
 
-#define SDL_MAIN_HANDLED
-#include <SDL.h>
-
 struct GeomIDUniforms {
     glm::mat4 mvp_mat;
     bool writeDepth = false;
@@ -117,40 +114,6 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Occlusi
     }
 
     renderSceneToOffscreenBuffer(scene, settings, vertexColours.data(), localFramebufferCopy.data());
-
-    SDL_Window* window;
-    SDL_Renderer* ren;
-    SDL_Texture* tex;
-
-    window = SDL_CreateWindow("ex3", 100, 100, 1024, 1024, SDL_WINDOW_SHOWN);
-    if (!window) {
-        std::cerr << "Failed to create window\n";
-        SDL_Quit();
-        exit(0);
-    }
-
-    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 1024, 1024);
-
-    SDL_Event e;
-    bool quit = false;
-
-    while (!quit) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT)
-                quit = true;
-            if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-                quit = true;
-            if (e.type == SDL_MOUSEBUTTONDOWN)
-                quit = true;
-        }
-
-        //Render the scene
-        SDL_UpdateTexture(tex, NULL, this->window.frameBuffer, offscreenTextureWidth * sizeof(u32));
-
-        SDL_RenderCopy(ren, tex, NULL, NULL);
-        SDL_RenderPresent(ren);
-    }
 
     // We are now done with the OpenGL part, so we can allow other threads to run that part
 
@@ -258,40 +221,6 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
     std::vector<float> depthBuffer(offscreenTextureWidth * offscreenTextureHeight);
 
     renderSceneToOffscreenBuffer(scene, settings, nullptr, nullptr, depthBuffer.data());
-
-    SDL_Window* window;
-    SDL_Renderer* ren;
-    SDL_Texture* tex;
-
-    window = SDL_CreateWindow("ex3", 100, 100, 1024, 1024, SDL_WINDOW_SHOWN);
-    if (!window) {
-        std::cerr << "Failed to create window\n";
-        SDL_Quit();
-        exit(0);
-    }
-
-    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 1024, 1024);
-
-    SDL_Event e;
-    bool quit = false;
-
-    while (!quit) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT)
-                quit = true;
-            if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-                quit = true;
-            if (e.type == SDL_MOUSEBUTTONDOWN)
-                quit = true;
-        }
-
-        //Render the scene
-        SDL_UpdateTexture(tex, NULL, this->window.frameBuffer, offscreenTextureWidth * sizeof(u32));
-
-        SDL_RenderCopy(ren, tex, NULL, NULL);
-        SDL_RenderPresent(ren);
-    }
 
     std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
 

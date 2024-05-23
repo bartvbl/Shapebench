@@ -84,7 +84,7 @@ add_library(GMP_Interface SHARED IMPORTED)
 add_dependencies(GMP_Interface GMP)
 set_target_properties(GMP_Interface PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0/.libs/libgmp.a)
 
-find_package(SDL2 REQUIRED)
+#find_package(SDL2 REQUIRED)
 
 #find_package(CGAL REQUIRED)
 #set(CGAL_BINARY_DIR ${CMAKE_BINARY_DIR}/lib/CGAL)
@@ -115,7 +115,7 @@ include_directories (
         lib/PortableGL-0.98.0
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
-        ${SDL2_INCLUDE_DIRS}
+        #${SDL2_INCLUDE_DIRS}
         #${PCL_INCLUDE_DIRS}
 )
 
@@ -134,7 +134,7 @@ file (GLOB_RECURSE PROJECT_SOURCES
         lib/glad/src/gl.c)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt ${SDL2_LIBRARIES}) # lsan ${PCL_LIBRARIES}
+target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
 #target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
