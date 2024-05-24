@@ -3,10 +3,18 @@
 #include <cuda_runtime_api.h>
 
 nlohmann::json getGPUInfo() {
+    nlohmann::json deviceInfo = {};
+    int32_t deviceCount = 0;
+    cudaGetDeviceCount(&deviceCount);
+    if(deviceCount == 0) {
+        return deviceInfo;
+    }
+
+
     cudaDeviceProp device_information;
     int32_t deviceID;
     cudaGetDevice(&deviceID);
-    nlohmann::json deviceInfo = {};
+
     cudaError_t errorCode = cudaGetDeviceProperties(&device_information, deviceID);
     if(errorCode == cudaErrorInvalidDevice) {
         return deviceInfo;
@@ -34,13 +42,13 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
     nlohmann::json jsonOutput;
     jsonOutput["version"] = "1.1";
 
-    jsonOutput["buildinfo"] = {};
+    /*jsonOutput["buildinfo"] = {};
     jsonOutput["buildinfo"]["commit"] = GitMetadata::CommitSHA1();
     jsonOutput["buildinfo"]["commitAuthor"] = GitMetadata::AuthorName();
     jsonOutput["buildinfo"]["commitDate"] = GitMetadata::CommitDate();
     jsonOutput["buildinfo"]["uncommittedChanges"] = GitMetadata::AnyUncommittedChanges();
-
-    jsonOutput["gpuInfo"] = getGPUInfo();
+*/
+    //jsonOutput["gpuInfo"] = getGPUInfo();
 
     jsonOutput["experiment"]["index"] = results.experimentIndex;
     jsonOutput["experiment"]["randomSeed"] = results.experimentRandomSeed;
