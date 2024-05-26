@@ -1,4 +1,4 @@
-#include "portablegl.h"
+#include "glad/gl.h"
 #include "GeometryBuffer.h"
 
 void ShapeBench::GeometryBuffer::destroy() {
