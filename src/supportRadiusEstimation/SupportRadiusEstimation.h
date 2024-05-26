@@ -290,7 +290,6 @@ namespace ShapeBench {
 
         bool useGPU = supportRadiusConfig.at("useGPU");
 
-        #pragma omp parallel for schedule(dynamic) default(none) shared(supportRadiusStart, std::cout, nextToProcess, numberOfSupportRadiiToTry, representativeSetSize, referenceDescriptors, sampleDescriptorSetSize, sampleDescriptors, useGPU, distanceStats, supportRadiusStep, outputFileContents)
         for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
             ShapeDescriptor::cpu::array<DescriptorType> referenceArray = {representativeSetSize, referenceDescriptors.data() + i * representativeSetSize};
             ShapeDescriptor::cpu::array<DescriptorType> sampleArray = {sampleDescriptorSetSize, sampleDescriptors.data() + i * sampleDescriptorSetSize};
@@ -303,14 +302,10 @@ namespace ShapeBench {
             outputLine << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
                        << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
             outputFileContents.at(i) = outputLine.str();
-
-            #pragma omp critical
-            {
-                nextToProcess++;
-                std::cout << "\r        Completed " + std::to_string(nextToProcess+1) + "/" + std::to_string(numberOfSupportRadiiToTry) << " ";
-                ShapeBench::drawProgressBar(nextToProcess, numberOfSupportRadiiToTry);
-                std::cout << std::flush;
-            }
+            nextToProcess++;
+            std::cout << "\r        Completed " + std::to_string(nextToProcess+1) + "/" + std::to_string(numberOfSupportRadiiToTry) << " ";
+            ShapeBench::drawProgressBar(nextToProcess, numberOfSupportRadiiToTry);
+            std::cout << std::flush;
         }
         for(uint32_t i = 0; i < numberOfSupportRadiiToTry; i++) {
             outputBuffer << outputFileContents.at(i);

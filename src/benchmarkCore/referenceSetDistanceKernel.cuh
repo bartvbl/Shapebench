@@ -75,6 +75,7 @@ namespace ShapeBench {
             ShapeDescriptor::cpu::array<DescriptorType> referenceDescriptors,
             ShapeDescriptor::cpu::array<DescriptorDistance> distances) {
 
+        #pragma omp parallel for schedule(dynamic)
         for(uint32_t sampleDescriptorIndex = 0; sampleDescriptorIndex < sampleDescriptors.length; sampleDescriptorIndex++) {
             uint32_t runningCount = 0;
             float runningMean = 0;
