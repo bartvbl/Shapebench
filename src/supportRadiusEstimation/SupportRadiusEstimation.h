@@ -180,7 +180,7 @@ namespace ShapeBench {
                     float* descriptorBasePointer = reinterpret_cast<float*>(generatedDescriptors.at(descriptorIndex).contents);
                     uint32_t descriptorElementCount = sizeof(DescriptorType) / sizeof(float);
                     for(uint32_t i = 0; i < descriptorElementCount; i++) {
-                        descriptorDigest *= descriptorBasePointer[i];
+                        descriptorDigest += descriptorBasePointer[i];
                     }
                 }
                 std::cout << std::endl << "Digest of first descriptor set: " << std::hex << descriptorDigest << std::dec << std::endl;
