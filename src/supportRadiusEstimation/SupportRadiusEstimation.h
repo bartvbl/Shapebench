@@ -127,10 +127,12 @@ namespace ShapeBench {
             uint64_t referenceDescriptorGenerationSeed,
             uint64_t referencePointCloudSamplingSeed,
             const std::vector<VertexInDataset>& representativeSet,
-            const nlohmann::json& config) {
+            const nlohmann::json& config, std::string name) {
 
         std::vector<DescriptorType> referenceDescriptors(representativeSet.size() * numberOfSupportRadiiToTry);
         uint32_t representativeSetSize = representativeSet.size();
+        const std::filesystem::path descriptorCacheFile = std::filesystem::path(std::string(config.at("cacheDirectory"))) / (name + "Descriptors-" + DescriptorMethod::getName() + ".dat");
+
 
 
         std::vector<float> supportRadiiToTry(numberOfSupportRadiiToTry);
@@ -222,6 +224,9 @@ namespace ShapeBench {
             }
         }
 
+        ShapeDescriptor::writeCompressedDescriptors<DescriptorType>(descriptorCacheFile, {referenceDescriptors.size(), referenceDescriptors.data()});
+
+
         return referenceDescriptors;
     }
 
@@ -257,7 +262,7 @@ namespace ShapeBench {
                 referenceDescriptorGenerationSeed,
                 referencePointCloudSamplingSeed,
                 representativeSet,
-                config);
+                config, "supportradius-reference");
 
 
         std::cout << "    Computing sample descriptors.." << std::endl;
@@ -272,7 +277,7 @@ namespace ShapeBench {
                 sampleDescriptorGenerationSeed,
                 samplePointCloudSamplingSeed,
                 sampleVerticesSet,
-                config);
+                config, "supportradius-sample");
 
 
 
