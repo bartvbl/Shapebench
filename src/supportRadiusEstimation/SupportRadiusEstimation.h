@@ -308,9 +308,11 @@ namespace ShapeBench {
             outputLine << i << ", " << (float(i) * supportRadiusStep + supportRadiusStart) << ", ";
             outputLine << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
                        << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
-            outputFileContents.at(i) = outputLine.str();
+            std::string lineString = outputLine.str();
+            outputFileContents.at(i) = lineString;
             nextToProcess++;
-            std::cout << "\r        Completed " + std::to_string(nextToProcess+1) + "/" + std::to_string(numberOfSupportRadiiToTry) << " ";
+            std::cout << "\r    " << lineString << std::endl;
+            std::cout << "        Completed " + std::to_string(nextToProcess+1) + "/" + std::to_string(numberOfSupportRadiiToTry) << " ";
             ShapeBench::drawProgressBar(nextToProcess, numberOfSupportRadiiToTry);
             std::cout << std::flush;
         }
