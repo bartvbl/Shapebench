@@ -21,6 +21,7 @@ def getProcessingSettings(mode, fileContents):
     experimentID = fileContents["experiment"]["index"]
     experimentName = fileContents["configuration"]["experimentsToRun"][experimentID]["name"]
     settings = ExperimentSettings()
+    settings.keepPreviousChartFile = False
     settings.minSamplesPerBin = 25
     settings.binCount = 75
     settings.xAxisTitleAdjustment = 0
@@ -28,11 +29,11 @@ def getProcessingSettings(mode, fileContents):
     settings.xAxisOutOfRangeMode = 'discard'
     settings.experimentName = experimentName
     settings.methodName = fileContents["method"]['name']
+    settings.PRCEnabled = "enableComparisonToPRC" in fileContents["configuration"] and fileContents["configuration"]["enableComparisonToPRC"]
+    settings.PRCSupportRadius = fileContents["computedConfiguration"][settings.methodName]["supportRadius"]
     settings.methodName = "Spin Image" if settings.methodName == "SI" else settings.methodName
     settings.title = settings.methodName
     sharedYAxisTitle = "Proportion of DDI"
-    settings.PRCEnabled = "enableComparisonToPRC" in fileContents["configuration"] and fileContents["configuration"]["enableComparisonToPRC"]
-    settings.PRCSupportRadius = fileContents["computedConfiguration"][settings.methodName]["supportRadius"]
 
     if experimentName == "normal-noise-only":
         settings.xAxisTitle = "Normal vector rotation (°)"
@@ -256,7 +257,7 @@ def computeStackedHistogram(rawResults, config, settings):
 
         areaUnderCurves = []
 
-        countsFigure = go.Figure()
+        #countsFigure = go.Figure()
         for binIndex, prcBin in enumerate(prcInfo):
             # compute a PRC curve for each of these
 
@@ -276,7 +277,8 @@ def computeStackedHistogram(rawResults, config, settings):
                 #print(matchCount, correctMatchCount, len(prcBin), precision, recall)
                 prcCurvePoints.append((recall, precision))
             sortedPRCPoints = sorted(prcCurvePoints, key=lambda tup: tup[0])
-            prcArea = 0
+            # continue area to the left of curve
+            prcArea = sortedPRCPoints[0][0] * sortedPRCPoints[0][1]
             for i in range(0, len(sortedPRCPoints) - 1):
                 point1 = sortedPRCPoints[i]
                 point2 = sortedPRCPoints[i + 1]
@@ -285,8 +287,8 @@ def computeStackedHistogram(rawResults, config, settings):
                 prcArea += averageY * deltaX
             areaUnderCurves.append(prcArea)
             #countsFigure.add_trace(go.Scatter(x=[x[0] for x in prcCurvePoints], y=[x[1] for x in prcCurvePoints], mode='lines', name="PRC_" + str(binIndex)))
-        countsFigure.add_trace(go.Scatter(x=xValues, y=areaUnderCurves, mode='lines', name="PRC"))
-        countsFigure.show()
+        #countsFigure.add_trace(go.Scatter(x=xValues, y=areaUnderCurves, mode='lines', name="PRC"))
+        #countsFigure.show()
 
 
 
@@ -309,7 +311,10 @@ def computeStackedHistogram(rawResults, config, settings):
             for j in range(stepsPerBin):
                 histogram[j][i] = None
 
-    return xValues, histogram, labels, counts, areaUnderCurves
+    if settings.PRCEnabled:
+        return xValues, histogram, labels, counts, areaUnderCurves
+    else:
+        return xValues, histogram, labels, counts, []
 
 
 def generateSupportRadiusChart(results_directory, output_directory):
@@ -553,6 +558,12 @@ def createChart(results_directory, output_directory, mode):
             # stackFigure.show()
 
             outputFile = os.path.join(output_directory, settings.experimentName + "-" + settings.methodName + ".pdf")
+            if settings.keepPreviousChartFile:
+                outputFileIndex = 0
+                while os.path.exists(outputFile):
+                    outputFileIndex += 1
+                    outputFile = os.path.join(output_directory,
+                                              settings.experimentName + "-" + settings.methodName + '-' + str(outputFileIndex) + ".pdf")
             pio.write_image(stackFigure, outputFile, engine="kaleido", validate=True)
 
     if not settings.enable2D:
