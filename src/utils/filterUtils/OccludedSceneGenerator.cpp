@@ -47,12 +47,14 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
     glViewport(0, 0, offscreenTextureWidth, offscreenTextureHeight);
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     glEnable(GL_DEPTH_TEST);
     glBindVertexArray(sampleMeshBuffers.vaoID);
     glDrawElements(GL_TRIANGLES, scene.filteredSampleMesh.vertexCount, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(additiveNoiseBuffers.vaoID);
     glDrawElements(GL_TRIANGLES, scene.filteredAdditiveNoise.vertexCount, GL_UNSIGNED_INT, nullptr);
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     // Do visibility testing
 
@@ -64,6 +66,7 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
         glBindTexture(GL_TEXTURE_2D, depthTextureID);
         glReadPixels (0, 0, offscreenTextureWidth, offscreenTextureHeight, GL_DEPTH_COMPONENT, GL_FLOAT, outDepthBuffer);
     }
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     // Draw visible version
 
@@ -74,10 +77,12 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.5, 0.5, 0.5, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     fullscreenQuadShader.use();
 
     glBindVertexArray(screenQuadVAO.vaoID);
+    ShapeBench::printGLError(__FILE__, __LINE__);
     glDisable(GL_DEPTH_TEST);
     if(outFrameBuffer != nullptr) {
         glBindTextureUnit(0, renderTextureID);
@@ -86,12 +91,15 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
         glBindTextureUnit(0, depthTextureID);
         glUniform1i(25, 1);
     }
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     glm::mat4 fullscreenProjection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 
     glUniformMatrix4fv(16, 1, false, glm::value_ptr(fullscreenProjection));
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     sampleMeshBuffers.destroy();
     additiveNoiseBuffers.destroy();

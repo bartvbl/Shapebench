@@ -1,6 +1,7 @@
 #include <iostream>
 #include "glad/gl.h"
 #include "ShaderLoader.h"
+#include "GLUtils.h"
 
 struct ShaderSource {
     std::string vertexShaderSource;
@@ -83,6 +84,7 @@ void linkProgram(unsigned int programID) {
     }
 
     assert(linkStatus);
+    ShapeBench::printGLError(__FILE__, __LINE__);
 }
 
 void validateProgram(unsigned int programID) {
@@ -101,6 +103,7 @@ void validateProgram(unsigned int programID) {
         std::cerr << "Program failed to validate. Reason:\n" + std::string(buffer.get()) + "\n" << std::flush;
         assert(false);
     }
+    ShapeBench::printGLError(__FILE__, __LINE__);
 }
 
 ShapeBench::Shader createShader(ShaderSource* source) {

@@ -1,6 +1,7 @@
 #include <glad/gl.h>
 #include <vector>
 #include "VAOGenerator.h"
+#include "GLUtils.h"
 
 ShapeBench::GeometryBuffer ShapeBench::generateVertexArray(
         ShapeDescriptor::cpu::float3 *vertices,
@@ -43,6 +44,8 @@ ShapeBench::GeometryBuffer ShapeBench::generateVertexArray(
     glGenBuffers(1, &buffer.indexBufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.indexBufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indexBuffer.size(), indexBuffer.data(), GL_STATIC_DRAW);
+
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     return buffer;
 }

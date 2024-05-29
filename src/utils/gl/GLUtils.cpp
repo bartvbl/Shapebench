@@ -5,6 +5,8 @@
 #include "GLUtils.h"
 
 
+
+
 static void glfwErrorCallback(int error, const char *description)
 {
     fprintf(stderr, "GLFW returned an error:\n\t%s (%i)\n", description, error);
@@ -30,7 +32,7 @@ GLFWwindow* ShapeBench::GLinitialise(uint32_t windowWidth, uint32_t windowHeight
 
     // Set additional window options
     glfwWindowHint(GLFW_RESIZABLE, true);
-    glfwWindowHint(GLFW_SAMPLES, 4);  // MSAA
+    glfwWindowHint(GLFW_SAMPLES, 1);  // MSAA
 
     const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
@@ -62,6 +64,7 @@ GLFWwindow* ShapeBench::GLinitialise(uint32_t windowWidth, uint32_t windowHeight
     //printf("GLSL\t %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
+    ShapeBench::printGLError(__FILE__, __LINE__);
 
     return window;
 }

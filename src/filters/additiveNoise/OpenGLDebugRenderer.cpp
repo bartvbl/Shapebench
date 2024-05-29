@@ -107,15 +107,15 @@ inline void printGLError() {
 
 ShapeBench::OpenGLDebugRenderer::OpenGLDebugRenderer() {
     window = GLinitialise(1920, 1080);
-    printGLError();
+    printGLError(__FILE__, __LINE__);
 
     shader = ShapeBench::loadShader("../res/shaders", "phong");
-    printGLError();
+    printGLError(__FILE__, __LINE__);
     shader.use();
-    printGLError();
+    printGLError(__FILE__, __LINE__);
 
     Initialize();
-    printGLError();
+    printGLError(__FILE__, __LINE__);
 }
 
 void ShapeBench::OpenGLDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) {
@@ -173,7 +173,7 @@ void ShapeBench::OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix,
     shader.use();
     GeometryBuffer& buffer = reinterpret_cast<OpenGLBatchImplementation*>(inGeometry->mLODs.at(0).mTriangleBatch.GetPtr())->buffer;
     glBindVertexArray(buffer.vaoID);
-    printGLError();
+    printGLError(nullptr, 0);
 
     float aspectRatio = float(windowWidth) / float(windowHeight);
 
@@ -205,7 +205,7 @@ void ShapeBench::OpenGLDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix,
     shader.setUniform(20, 1, 1, 1, 1);
 
     glDrawElements(GL_TRIANGLES, buffer.indexCount, GL_UNSIGNED_INT, nullptr);
-    printGLError();
+    printGLError(__FILE__, __LINE__);
 }
 
 void ShapeBench::OpenGLDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor,

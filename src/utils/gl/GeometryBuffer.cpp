@@ -1,5 +1,6 @@
 #include "glad/gl.h"
 #include "GeometryBuffer.h"
+#include "GLUtils.h"
 
 void ShapeBench::GeometryBuffer::destroy() {
     if(vaoID != 0xFFFFFFFF) {
@@ -26,4 +27,5 @@ void ShapeBench::GeometryBuffer::destroy() {
         glDeleteBuffers(1, &indexBufferID);
         indexBufferID = 0xFFFFFFFF;
     }
+    ShapeBench::printGLError(__FILE__, __LINE__);
 }
