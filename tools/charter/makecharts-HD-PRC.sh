@@ -1,0 +1,11 @@
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/gaussian-noise-only --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/additive-noise-only --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/depth-camera-capture-only --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/normal-noise-only --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/repeated-capture-only --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/subtractive-noise-only --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/support-radius-deviation-only --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/additive-and-gaussian-noise --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/additive-and-subtractive-noise --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/subtractive-and-gaussian-noise --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/support_radius_estimation --output-dir=/home/bart/projects/shapebench/shapebench/results-IDUN-HD-PRC/charts --mode=support-radius

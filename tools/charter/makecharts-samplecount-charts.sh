@@ -1,0 +1,1 @@
+python3 charter.py --results-directory=/home/bart/projects/shapebench/shapebench/results-SCARS1/samplecount_variation/results/additive-noise-only --output-dir=/home/bart/projects/shapebench/shapebench/results-SCARS1/samplecount_variation/results/charts
