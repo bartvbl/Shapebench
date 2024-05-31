@@ -21,7 +21,10 @@ namespace ShapeBench {
 
     template<typename DescriptorMethod, typename DescriptorType>
     ShapeBench::PRCInfo computePRCInfo(const ShapeBench::DescriptorOfVertexInDataset<DescriptorType>& filteredDescriptor,
-                                       const std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>>& referenceSet) {
+                                       const ShapeBench::DescriptorOfVertexInDataset<DescriptorType>& cleanDescriptor,
+                                       const std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>>& referenceSet,
+                                       const std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>>& sampleDescriptors,
+                                       bool useReferenceDescriptors) {
         ShapeBench::PRCInfo outputMetadata;
         /*
          * For the ShapeBench approach: use sample descriptors from 1000 objects, 1000 points each. Reference set is the same as other experiments
@@ -33,8 +36,13 @@ namespace ShapeBench {
         float nearestNeighbourDistance = std::numeric_limits<float>::max();
         float secondNearestNeighbourDistance = std::numeric_limits<float>::max();
         uint32_t nearestNeighbourVertexIndex = 0xFFFFFFFF;
-        for(uint32_t i = 0; i < referenceSet.size(); i++) {
-            float referenceDescriptorDistance = DescriptorMethod::computeDescriptorDistance(filteredDescriptor.descriptor, referenceSet.at(i).descriptor);
+
+        const std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>>& setToProcess = useReferenceDescriptors ? referenceSet : sampleDescriptors;
+
+        int extraIteration = useReferenceDescriptors ? 1 : 0;
+        for(uint32_t i = 0; i < setToProcess.size() + extraIteration; i++) {
+            const DescriptorType& descriptor = i < setToProcess.size() ? setToProcess.at(i).descriptor : cleanDescriptor.descriptor;
+            float referenceDescriptorDistance = DescriptorMethod::computeDescriptorDistance(filteredDescriptor.descriptor, descriptor);
             if(referenceDescriptorDistance < nearestNeighbourDistance) {
                 secondNearestNeighbourDistance = nearestNeighbourDistance;
                 nearestNeighbourDistance = referenceDescriptorDistance;
@@ -47,11 +55,11 @@ namespace ShapeBench {
 
         // Determine mesh ID of nearest neighbour and filtered descriptor
         outputMetadata.scenePointMeshID = filteredDescriptor.meshID;
-        outputMetadata.modelPointMeshID = referenceSet.at(nearestNeighbourVertexIndex).meshID;
+        outputMetadata.modelPointMeshID = nearestNeighbourVertexIndex != setToProcess.size() ? referenceSet.at(nearestNeighbourVertexIndex).meshID : cleanDescriptor.meshID;
 
         // Determine coordinates of nearest neighbour and filtered descriptor
         outputMetadata.nearestNeighbourVertexScene = filteredDescriptor.vertex.vertex;
-        outputMetadata.nearestNeighbourVertexModel = referenceSet.at(nearestNeighbourVertexIndex).vertex.vertex;
+        outputMetadata.nearestNeighbourVertexModel = nearestNeighbourVertexIndex != setToProcess.size() ? referenceSet.at(nearestNeighbourVertexIndex).vertex.vertex : cleanDescriptor.vertex.vertex;
 
         return outputMetadata;
     }
