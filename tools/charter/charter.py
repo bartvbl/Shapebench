@@ -404,7 +404,8 @@ def create2DChart(rawResults, configuration, settings, output_directory, jsonFil
     deltaY = (settings.yAxisBounds[1] - settings.yAxisBounds[0]) / settings.binCount
 
     for rawResult in rawResults:
-        resultX, resultY, rank = rawResult
+        # Ignore the PRC information for this chart type
+        resultX, resultY, rank, _ = rawResult
         if resultX is None:
             resultX = 0
         if resultY is None:
