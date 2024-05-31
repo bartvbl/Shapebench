@@ -39,7 +39,9 @@ namespace ShapeBench {
 
         const std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>>& setToProcess = useReferenceDescriptors ? referenceSet : sampleDescriptors;
 
+        // "add" the correct clean descriptor to the list such that it can be found
         int extraIteration = useReferenceDescriptors ? 1 : 0;
+
         for(uint32_t i = 0; i < setToProcess.size() + extraIteration; i++) {
             const DescriptorType& descriptor = i < setToProcess.size() ? setToProcess.at(i).descriptor : cleanDescriptor.descriptor;
             float referenceDescriptorDistance = DescriptorMethod::computeDescriptorDistance(filteredDescriptor.descriptor, descriptor);
