@@ -42,14 +42,14 @@ def getProcessingSettings(mode, fileContents):
         settings.xAxisMax = fileContents['configuration']['filterSettings']['normalVectorNoise'][
             'maxAngleDeviationDegrees']
         settings.xTick = 5
+        settings.xAxisTitleAdjustment = 3
         settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["filterOutput"]["normal-noise-deviationAngle"]
         return settings
     elif experimentName == "subtractive-noise-only":
-        settings.xAxisTitle = "Fraction of surface removed"
+        settings.xAxisTitle = "Occlusion"
         settings.yAxisTitle = sharedYAxisTitle
-        settings.xAxisTitleAdjustment = 2
         settings.xAxisOutOfRangeMode = 'clamp'
         settings.xAxisMin = 0
         settings.xAxisMax = 1
@@ -59,7 +59,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
         return settings
     elif experimentName == "additive-noise-only":
-        settings.xAxisTitle = "Fraction of clutter added"
+        settings.xAxisTitle = "Clutter"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 10
@@ -76,6 +76,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xAxisMax = 1 + fileContents['configuration']['filterSettings']['supportRadiusDeviation'][
             'maxRadiusDeviation']
         settings.xTick = 0.125
+        settings.xAxisTitleAdjustment = 2
         settings.enable2D = False
         settings.reverse = True # scale factor used is stored as-is, but the relative change to the support radius is the inverse
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
@@ -85,7 +86,7 @@ def getProcessingSettings(mode, fileContents):
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
         settings.xAxisMax = 0.15
-        settings.xAxisTitleAdjustment = 3
+        settings.xAxisTitleAdjustment = 5
         settings.xTick = 0.03
         settings.enable2D = False
         settings.reverse = False
@@ -104,7 +105,7 @@ def getProcessingSettings(mode, fileContents):
     elif experimentName == "depth-camera-capture-only":
         settings.xAxisTitle = "Object distance from camera"
         settings.yAxisTitle = sharedYAxisTitle
-        settings.xAxisTitleAdjustment = 2
+        settings.xAxisTitleAdjustment = 6
         settings.xAxisMin = 2
         settings.xAxisMax = 10
         settings.xTick = 1
@@ -115,7 +116,7 @@ def getProcessingSettings(mode, fileContents):
         # / float(x["filterOutput"]["depth-camera-capture-filtered-vertex-count"]))
         return settings
     elif experimentName == "additive-and-gaussian-noise":
-        settings.xAxisTitle = "Fraction added clutter"
+        settings.xAxisTitle = "Clutter"
         settings.yAxisTitle = "Standard Deviation"
         settings.xAxisBounds = [0, 25]
         settings.yAxisBounds = [0, 0.01]
@@ -128,9 +129,9 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueY = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     elif experimentName == "additive-and-subtractive-noise":
-        settings.xAxisTitle = "Fraction of surface removed"
-        settings.yAxisTitle = "Fraction of added clutter"
-        settings.xAxisTitleAdjustment = 2
+        settings.xAxisTitle = "Occlusion"
+        settings.yAxisTitle = "Clutter"
+        settings.xAxisTitleAdjustment = 0
         settings.xAxisBounds = [0, 1]
         settings.yAxisBounds = [0, 25]
         settings.xTick = 0.2
@@ -142,10 +143,10 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueY = lambda x: x["fractionAddedNoise"]
         return settings
     elif experimentName == "subtractive-and-gaussian-noise":
-        settings.xAxisTitle = "Fraction of surface removed"
+        settings.xAxisTitle = "Occlusion"
         settings.yAxisTitle = "Standard Deviation"
         settings.xAxisOutOfRangeMode = 'clamp'
-        settings.xAxisTitleAdjustment = 6
+        settings.xAxisTitleAdjustment = 0
         settings.xAxisBounds = [0, 1]
         settings.yAxisBounds = [0, 0.01]
         settings.xTick = 0.2
