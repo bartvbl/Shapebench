@@ -17,7 +17,7 @@
 
 
 nlohmann::json readConfiguration(std::filesystem::path filePath);
-void patchReplicationConfiguration(nlohmann::json& replicationConfig, nlohmann::json& regularConfig);
+void patchReplicationConfiguration(nlohmann::json &replicationConfig, nlohmann::json &regularConfig, const ShapeBench::ReplicationSettings& replicationSettings);
 
 
 int main(int argc, const char** argv) {
@@ -49,24 +49,32 @@ int main(int argc, const char** argv) {
     setup.replicationFilePath = replicateFromConfiguration.value();
     setup.configurationFilePath = configurationFile.value();
 
+
+    // --- Initialise replication mode ---
     if(setup.replicationFilePath != replicationDisabledString) {
         if(!std::filesystem::exists(setup.replicationFilePath)) {
             throw std::runtime_error("The specified results file does not appear to exist. Exiting.");
         }
 
         std::cout << "Replication mode enabled." << std::endl;
-        setup.enableReplicationMode = true;
+        setup.replicationSettings.enabled = true;
         std::cout << "    This will mostly override the specified configuration in the main configuration file." << std::endl;
+        std::cout << "    Reading results file.." << std::endl;
         std::ifstream inputStream(setup.replicationFilePath);
         nlohmann::json resultsFileContents = nlohmann::json::parse(inputStream);
         setup.configuration = resultsFileContents.at("configuration");
         setup.computedConfiguration = resultsFileContents.at("computedConfiguration");
+        setup.replicationSettings.methodName = resultsFileContents.at("method").at("name");
+        setup.replicationSettings.experimentIndex = resultsFileContents.at("experiment").at("index");
     }
 
+
+
+    // --- Compute experiment configuration ---
     std::cout << "Reading configuration.." << std::endl;
     const std::filesystem::path configurationFileLocation(configurationFile.value());
     bool configurationFileExists = std::filesystem::exists(configurationFileLocation);
-    if(!configurationFileExists && !setup.enableReplicationMode) {
+    if(!configurationFileExists && !setup.replicationSettings.enabled) {
         throw std::runtime_error("The specified configuration file was not found at: " + std::filesystem::absolute(configurationFileLocation).string());
     }
 
@@ -75,7 +83,7 @@ int main(int argc, const char** argv) {
         mainConfigFileContents = readConfiguration(configurationFile.value());
     }
 
-    if(!setup.enableReplicationMode) {
+    if(!setup.replicationSettings.enabled) {
         setup.configuration = mainConfigFileContents;
         if(!setup.configuration.contains("cacheDirectory")) {
             throw ShapeBench::MissingBenchmarkConfigurationException("cacheDirectory");
@@ -84,14 +92,18 @@ int main(int argc, const char** argv) {
         // For the purposes of replication, some configuration entries need to be adjusted to the
         // environment where the results are replicated. This is done by copying all relevant configuration
         // entries, and overwriting them where relevant.
-        patchReplicationConfiguration(setup.configuration, mainConfigFileContents);
+        patchReplicationConfiguration(setup.configuration, mainConfigFileContents, setup.replicationSettings);
     }
 
+
+
+    // --- Compute and load dataset ---
     setup.dataset = ShapeBench::computeOrLoadCache(setup);
 
 
-    const nlohmann::json& methodSettings = setup.configuration.at("methodSettings");
 
+    // --- Run experiments ---
+    const nlohmann::json& methodSettings = setup.configuration.at("methodSettings");
     if(methodSettings.at(ShapeBench::QUICCIMethod::getName()).at("enabled")) {
         testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(setup);
     }
@@ -114,46 +126,35 @@ int main(int argc, const char** argv) {
         testMethod<ShapeBench::SHOTMethod<>, ShapeDescriptor::SHOTDescriptor<>>(setup);
     }
 
-    // WIP:
+    // Disabled and WIP. Horrendously slow.
     //testMethod<ShapeBench::FPFHMethod, ShapeDescriptor::FPFHDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
 }
 
-void patchKey_s(nlohmann::json& replicationConfig, nlohmann::json& regularConfig, std::string key) {
+void patchKey(nlohmann::json& replicationConfig, nlohmann::json& regularConfig, std::string key) {
     if(regularConfig.contains(key)) {
-        if(!replicationConfig.contains(key)) {
-            replicationConfig[key] = {};
-        }
-        replicationConfig.at(key).merge_patch(regularConfig.at(key));
+        replicationConfig[key].merge_patch(regularConfig.at(key));
     }
 }
 
-void patchKey_ss(nlohmann::json& replicationConfig, nlohmann::json& regularConfig, std::string key1, std::string key2) {
-    if(regularConfig.contains(key1) && regularConfig.at(key1).contains(key2)) {
-        if(!replicationConfig.contains((key1))) {
-            replicationConfig[key1] = {};
-        }
-        if(!replicationConfig.at(key1).contains((key2))) {
-            replicationConfig.at(key1)[key2] = {};
-        }
-        replicationConfig.at(key1).at(key2).merge_patch(regularConfig.at(key1).at(key2));
-    }
-}
+void patchReplicationConfiguration(nlohmann::json &replicationConfig, nlohmann::json &regularConfig, const ShapeBench::ReplicationSettings& replicationSettings) {
+    patchKey(replicationConfig, regularConfig, "replicationOverrides");
+    patchKey(replicationConfig, regularConfig, "datasetSettings");
+    patchKey(replicationConfig, regularConfig, "cacheDirectory");
+    patchKey(replicationConfig, regularConfig, "resultsDirectory");
+    patchKey(replicationConfig, regularConfig, "computedConfigFile");
+    patchKey(replicationConfig, regularConfig, "verboseOutput");
 
-void patchReplicationConfiguration(nlohmann::json& replicationConfig, nlohmann::json& regularConfig) {
-    patchKey_s(replicationConfig, regularConfig, "replicationOverrides");
-    patchKey_s(replicationConfig, regularConfig, "datasetSettings");
-    patchKey_s(replicationConfig, regularConfig, "cacheDirectory");
-    patchKey_s(replicationConfig, regularConfig, "resultsDirectory");
-    patchKey_s(replicationConfig, regularConfig, "computedConfigFile");
-    patchKey_s(replicationConfig, regularConfig, "verboseOutput");
-
-    if(regularConfig.contains("methodSettings")) {
-        for(const std::string& methodName : regularConfig.at("methodSettings")) {
-            patchKey_ss(replicationConfig, regularConfig, "methodSettings", methodName);
-        }
+    // Each results file only contains one active method and experiment
+    // So we ensure here that in both cases only one is marked as active
+    // We first enable the one active method
+    for(const auto& methodEntry : replicationConfig.at("methodSettings").items()) {
+        replicationConfig["methodSettings"][methodEntry.key()]["enabled"] = methodEntry.key() == replicationSettings.methodName;
     }
 
-    patchKey_s(replicationConfig, regularConfig, "experimentsToRun");
+    // And ensure here that only the experiment being replicated is active
+    for(int i = 0; i < replicationConfig.at("experimentsToRun").size(); i++) {
+        replicationConfig.at("experimentsToRun").at(i).at("enabled") = i == replicationSettings.experimentIndex;
+    }
 }
 
 nlohmann::json readConfiguration(std::filesystem::path filePath) {

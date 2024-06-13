@@ -16,6 +16,8 @@ ShapeBench::Dataset ShapeBench::computeOrLoadCache(const ShapeBench::BenchmarkCo
     const std::filesystem::path baseDatasetDirectory = setup.configuration.at("datasetSettings").at("objaverseRootDir");
     const std::filesystem::path derivedDatasetDirectory = setup.configuration.at("datasetSettings").at("compressedRootDir");
     const std::filesystem::path datasetCacheFile = cacheDirectory / ShapeBench::datasetCacheFileName;
+    const nlohmann::json replicationConfiguration;
+
 
     nlohmann::json datasetCacheJson = ShapeBench::computeOrReadDatasetCache(baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
     ShapeBench::Dataset dataset;

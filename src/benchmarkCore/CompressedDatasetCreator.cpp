@@ -9,7 +9,7 @@
 
 nlohmann::json ShapeBench::computeOrReadDatasetCache(const std::filesystem::path &originalDatasetDirectory,
                                            const std::filesystem::path &compressedDatasetDirectory,
-                                           std::filesystem::path metadataFile) {
+                                           const std::filesystem::path& metadataFile) {
 
     std::cout << "Searching for uncompressed dataset files.." << std::endl;
 
