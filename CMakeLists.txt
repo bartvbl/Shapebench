@@ -110,6 +110,7 @@ include_directories (
         lib/glad/include
         lib/fmt-10.2.1/include
         lib/cmake-git
+        lib/sha1-1.4
         ../libShapeDescriptor/lib/glm
         lib/libcurl-8.7.1/include
         lib/CGAL-5.6.1/include
