@@ -29,6 +29,28 @@
         "intermediateSaveFrequency": 100000
     },
 
+    "replicationOverrides": {
+        "supportRadius": {
+            "recompute": false,
+            "recomputeSingleRadius": false,
+            "radiusIndexToRecompute": 1
+        },
+        "referenceDescriptorSet": {
+            "recompute": false,
+            "recomputeRandomSubset": false,
+            "randomSubsetSize": 100
+        },
+        "sampleDescriptorSet": {
+            "recompute": false,
+            "recomputeRandomSubset": false,
+            "randomSubsetSize": 100
+        },
+        "datasetCache": {
+            "recomputeMiniball": false,
+            "validateCompressedObjects": false
+        }
+    },
+
     "experimentsToRun": [
         {
             "name": "additive-noise-only",

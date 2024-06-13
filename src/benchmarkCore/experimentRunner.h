@@ -24,6 +24,7 @@
 #include "filters/noisyCapture/NoisyCaptureFilter.h"
 #include "filters/gaussianNoise/gaussianNoiseFilter.h"
 #include "fmt/format.h"
+#include "BenchmarkConfiguration.h"
 
 template <typename T>
 class lockGuard
@@ -40,6 +41,8 @@ public:
         m_.release();
     }
 };
+
+
 
 template<typename DescriptorMethod, typename DescriptorType>
 std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, uint64_t randomSeed, float supportRadius) {
@@ -169,13 +172,17 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeDesc
 }
 
 template<typename DescriptorMethod, typename DescriptorType>
-void testMethod(const nlohmann::json& configuration, const std::filesystem::path configFileLocation, const ShapeBench::Dataset& dataset, uint64_t randomSeed) {
+void testMethod(const ShapeBench::BenchmarkConfiguration& setup) {
     std::cout << std::endl << "========== TESTING METHOD " << DescriptorMethod::getName() << " ==========" << std::endl;
     std::cout << "Initialising.." << std::endl;
+    uint64_t randomSeed = setup.configuration.at("randomSeed");
     ShapeBench::randomEngine engine(randomSeed);
-    std::filesystem::path computedConfigFilePath = configFileLocation.parent_path() / std::string(configuration.at("computedConfigFile"));
+    const nlohmann::json& configuration = setup.configuration;
+    const ShapeBench::Dataset& dataset = setup.dataset;
+
+    std::filesystem::path computedConfigFilePath = setup.configurationFilePath.parent_path() / std::string(configuration.at("computedConfigFile"));
     DescriptorMethod::init(configuration);
-    std::cout << "    Main config file: " << configFileLocation.string() << std::endl;
+    std::cout << "    Main config file: " << setup.configurationFilePath.string() << std::endl;
     std::cout << "    Computed values config file: " << computedConfigFilePath.string() << std::endl;
     ShapeBench::ComputedConfig computedConfig(computedConfigFilePath);
     const std::string methodName = DescriptorMethod::getName();
@@ -211,16 +218,12 @@ void testMethod(const nlohmann::json& configuration, const std::filesystem::path
     const uint32_t sampleSetSize = configuration.at("commonExperimentSettings").at("sampleSetSize");
     const uint32_t verticesPerSampleObject = configuration.at("commonExperimentSettings").at("verticesToTestPerSampleObject");
     const uint32_t verticesPerReferenceObject = configuration.at("commonExperimentSettings").at("verticesToTestPerReferenceObject");
-    const uint32_t representativeSetObjectCount = representativeSetSize / verticesPerSampleObject;
-    const uint32_t sampleSetObjectCount = sampleSetSize / verticesPerSampleObject;
-    const uint32_t referenceSetObjectCount = representativeSetSize / verticesPerReferenceObject;
 
     // Compute reference descriptors, or load them from a cache file
     std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> referenceDescriptors;
     std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> cleanSampleDescriptors;
     std::vector<ShapeBench::VertexInDataset> representativeSet;
     std::vector<ShapeBench::VertexInDataset> sampleVerticesSet;
-    //std::vector<ShapeBench::ChosenVertexPRC> sampleSetPRC;
 
     std::cout << "Computing reference descriptor set.. (" << verticesPerReferenceObject << " vertices per object)" << std::endl;
     representativeSet = dataset.sampleVertices(engine(), representativeSetSize, verticesPerReferenceObject);
