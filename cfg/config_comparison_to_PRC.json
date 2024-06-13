@@ -5,15 +5,15 @@
 
     "enableComparisonToPRC": true,
 
-    "cacheDirectory": "/home/bart/projects/shapebench/shapebench-PRC-comparison/cache",
-    "resultsDirectory": "/home/bart/projects/shapebench/shapebench-PRC-comparison/results",
+    "cacheDirectory": "/home/bart/projects/shapebench/shapebench-lowresproblems/cache",
+    "resultsDirectory": "/home/bart/projects/shapebench/shapebench-lowresproblems/results",
 
     "commonExperimentSettings": {
         "verticesToTestPerSampleObject": 1000,
         "verticesToTestPerReferenceObject": 1000,
         "memoryCleanupFrequency": 1000,
-        "sampleSetSize": 1000000,
-        "representativeSetSize": 1000000,
+        "sampleSetSize": 8000,
+        "representativeSetSize": 95000,
         "pointSampleDensity": 1000000,
         "intermediateSaveFrequency": 100000
     }

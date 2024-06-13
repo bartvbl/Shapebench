@@ -1,1 +1,3 @@
-[ ] Create writer for binary PLY file (or another binary 3D format). Alternatively, find a means to clean out the GLTF files and use that format
+[ ] Fix chart labels
+[ ] Add example figures for filtered objects
+[ ] USC is normalised during parameter selection

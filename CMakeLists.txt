@@ -138,9 +138,14 @@ add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCE
 target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
+set_property(TARGET shapebench PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
 #target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler> -std=c++20)
 # Manually add options required by Jolt. Using the library's original cmake file causes trouble with the cuda compiler.
 #target_compile_options(shapebench PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mbmi,-mpopcnt,-mlzcnt,-mf16c,-DJPH_ENABLE_ASSERTS>) # -fsanitize=leak
+
+add_executable(armadillo tools/similarityrenderer/main.cpp)
+target_link_libraries(armadillo PUBLIC ShapeDescriptor)
+set_property(TARGET armadillo PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)

@@ -62,11 +62,11 @@ def getProcessingSettings(mode, fileContents):
         settings.xAxisTitle = "Clutter"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
-        settings.xAxisMax = 10
-        settings.xTick = 1
+        settings.xAxisMax = 1
+        settings.xTick = 0.2
         settings.enable2D = False
         settings.reverse = False
-        settings.readValueX = lambda x: x["fractionAddedNoise"]
+        settings.readValueX = lambda x: x["fractionAddedNoise"] 
         return settings
     elif experimentName == "support-radius-deviation-only":
         settings.xAxisTitle = "Support radius scale factor"
@@ -241,13 +241,16 @@ def computeStackedHistogram(rawResults, config, settings):
         binIndexY = int(0 if rawResult[1] == 0 else (math.log10(rawResult[1]) + 1))
         if rawResult[1] == representativeSetSize:
             binIndexY -= 1
-        histogram[binIndexY][binIndexX] += 1
         if settings.PRCEnabled:
             tao, distanceBetweenVertices, meshIDsEquivalent = rawResult[-1]
             criterion1_isWithinRange = distanceBetweenVertices <= settings.PRCSupportRadius / 2
             criterion2_meshIDIsEquivalent = meshIDsEquivalent
             isValidMatch = criterion1_isWithinRange and criterion2_meshIDIsEquivalent
             prcInfo[binIndexX].append((tao, isValidMatch))
+        if binIndexY >= len(histogram):
+            continue
+        histogram[binIndexY][binIndexX] += 1
+
 
 
     if settings.PRCEnabled:
@@ -279,7 +282,7 @@ def computeStackedHistogram(rawResults, config, settings):
                 prcCurvePoints.append((recall, precision))
             sortedPRCPoints = sorted(prcCurvePoints, key=lambda tup: tup[0])
             # continue area to the left of curve
-            prcArea = sortedPRCPoints[0][0] * sortedPRCPoints[0][1]
+            prcArea = 0 # sortedPRCPoints[0][0] * sortedPRCPoints[0][1]
             for i in range(0, len(sortedPRCPoints) - 1):
                 point1 = sortedPRCPoints[i]
                 point2 = sortedPRCPoints[i + 1]
