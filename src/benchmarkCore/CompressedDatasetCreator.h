@@ -90,11 +90,13 @@ namespace ShapeBench {
                         ShapeDescriptor::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = cloud.pointCount;
                         datasetEntry["sha1"] = SHA1::from_file(compressedMeshPath.string());
+                        ShapeDescriptor::free(cloud);
                     } else {
                         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(datasetFiles.at(i));
                         ShapeDescriptor::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = mesh.vertexCount;
                         datasetEntry["sha1"] = SHA1::from_file(compressedMeshPath.string());
+                        ShapeDescriptor::free(mesh);
                     }
                 } catch (std::runtime_error &e) {
                     std::cout << "!! ERROR: FILE FAILED TO PARSE: " + filePath.string() + "\n   REASON: " + e.what() + "\n"
