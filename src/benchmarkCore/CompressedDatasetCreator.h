@@ -13,9 +13,9 @@ namespace ShapeBench {
     // Takes in a dataset of file formats supported by the libShapeDescriptor library and compresses it using the library's compact mesh format
     // Can optionally produce a JSON file with dataset metadata
     inline nlohmann::json computeOrReadDatasetCache(const nlohmann::json& replicationConfiguration,
-                                                         const std::filesystem::path &originalDatasetDirectory,
-                                                         const std::filesystem::path &compressedDatasetDirectory,
-                                                         const std::filesystem::path &metadataFile) {
+                                                    const std::filesystem::path &originalDatasetDirectory,
+                                                    const std::filesystem::path &compressedDatasetDirectory,
+                                                    const std::filesystem::path &metadataFile) {
 
         std::cout << "Searching for uncompressed dataset files.." << std::endl;
 
@@ -23,7 +23,19 @@ namespace ShapeBench {
         nlohmann::json datasetCache = {};
         bool previousCacheFound = std::filesystem::exists(metadataFile);
 
-        if(previousCacheFound) {
+        // Replication settings
+        bool forceInvalidateCache = replicationConfiguration.at("recomputeEntirely");
+        bool recomputeProperties = replicationConfiguration.at("verifyComputedPropertiesIntegrity");
+        bool verifyInputFileIntegrity = replicationConfiguration.at("verifyDatasetFilesIntegrity");
+        bool recomputeRandomSubset = replicationConfiguration.at("verifyRandomSubset");
+        uint32_t numberOfFilesToRecompute = replicationConfiguration.at("randomSubsetSize");
+
+        if(forceInvalidateCache && recomputeRandomSubset) {
+            std::cout << "WARNING: recomputation of the entire dataset is enabled, but also the verification of a random subset. The latter is meaningless in this context and is disabled." << std::endl;
+            recomputeRandomSubset = false;
+        }
+
+        if(previousCacheFound && !forceInvalidateCache) {
             std::filesystem::path bakPath = metadataFile;
             bakPath.replace_extension(".bak.json");
             if(!std::filesystem::exists(bakPath) || std::filesystem::file_size(bakPath) != std::filesystem::file_size(metadataFile)) {
@@ -39,6 +51,7 @@ namespace ShapeBench {
                 return datasetCache;
             }
         } else {
+            std::cout << "Dataset cache was not found." << std::endl;
             std::cout << "Creating dataset cache.. (found " << datasetFiles.size() << " files)" << std::endl;
             datasetCache["metadata"]["baseDatasetRootDir"] = std::filesystem::absolute(originalDatasetDirectory).string();
             datasetCache["metadata"]["compressedDatasetRootDir"] = std::filesystem::absolute(compressedDatasetDirectory).string();
@@ -74,6 +87,7 @@ namespace ShapeBench {
                     isPointCloud = ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
                 }
                 datasetEntry["filePath"] = filePath;
+                datasetEntry["originalFileSha1"] = SHA1::from_file(filePath.string());
 
                 datasetEntry["isPointCloud"] = isPointCloud;
                 std::filesystem::path compressedMeshPath = compressedDatasetDirectory / filePath;
@@ -89,13 +103,49 @@ namespace ShapeBench {
                         ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::loadPointCloud(datasetFiles.at(i));
                         ShapeDescriptor::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = cloud.pointCount;
-                        datasetEntry["sha1"] = SHA1::from_file(compressedMeshPath.string());
+                        datasetEntry["compressedFileSha1"] = SHA1::from_file(compressedMeshPath.string());
+
+                        // Integrity check
+                        ShapeDescriptor::cpu::PointCloud readCloud = ShapeDescriptor::readPointCloudFromCompressedGeometryFile(
+                                compressedMeshPath);
+                        if (ShapeDescriptor::comparePointCloud(cloud, readCloud)) {
+                            throw std::logic_error("!! POINT CLOUD HASH MISMATCH " + compressedMeshPath.string());
+                        }
+                        ShapeDescriptor::free(readCloud);
+
+                        vertices.reserve(cloud.pointCount);
+                        for (uint32_t vertex = 0; vertex < cloud.pointCount; vertex++) {
+                            ShapeDescriptor::cpu::float3 point = cloud.vertices[vertex];
+                            coordinate.at(0) = point.x;
+                            coordinate.at(1) = point.y;
+                            coordinate.at(2) = point.z;
+                            vertices.emplace_back(3, coordinate.begin());
+                        }
+
                         ShapeDescriptor::free(cloud);
                     } else {
                         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(datasetFiles.at(i));
                         ShapeDescriptor::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = mesh.vertexCount;
-                        datasetEntry["sha1"] = SHA1::from_file(compressedMeshPath.string());
+                        datasetEntry["compressedFileSsha1"] = SHA1::from_file(compressedMeshPath.string());
+
+                        // Integrity check
+                        ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::loadMesh(compressedMeshPath);
+
+                        if (!ShapeDescriptor::compareMesh(mesh, readMesh)) {
+                            throw std::logic_error("!! MESH HASH MISMATCH " + compressedMeshPath.string());
+                        }
+                        ShapeDescriptor::free(readMesh);
+
+                        vertices.reserve(mesh.vertexCount);
+                        for (uint32_t vertex = 0; vertex < mesh.vertexCount; vertex++) {
+                            ShapeDescriptor::cpu::float3 point = mesh.vertices[vertex];
+                            coordinate.at(0) = point.x;
+                            coordinate.at(1) = point.y;
+                            coordinate.at(2) = point.z;
+                            vertices.emplace_back(3, coordinate.begin());
+                        }
+
                         ShapeDescriptor::free(mesh);
                     }
                 } catch (std::runtime_error &e) {

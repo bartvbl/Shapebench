@@ -46,10 +46,10 @@
             "randomSubsetSize": 100
         },
         "datasetCache": {
-            "recompute": true,
-            "recomputeMiniball": false,
-            "validateCompressedObjects": false,
-            "recomputeRandomSubset": true,
+            "recomputeEntirely": false,
+            "verifyComputedPropertiesIntegrity": true,
+            "verifyDatasetFilesIntegrity": true,
+            "verifyRandomSubset": true,
             "randomSubsetSize": 100
         }
     },
