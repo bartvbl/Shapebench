@@ -1,0 +1,10 @@
+.DS_Store
+*~
+.settings
+.project
+.classpath
+java/target
+benchmark/data/*.data
+bin
+obj
+.vscode
