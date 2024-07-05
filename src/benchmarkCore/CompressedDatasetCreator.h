@@ -8,6 +8,7 @@
 #include "sha1.hpp"
 #include "Seb.h"
 #include "utils/prettyprint.h"
+#include "replication/RandomSubset.h"
 
 namespace ShapeBench {
     // Takes in a dataset of file formats supported by the libShapeDescriptor library and compresses it using the library's compact mesh format
@@ -15,7 +16,8 @@ namespace ShapeBench {
     inline nlohmann::json computeOrReadDatasetCache(const nlohmann::json& replicationConfiguration,
                                                     const std::filesystem::path &originalDatasetDirectory,
                                                     const std::filesystem::path &compressedDatasetDirectory,
-                                                    const std::filesystem::path &metadataFile) {
+                                                    const std::filesystem::path &metadataFile,
+                                                    uint64_t recomputeRandomSeed) {
 
         std::cout << "Searching for uncompressed dataset files.." << std::endl;
 
@@ -25,15 +27,21 @@ namespace ShapeBench {
 
         // Replication settings
         bool forceInvalidateCache = replicationConfiguration.at("recomputeEntirely");
-        bool recomputeProperties = replicationConfiguration.at("verifyComputedPropertiesIntegrity");
-        bool verifyInputFileIntegrity = replicationConfiguration.at("verifyDatasetFilesIntegrity");
         bool recomputeRandomSubset = replicationConfiguration.at("verifyRandomSubset");
-        uint32_t numberOfFilesToRecompute = replicationConfiguration.at("randomSubsetSize");
 
         if(forceInvalidateCache && recomputeRandomSubset) {
             std::cout << "WARNING: recomputation of the entire dataset is enabled, but also the verification of a random subset. The latter is meaningless in this context and is disabled." << std::endl;
             recomputeRandomSubset = false;
         }
+
+        ShapeBench::RandomSubset replicationSubset;
+        if(recomputeRandomSubset) {
+            uint32_t numberOfFilesToRecompute = replicationConfiguration.at("randomSubsetSize");
+            std::cout << "Replication of compressed dataset and dataset metadata enabled, randomly replicating a subset of " << numberOfFilesToRecompute << " files." << std::endl;
+            replicationSubset = ShapeBench::RandomSubset(0, datasetFiles.size(), numberOfFilesToRecompute, recomputeRandomSeed);
+        }
+
+
 
         if(previousCacheFound && !forceInvalidateCache) {
             std::filesystem::path bakPath = metadataFile;
@@ -72,14 +80,21 @@ namespace ShapeBench {
 
         std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
 
-#pragma omp parallel for schedule(dynamic) default(none) shared(processedMeshCount, newMeshesLoaded, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
+#pragma omp parallel for schedule(dynamic) default(none) shared(replicationSubset, processedMeshCount, newMeshesLoaded, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
         for(size_t i = 0; i < datasetFiles.size(); i++) {
-
+            bool entryIsMissing = !datasetCache["files"].at(i).contains("isPointCloud");
+            bool shouldBeReplicated = replicationSubset.contains(i);
 
             // Skip if this entry has been processed before
-            if(!datasetCache["files"].at(i).contains("isPointCloud")) {
+            if(entryIsMissing || shouldBeReplicated) {
                 newMeshesLoaded = true;
                 nlohmann::json datasetEntry;
+                if(shouldBeReplicated) {
+                    datasetEntry = datasetCache["files"].at(i);
+                    if(datasetEntry.at("id") != i) {
+                        throw std::logic_error("ID of entry " + std::to_string(i) + " does not match the expected one! (read: " + std::to_string(uint32_t(datasetEntry.at("id"))) + ")");
+                    }
+                }
                 datasetEntry["id"] = i;
                 std::filesystem::path filePath = std::filesystem::relative(std::filesystem::absolute(datasetFiles.at(i)), originalDatasetDirectory);
                 bool isPointCloud = false;
@@ -87,7 +102,14 @@ namespace ShapeBench {
                     isPointCloud = ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
                 }
                 datasetEntry["filePath"] = filePath;
-                datasetEntry["originalFileSha1"] = SHA1::from_file(filePath.string());
+                std::string originalFileSha1 = SHA1::from_file(filePath.string());
+                if(!entryIsMissing) {
+                    if(datasetEntry.at("originalFileSha1") != originalFileSha1) {
+                        throw std::logic_error("FATAL: file digest of file " + filePath.string() + " did not match the one on record!");
+                    }
+                } else {
+                }
+                datasetEntry["originalFileSha1"] = originalFileSha1;
 
                 datasetEntry["isPointCloud"] = isPointCloud;
                 std::filesystem::path compressedMeshPath = compressedDatasetDirectory / filePath;
@@ -103,7 +125,15 @@ namespace ShapeBench {
                         ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::loadPointCloud(datasetFiles.at(i));
                         ShapeDescriptor::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = cloud.pointCount;
-                        datasetEntry["compressedFileSha1"] = SHA1::from_file(compressedMeshPath.string());
+                        std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
+                        if(!entryIsMissing) {
+                            if(datasetEntry.at("compressedFileSha1") != compressedFileSha1) {
+                                throw std::logic_error("FATAL: file digest of compressed file " + filePath.string() + " did not match the one on record!");
+                            }
+                        } else {
+                        }
+                        datasetEntry["compressedFileSha1"] = compressedFileSha1;
+
 
                         // Integrity check
                         ShapeDescriptor::cpu::PointCloud readCloud = ShapeDescriptor::readPointCloudFromCompressedGeometryFile(
@@ -127,7 +157,14 @@ namespace ShapeBench {
                         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(datasetFiles.at(i));
                         ShapeDescriptor::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = mesh.vertexCount;
-                        datasetEntry["compressedFileSsha1"] = SHA1::from_file(compressedMeshPath.string());
+                        std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
+                        if(!entryIsMissing) {
+                            if(datasetEntry.at("compressedFileSha1") != compressedFileSha1) {
+                                throw std::logic_error("FATAL: file digest of compressed file " + filePath.string() + " did not match the one on record!");
+                            }
+                        } else {
+                        }
+                        datasetEntry["compressedFileSha1"] = compressedFileSha1;
 
                         // Integrity check
                         ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::loadMesh(compressedMeshPath);
@@ -161,6 +198,23 @@ namespace ShapeBench {
                     double boundingRadius = ball.radius();
                     for (int j = 0; j < 3; j++) {
                         coordinate.at(j) = ball.center_begin()[j];
+                    }
+                    if(!entryIsMissing) {
+                        if(datasetEntry.at("boundingSphereRadius") != boundingRadius) {
+                            throw std::logic_error("FATAL: The computed bounding sphere radius deviates from the one in the cache: " + std::to_string(double(datasetEntry.at("boundingSphereRadius"))) + " vs " + std::to_string(boundingRadius));
+                        }
+                        if(datasetEntry.at("boundingSphereCentre").at(0) != coordinate.at(0)
+                        || datasetEntry.at("boundingSphereCentre").at(1) != coordinate.at(1)
+                        || datasetEntry.at("boundingSphereCentre").at(2) != coordinate.at(2)) {
+                            throw std::logic_error("FATAL: The computed bounding sphere coordinate deviated from the one in the cache: (" +
+                                                      std::to_string(double(datasetEntry.at("boundingSphereCentre").at(0))) + ", "
+                                                    + std::to_string(double(datasetEntry.at("boundingSphereCentre").at(1))) + ", "
+                                                    + std::to_string(double(datasetEntry.at("boundingSphereCentre").at(2)))
+                                                    + ") vs ("
+                                                    + std::to_string(coordinate.at(0)) + ", "
+                                                    + std::to_string(coordinate.at(1)) + ", "
+                                                    + std::to_string(coordinate.at(2)) + ")");
+                        }
                     }
                     datasetEntry["boundingSphereCentre"] = {coordinate.at(0), coordinate.at(1), coordinate.at(2)};
                     datasetEntry["boundingSphereRadius"] = boundingRadius;

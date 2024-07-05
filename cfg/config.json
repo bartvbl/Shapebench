@@ -30,6 +30,7 @@
     },
 
     "replicationOverrides": {
+        "replicationRandomSeed": 12345678,
         "supportRadius": {
             "recompute": false,
             "recomputeSingleRadius": false,
@@ -47,8 +48,6 @@
         },
         "datasetCache": {
             "recomputeEntirely": false,
-            "verifyComputedPropertiesIntegrity": true,
-            "verifyDatasetFilesIntegrity": true,
             "verifyRandomSubset": true,
             "randomSubsetSize": 100
         }

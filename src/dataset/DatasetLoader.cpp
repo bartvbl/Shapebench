@@ -19,8 +19,8 @@ ShapeBench::Dataset ShapeBench::computeOrLoadCache(const ShapeBench::BenchmarkCo
     nlohmann::json replicationConfiguration = setup.configuration.contains("replicationOverrides")
                                                  && setup.configuration.at("replicationOverrides").contains("datasetCache")
                                                  ? setup.configuration.at("replicationOverrides").at("datasetCache") : nlohmann::json();
-
-    nlohmann::json datasetCacheJson = ShapeBench::computeOrReadDatasetCache(replicationConfiguration, baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile);
+    uint64_t replicationRandomSeed = setup.configuration.at("replicationOverrides").at("replicationRandomSeed");
+    nlohmann::json datasetCacheJson = ShapeBench::computeOrReadDatasetCache(replicationConfiguration, baseDatasetDirectory, derivedDatasetDirectory, datasetCacheFile, replicationRandomSeed);
     ShapeBench::Dataset dataset;
     dataset.loadCache(datasetCacheJson);
     return dataset;
