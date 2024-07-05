@@ -264,6 +264,13 @@ namespace ShapeBench {
             std::cout << "    Dataset cache loaded successfully" << std::endl;
         }
 
+        if(recomputeRandomSubset) {
+            // If a mismatch occurs, the program exits.
+            // Therefore, if the program reaches here, it means no mismatches were detected.
+            std::cout << "    Replication: Integrity of random subset of input files was successfully verified." << std::endl;
+            std::cout << "    Replication: Metadata computed for random subset of input files was successfully verified." << std::endl;
+        }
+
 
         return datasetCache;
     }
