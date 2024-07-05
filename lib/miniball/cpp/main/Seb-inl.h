@@ -197,8 +197,8 @@ namespace SEB_NAMESPACE {
 
     // Invariant:  The ball B(center,radius_) always contains the whole
     // point set S and has the points in support on its boundary.
-    uint32_t iterationCount = 0;
-    while (iterationCount < 5000) {
+    uint32_t iterationCount = 1;
+    while (iterationCount < 2500) {
         iterationCount++;
       SEB_LOG ("debug","  iteration " << ++iteration << std::endl);
 
