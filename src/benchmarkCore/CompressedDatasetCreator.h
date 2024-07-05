@@ -87,7 +87,8 @@ namespace ShapeBench {
 
             // Skip if this entry has been processed before
             if(entryIsMissing || shouldBeReplicated) {
-                newMeshesLoaded = true;
+                // Don't write a new cache if we only replicate a subset of files
+                newMeshesLoaded = newMeshesLoaded || entryIsMissing;
                 nlohmann::json datasetEntry;
                 if(shouldBeReplicated) {
                     datasetEntry = datasetCache["files"].at(i);
