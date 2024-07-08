@@ -4,7 +4,7 @@
 #include "benchmarkCore/randomEngine.h"
 
 
-ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
     ShapeBench::randomEngine randomEngine(randomSeed);
     ShapeBench::FilterOutput output;
     uint32_t initialVertexCount = scene.filteredSampleMesh.vertexCount;

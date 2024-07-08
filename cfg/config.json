@@ -11,12 +11,13 @@
     "verboseOutput": true,
 
     "datasetSettings": {
-        "compressedRootDir": "/home/bart/projects/shapebench/objaverse-compressed",
-        "objaverseRootDir": "/mnt/DATASETS/objaverse/hf-objaverse-v1/glbs",
+        "compressedRootDir": "/home/bart/projects/shapebench/objaverse-cached",
+        "objaverseRootDir": "/home/bart/projects/shapebench/shapebench/cache-objaverse",
         "objaverseObjectList": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/object-paths.json.gz?download=true",
         "objaverseDownloadBaseURL": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/{}?download=true",
-        "cacheSizeLimitGB": 10000,
-        "enableDatasetCompression": true
+        "cacheSizeLimitGB": 100000,
+        "enableDatasetCompression": true,
+        "verifyFileIntegrity": true
     },
 
     "commonExperimentSettings": {

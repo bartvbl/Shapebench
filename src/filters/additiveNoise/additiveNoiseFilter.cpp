@@ -470,7 +470,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     return orientations;
 }
 
-ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
     const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
     ShapeBench::FilterOutput output;
     AdditiveNoiseFilterSettings settings = readAdditiveNoiseFilterSettings(config, filterSettings);
@@ -489,7 +489,7 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     for(uint32_t i = 0; i < clutterObjectCount; i++) {
         uint32_t chosenMeshID = chosenVertices.at(i).meshID;
         const ShapeBench::DatasetEntry& entry = dataset.at(chosenMeshID);
-        meshes.at(i + 1) = ShapeBench::readDatasetMesh(config, entry);
+        meshes.at(i + 1) = ShapeBench::readDatasetMesh(config, fileCache, entry);
         scene.additiveNoiseInfo.at(i).meshID = chosenMeshID;
         scene.additiveNoiseInfo.at(i).vertexCount = meshes.at(i + 1).vertexCount;
     }

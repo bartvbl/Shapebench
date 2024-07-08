@@ -20,11 +20,7 @@ namespace ShapeBench {
         return mesh;
     }
 
-    inline void downloadDatasetMesh(const nlohmann::json &config, std::filesystem::path meshDestinationPath, const DatasetEntry &datasetEntry, bool enableCompression) {
-        throw std::runtime_error("Not implemented!");
-    }
-
-    inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, const DatasetEntry &datasetEntry) {
+    inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, ShapeBench::LocalDatasetCache* cache, const DatasetEntry &datasetEntry) {
         if(!config.contains("datasetSettings")) {
             throw std::runtime_error("Configuration is missing the key 'datasetSettings'. Aborting.");
         }
@@ -36,20 +32,9 @@ namespace ShapeBench {
         std::filesystem::path compressedMeshPath = compressedDatasetBasePath / pathInDataset;
         compressedMeshPath = compressedMeshPath.replace_extension(".cm");
 
-        bool originalDatabaseMeshExists = std::filesystem::exists(originalMeshPath);
-        bool compressedDatabaseMeshExists = std::filesystem::exists(compressedMeshPath);
-
-        bool compressionEnabled = config.at("datasetSettings").at("enableDatasetCompression");
-        if(compressionEnabled) {
-            if(!compressedDatabaseMeshExists) {
-                downloadDatasetMesh(config, compressedMeshPath, datasetEntry, true);
-            }
-            return readMeshFile(compressedMeshPath, datasetEntry);
-        } else {
-            if(!originalDatabaseMeshExists) {
-                downloadDatasetMesh(config, compressedMeshPath, datasetEntry, false);
-            }
-            return readMeshFile(originalMeshPath, datasetEntry);
-        }
+        cache->acquireFile(pathInDataset);
+        ShapeDescriptor::cpu::Mesh mesh = readMeshFile(compressedMeshPath, datasetEntry);
+        cache->returnFile(pathInDataset);
+        return mesh;
     }
 }

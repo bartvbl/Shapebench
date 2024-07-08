@@ -19,7 +19,7 @@ void ShapeBench::OcclusionFilter::saveCaches(const nlohmann::json &config) {
 
 ShapeBench::FilterOutput
 ShapeBench::OcclusionFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
-                                   const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+                                   const ShapeBench::Dataset &dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
     ShapeBench::randomEngine randomEngine(randomSeed);
     ShapeBench::FilterOutput output;
     OcclusionRendererSettings renderSettings;

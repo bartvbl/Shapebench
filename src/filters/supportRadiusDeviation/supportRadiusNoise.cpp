@@ -4,7 +4,7 @@
 #include "supportRadiusNoise.h"
 #include "benchmarkCore/randomEngine.h"
 
-ShapeBench::FilterOutput ShapeBench::SupportRadiusNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::SupportRadiusNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
     float deviationLimit = config.at("filterSettings").at("supportRadiusDeviation").at("maxRadiusDeviation");
 
     ShapeBench::randomEngine generator(randomSeed);

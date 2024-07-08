@@ -14,7 +14,7 @@ namespace ShapeBench {
         void destroy() override;
         void saveCaches(const nlohmann::json& config) override;
 
-        FilterOutput apply(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, uint64_t randomSeed) override;
+        FilterOutput apply(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) override;
     };
 
 }

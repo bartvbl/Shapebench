@@ -84,9 +84,3 @@ const ShapeBench::DatasetEntry &ShapeBench::Dataset::at(uint32_t meshID) const {
 bool ShapeBench::DatasetEntry::operator<(DatasetEntry &other) {
     return id < other.id;
 }
-
-ShapeDescriptor::cpu::Mesh ShapeBench::Dataset::loadMesh(const ShapeBench::DatasetEntry &entry) {
-    return ShapeDescriptor::cpu::Mesh();
-}
-
-

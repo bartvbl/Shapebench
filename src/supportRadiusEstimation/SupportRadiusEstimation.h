@@ -16,13 +16,13 @@
 #include "utils/prettyprint.h"
 
 namespace ShapeBench {
-    inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const ShapeBench::Dataset& dataset, ShapeBench::VertexInDataset vertex) {
+    inline ShapeDescriptor::cpu::Mesh loadMesh(const nlohmann::json& config, const ShapeBench::Dataset& dataset, ShapeBench::LocalDatasetCache* fileCache, ShapeBench::VertexInDataset vertex) {
         // We load the mesh for each vertex. This assumes that most of these will be unique anyway
         // That is, there is only one vertex sampled per mesh.
         // If this assumption changes later we'll have to create a second vector containing an index buffer
         // which mesh in a condensed vector to use
         const ShapeBench::DatasetEntry& entry = dataset.at(vertex.meshID);
-        return readDatasetMesh(config, entry);
+        return readDatasetMesh(config, fileCache, entry);
     }
 
     inline void freeMeshRange(std::vector<ShapeDescriptor::cpu::Mesh>& meshes) {
@@ -124,6 +124,7 @@ namespace ShapeBench {
             float supportRadiusStart,
             float supportRadiusStep,
             const Dataset& dataset,
+            ShapeBench::LocalDatasetCache* fileCache,
             uint64_t referenceDescriptorGenerationSeed,
             uint64_t referencePointCloudSamplingSeed,
             const std::vector<VertexInDataset>& representativeSet,
@@ -141,7 +142,7 @@ namespace ShapeBench {
         }
 
         int referenceCountProcessed = 0;
-        #pragma omp parallel for default(none) shared(representativeSetSize, representativeSet, dataset, std::cout, config, referenceCountProcessed, referencePointCloudSamplingSeed, supportRadiiToTry, referenceDescriptorGenerationSeed, numberOfSupportRadiiToTry, referenceDescriptors) schedule(dynamic)
+        #pragma omp parallel for default(none) shared(representativeSetSize, representativeSet, fileCache, dataset, std::cout, config, referenceCountProcessed, referencePointCloudSamplingSeed, supportRadiiToTry, referenceDescriptorGenerationSeed, numberOfSupportRadiiToTry, referenceDescriptors) schedule(dynamic)
         for(uint32_t referenceIndex = 0; referenceIndex < representativeSetSize; referenceIndex++) {
             std::vector<DescriptorType> generatedDescriptors(supportRadiiToTry.size());
             #pragma omp critical
@@ -152,7 +153,7 @@ namespace ShapeBench {
                 std::cout << std::flush;
             };
             VertexInDataset referenceVertex = representativeSet.at(referenceIndex);
-            ShapeDescriptor::cpu::Mesh representativeSetMesh = loadMesh(config, dataset,referenceVertex);
+            ShapeDescriptor::cpu::Mesh representativeSetMesh = loadMesh(config, dataset, fileCache, referenceVertex);
             ShapeDescriptor::cpu::PointCloud representativeSetPointCloud;
             if (DescriptorMethod::usesPointCloudInput()) {
                 representativeSetPointCloud = computePointCloud<DescriptorMethod>(representativeSetMesh, config, referencePointCloudSamplingSeed);
@@ -231,7 +232,7 @@ namespace ShapeBench {
     }
 
     template<typename DescriptorMethod, typename DescriptorType>
-    float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, uint64_t randomSeed) {
+    float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
         static_assert(std::is_base_of<ShapeBench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
 
 
@@ -259,6 +260,7 @@ namespace ShapeBench {
                 supportRadiusStart,
                 supportRadiusStep,
                 dataset,
+                fileCache,
                 referenceDescriptorGenerationSeed,
                 referencePointCloudSamplingSeed,
                 representativeSet,
@@ -274,6 +276,7 @@ namespace ShapeBench {
                 supportRadiusStart,
                 supportRadiusStep,
                 dataset,
+                fileCache,
                 sampleDescriptorGenerationSeed,
                 samplePointCloudSamplingSeed,
                 sampleVerticesSet,

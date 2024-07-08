@@ -58,7 +58,7 @@ void applyGaussianNoise(ShapeDescriptor::cpu::Mesh& mesh, uint64_t randomSeed, f
     }
 }
 
-ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
     ShapeBench::FilterOutput meta;
 
     float minStandardDeviation = config.at("filterSettings").at("gaussianNoise").at("minStandardDeviation");

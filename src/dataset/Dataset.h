@@ -4,6 +4,7 @@
 #include <vector>
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "nlohmann/json.hpp"
+#include "LocalDatasetCache.h"
 
 namespace ShapeBench {
     struct VertexInDataset {
@@ -34,7 +35,6 @@ namespace ShapeBench {
     public:
         std::vector<VertexInDataset> sampleVertices(uint64_t randomSeed, uint32_t count, uint32_t verticesPerObject) const;
         const DatasetEntry& at(uint32_t meshID) const;
-        ShapeDescriptor::cpu::Mesh loadMesh(const DatasetEntry& entry);
         void loadCache(const nlohmann::json& cacheJson);
     };
 }

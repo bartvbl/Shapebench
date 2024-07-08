@@ -100,34 +100,41 @@ int main(int argc, const char** argv) {
     // --- Compute and load dataset ---
     setup.dataset = ShapeBench::computeOrLoadCache(setup);
 
+    double datasetSizeLimitGB = setup.configuration.at("datasetSettings").at("cacheSizeLimitGB");
+    uint64_t datasetSizeLimitBytes = uint64_t(datasetSizeLimitGB * 1024.0 * 1024.0 * 1024.0);
+    std::filesystem::path datasetCacheDirectory = setup.configuration.at("datasetSettings").at("compressedRootDir");
+    ShapeBench::LocalDatasetCache* fileCache = new ShapeBench::LocalDatasetCache(datasetCacheDirectory,  datasetSizeLimitBytes);
+
 
 
     // --- Run experiments ---
     const nlohmann::json& methodSettings = setup.configuration.at("methodSettings");
     if(methodSettings.at(ShapeBench::QUICCIMethod::getName()).at("enabled")) {
-        testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(setup);
+        testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(setup, fileCache);
     }
     if(methodSettings.at(ShapeBench::RICIMethod::getName()).at("enabled")) {
-        testMethod<ShapeBench::RICIMethod, ShapeDescriptor::RICIDescriptor>(setup);
+        testMethod<ShapeBench::RICIMethod, ShapeDescriptor::RICIDescriptor>(setup, fileCache);
     }
     if(methodSettings.at(ShapeBench::RoPSMethod::getName()).at("enabled")) {
-        testMethod<ShapeBench::RoPSMethod, ShapeDescriptor::RoPSDescriptor>(setup);
+        testMethod<ShapeBench::RoPSMethod, ShapeDescriptor::RoPSDescriptor>(setup, fileCache);
     }
     if(methodSettings.at(ShapeBench::SIMethod::getName()).at("enabled")) {
-        testMethod<ShapeBench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(setup);
+        testMethod<ShapeBench::SIMethod, ShapeDescriptor::SpinImageDescriptor>(setup, fileCache);
     }
     if(methodSettings.at(ShapeBench::USCMethod::getName()).at("enabled")) {
-        testMethod<ShapeBench::USCMethod, ShapeDescriptor::UniqueShapeContextDescriptor>(setup);
+        testMethod<ShapeBench::USCMethod, ShapeDescriptor::UniqueShapeContextDescriptor>(setup, fileCache);
     }
     if(methodSettings.at(ShapeBench::ShapeContextMethod::getName()).at("enabled")) {
-        testMethod<ShapeBench::ShapeContextMethod, ShapeDescriptor::ShapeContextDescriptor>(setup);
+        testMethod<ShapeBench::ShapeContextMethod, ShapeDescriptor::ShapeContextDescriptor>(setup, fileCache);
     }
     if(methodSettings.at(ShapeBench::SHOTMethod<>::getName()).at("enabled")) {
-        testMethod<ShapeBench::SHOTMethod<>, ShapeDescriptor::SHOTDescriptor<>>(setup);
+        testMethod<ShapeBench::SHOTMethod<>, ShapeDescriptor::SHOTDescriptor<>>(setup, fileCache);
     }
 
     // Disabled and WIP. Horrendously slow.
     //testMethod<ShapeBench::FPFHMethod, ShapeDescriptor::FPFHDescriptor>(configuration, configurationFile.value(), dataset, randomSeed);
+
+    delete fileCache;
 }
 
 void patchKey(nlohmann::json& replicationConfig, nlohmann::json& regularConfig, std::string key) {

@@ -1,0 +1,16 @@
+#pragma once
+
+#include "utils/FileCache.h"
+#include "curl/curl.h"
+
+namespace ShapeBench {
+    class LocalDatasetCache : public FileCache {
+        CURL *curl = nullptr;
+
+        virtual void load(const std::filesystem::path& filePath) override;
+
+    public:
+        LocalDatasetCache(const std::filesystem::path& localCacheDirectory, size_t cacheDirectorySizeLimitBytes);
+        ~LocalDatasetCache() override;
+    };
+}
