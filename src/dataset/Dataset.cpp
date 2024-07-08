@@ -28,6 +28,7 @@ void ShapeBench::Dataset::loadCache(const nlohmann::json& cacheFileContents) {
             entry.id = jsonEntry.at("id");
             entry.computedObjectRadius = jsonEntry.at("boundingSphereRadius");
             entry.computedObjectCentre = {jsonEntry.at("boundingSphereCentre")[0], jsonEntry.at("boundingSphereCentre")[1], jsonEntry.at("boundingSphereCentre")[2]};
+            entry.compressedMeshFileSHA1 = jsonEntry.at("compressedFileSha1");
             entry.meshFile = std::string(jsonEntry.at("filePath"));
             entries.push_back(entry);
         } else {

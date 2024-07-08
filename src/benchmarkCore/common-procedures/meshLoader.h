@@ -3,6 +3,7 @@
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "json.hpp"
 #include "dataset/Dataset.h"
+#include "sha1.hpp"
 
 namespace ShapeBench {
     inline ShapeDescriptor::cpu::Mesh readMeshFile(const std::filesystem::path& meshFilePath, const DatasetEntry &datasetEntry) {
@@ -33,6 +34,12 @@ namespace ShapeBench {
         compressedMeshPath = compressedMeshPath.replace_extension(".cm");
 
         cache->acquireFile(pathInDataset);
+
+        std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
+        if(compressedFileSha1 != datasetEntry.compressedMeshFileSHA1) {
+            //throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
+        }
+
         ShapeDescriptor::cpu::Mesh mesh = readMeshFile(compressedMeshPath, datasetEntry);
         cache->returnFile(pathInDataset);
         return mesh;

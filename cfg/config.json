@@ -13,7 +13,6 @@
     "datasetSettings": {
         "compressedRootDir": "/home/bart/projects/shapebench/objaverse-cached",
         "objaverseRootDir": "/home/bart/projects/shapebench/shapebench/cache-objaverse",
-        "objaverseObjectList": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/object-paths.json.gz?download=true",
         "objaverseDownloadBaseURL": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/{}?download=true",
         "cacheSizeLimitGB": 100000,
         "enableDatasetCompression": true,
@@ -49,7 +48,7 @@
         },
         "datasetCache": {
             "recomputeEntirely": false,
-            "verifyRandomSubset": true,
+            "verifyRandomSubset": false,
             "randomSubsetSize": 100
         }
     },

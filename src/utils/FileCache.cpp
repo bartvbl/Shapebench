@@ -111,4 +111,3 @@ void ShapeBench::FileCache::returnFile(const std::filesystem::path& filePathInDa
 size_t ShapeBench::FileCache::getCurrentCachedDirectorySize() const {
     return totalDirectorySize;
 }
-
