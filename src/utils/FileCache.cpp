@@ -45,7 +45,7 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDa
     CachedFile cachedItem;
     cachedItem.usedByThreadCount = 0;
     cachedItem.filePath = cacheRootDirectory / filePathInDataset;
-    cachedItem.fileSizeInBytes = std::filesystem::file_size(cachedItem.filePath);
+
 
     assert(totalDirectorySizeLimit > cachedItem.fileSizeInBytes);
 
@@ -57,8 +57,10 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDa
     // We now get hold of the file we want to add into the cache
     if(!std::filesystem::exists(cachedItem.filePath)) {
         load(filePathInDataset);
-        totalDirectorySize += cachedItem.fileSizeInBytes;
+        totalDirectorySize += std::filesystem::file_size(cachedItem.filePath);
     }
+
+    cachedItem.fileSizeInBytes = std::filesystem::file_size(cachedItem.filePath);
 
     // When the node is inserted, it is by definition the most recently used one
     // We therefore put it in the front of the queue right away
