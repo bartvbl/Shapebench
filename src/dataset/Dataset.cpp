@@ -6,7 +6,7 @@
 #include "benchmarkCore/randomEngine.h"
 #include "nlohmann/json.hpp"
 #include "benchmarkCore/constants.h"
-#include "benchmarkCore/CompressedDatasetCreator.h"
+#include "CompressedDatasetCreator.h"
 #include "benchmarkCore/MissingBenchmarkConfigurationException.h"
 #include "benchmarkCore/BenchmarkConfiguration.h"
 

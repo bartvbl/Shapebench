@@ -1,7 +1,7 @@
 #include "DatasetLoader.h"
 #include "benchmarkCore/MissingBenchmarkConfigurationException.h"
 #include "benchmarkCore/constants.h"
-#include "benchmarkCore/CompressedDatasetCreator.h"
+#include "CompressedDatasetCreator.h"
 
 ShapeBench::Dataset ShapeBench::computeOrLoadCache(const ShapeBench::BenchmarkConfiguration& setup) {
     const std::filesystem::path cacheDirectory = setup.configuration.at("cacheDirectory");
