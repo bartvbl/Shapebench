@@ -5,7 +5,9 @@
 #include "fmt/format.h"
 
 void ShapeBench::LocalDatasetCache::load(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadPath) {
-    std::cout << "Downloading: " + downloadPath.string() + " -> " + filePathInDataset.string() << std::endl;
+    double directorySizeGB = double(totalDirectorySize) / double(1024 * 1024 * 1024);
+    double directorySizeLimitGB = double(totalDirectorySizeLimit) / double(1024 * 1024 * 1024);
+    std::cout << "Downloading: " + downloadPath.string() + " -> " + filePathInDataset.string() << " (cache capacity used: " << directorySizeGB << "GB / " << directorySizeLimitGB << "GB)" << std::endl;
 
     std::string downloadURL = fmt::format(fmt::runtime(datasetBaseURL), downloadPath.string());
     FILE* temporaryFile = fopen(temporaryDownloadFile.c_str(), "wb");

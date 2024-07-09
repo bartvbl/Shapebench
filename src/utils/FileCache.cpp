@@ -3,7 +3,7 @@
 
 ShapeBench::FileCache::FileCache(const std::filesystem::path& cacheDirectory, size_t totalDirectorySizeLimit) : cacheRootDirectory(cacheDirectory), totalDirectorySizeLimit(totalDirectorySizeLimit) {
     randomAccessMap.reserve(1000);
-    std::vector<std::filesystem::path> filesInDirectory = ShapeDescriptor::listDirectory(cacheDirectory);
+    std::vector<std::filesystem::path> filesInDirectory = ShapeDescriptor::listDirectoryAndSubdirectories(cacheDirectory);
     for(const std::filesystem::path& filePath : filesInDirectory) {
         // Download URL can be empty because file exists
         if(std::filesystem::is_directory(filePath)) {
@@ -35,6 +35,7 @@ void ShapeBench::FileCache::deleteLeastRecentlyUsedFile() {
     assert(evictedItem.usedByThreadCount == 0);
 
     // Delete file from disk
+    std::cout << "Deleting: " << evictedItem.filePath.string() << std::endl;
     std::filesystem::remove(evictedItem.filePath);
 
     // Remove entry from the cache
@@ -50,6 +51,13 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDa
     cachedItem.usedByThreadCount = 0;
     cachedItem.filePath = filePathInDataset;
 
+    std::string fileIdentifier = std::filesystem::absolute(cachedItem.filePath).string();
+
+    if(randomAccessMap.contains(fileIdentifier)) {
+        // File already exists
+        return;
+    }
+
 
     assert(totalDirectorySizeLimit > cachedItem.fileSizeInBytes);
 
@@ -61,15 +69,15 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDa
     // We now get hold of the file we want to add into the cache
     if(!std::filesystem::exists(cachedItem.filePath)) {
         load(filePathInDataset, downloadURL);
-        totalDirectorySize += std::filesystem::file_size(cachedItem.filePath);
     }
 
+    totalDirectorySize += std::filesystem::file_size(cachedItem.filePath);
     cachedItem.fileSizeInBytes = std::filesystem::file_size(cachedItem.filePath);
 
     // When the node is inserted, it is by definition the most recently used one
     // We therefore put it in the front of the queue right away
     lruItemQueue.emplace_front(cachedItem);
-    randomAccessMap[std::filesystem::absolute(cachedItem.filePath).string()] = lruItemQueue.begin();
+    randomAccessMap[fileIdentifier] = lruItemQueue.begin();
 
     statistics.insertions++;
 }
