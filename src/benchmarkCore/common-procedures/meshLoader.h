@@ -33,7 +33,7 @@ namespace ShapeBench {
         std::filesystem::path compressedMeshPath = compressedDatasetBasePath / pathInDataset;
         compressedMeshPath = compressedMeshPath.replace_extension(".cm");
 
-        cache->acquireFile(pathInDataset);
+        cache->acquireFile(compressedMeshPath, pathInDataset);
 
         std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
         if(compressedFileSha1 != datasetEntry.compressedMeshFileSHA1) {
@@ -41,7 +41,7 @@ namespace ShapeBench {
         }
 
         ShapeDescriptor::cpu::Mesh mesh = readMeshFile(compressedMeshPath, datasetEntry);
-        cache->returnFile(pathInDataset);
+        cache->returnFile(compressedMeshPath);
         return mesh;
     }
 }

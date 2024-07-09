@@ -4,10 +4,10 @@
 #include "curl/curl.h"
 #include "fmt/format.h"
 
-void ShapeBench::LocalDatasetCache::load(const std::filesystem::path &filePath) {
-    std::cout << "Downloading: " + filePath.string() << std::endl;
+void ShapeBench::LocalDatasetCache::load(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadPath) {
+    std::cout << "Downloading: " + downloadPath.string() + " -> " + filePathInDataset.string() << std::endl;
 
-    std::string downloadURL = fmt::format(fmt::runtime(datasetBaseURL), filePath.string());
+    std::string downloadURL = fmt::format(fmt::runtime(datasetBaseURL), downloadPath.string());
     FILE* temporaryFile = fopen(temporaryDownloadFile.c_str(), "wb");
     curl_easy_setopt(curl, CURLOPT_URL, downloadURL.c_str());
 
@@ -16,15 +16,15 @@ void ShapeBench::LocalDatasetCache::load(const std::filesystem::path &filePath) 
 
     CURLcode res = curl_easy_perform(curl);
     if(res != CURLE_OK) {
-        throw std::logic_error("FATAL: failed to download file: " + filePath.string());
+        throw std::logic_error("FATAL: failed to download file: " + downloadPath.string());
     }
     fclose(temporaryFile);
 
-    std::filesystem::path filePathOnDisk = cacheRootDirectory / filePath;
+    std::filesystem::path filePathOnDisk = cacheRootDirectory / filePathInDataset;
     std::filesystem::create_directories(filePathOnDisk.parent_path());
 
     ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(temporaryDownloadFile);
-    ShapeDescriptor::writeCompressedGeometryFile(mesh, filePathOnDisk.replace_extension(".cm"), true);
+    ShapeDescriptor::writeCompressedGeometryFile(mesh, filePathOnDisk, true);
     ShapeDescriptor::free(mesh);
 
     std::filesystem::remove(temporaryDownloadFile);
@@ -34,7 +34,7 @@ ShapeBench::LocalDatasetCache::LocalDatasetCache(const std::filesystem::path &lo
                                                  std::string datasetBaseURL_,
                                                  size_t cacheDirectorySizeLimitBytes)
                                                  : FileCache(localCacheDirectory, cacheDirectorySizeLimitBytes),
-                                                 datasetBaseURL(std::move(datasetBaseURL_)){
+                                                 datasetBaseURL(datasetBaseURL_){
     temporaryDownloadFile = localCacheDirectory / "download.glb";
     if(std::filesystem::exists(temporaryDownloadFile)) {
         std::filesystem::remove(temporaryDownloadFile);

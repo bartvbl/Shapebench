@@ -5,7 +5,11 @@ ShapeBench::FileCache::FileCache(const std::filesystem::path& cacheDirectory, si
     randomAccessMap.reserve(1000);
     std::vector<std::filesystem::path> filesInDirectory = ShapeDescriptor::listDirectory(cacheDirectory);
     for(const std::filesystem::path& filePath : filesInDirectory) {
-        insertFile(filePath);
+        // Download URL can be empty because file exists
+        if(std::filesystem::is_directory(filePath)) {
+            continue;
+        }
+        insertFile(std::filesystem::absolute(filePath), "");
     }
 }
 
@@ -41,10 +45,10 @@ void ShapeBench::FileCache::deleteLeastRecentlyUsedFile() {
     assert(randomAccessMap.find(std::filesystem::absolute(evictedItem.filePath).string()) == randomAccessMap.end());
 }
 
-void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDataset) {
+void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL) {
     CachedFile cachedItem;
     cachedItem.usedByThreadCount = 0;
-    cachedItem.filePath = cacheRootDirectory / filePathInDataset;
+    cachedItem.filePath = filePathInDataset;
 
 
     assert(totalDirectorySizeLimit > cachedItem.fileSizeInBytes);
@@ -56,7 +60,7 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDa
 
     // We now get hold of the file we want to add into the cache
     if(!std::filesystem::exists(cachedItem.filePath)) {
-        load(filePathInDataset);
+        load(filePathInDataset, downloadURL);
         totalDirectorySize += std::filesystem::file_size(cachedItem.filePath);
     }
 
@@ -79,7 +83,7 @@ void ShapeBench::FileCache::touchFileEntry(const std::filesystem::path& filePath
     lruItemQueue.splice(lruItemQueue.begin(), lruItemQueue, it->second);
 }
 
-void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInDataset) {
+void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL) {
     std::filesystem::path filePathOnDisk = std::filesystem::absolute(cacheRootDirectory / filePathInDataset);
     std::unique_lock<std::mutex> mainLock(queueLock);
     typename std::unordered_map<std::string, typename std::list<CachedFile>::iterator>::iterator
@@ -93,7 +97,7 @@ void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInD
     } else {
         // FileCache miss. Load the item into the cache instead
         statistics.misses++;
-        insertFile(filePathInDataset);
+        insertFile(filePathOnDisk, downloadURL);
         it = randomAccessMap.find(std::filesystem::absolute(filePathOnDisk).string());
     }
     it->second->usedByThreadCount++;

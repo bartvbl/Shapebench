@@ -59,20 +59,20 @@ namespace ShapeBench {
         explicit FileCache(const std::filesystem::path& cacheDirectory, size_t totalDirectorySizeLimit);
 
         void deleteLeastRecentlyUsedFile();
-        void insertFile(const std::filesystem::path& filePathInDataset);
+        void insertFile(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL);
         void touchFileEntry(const std::filesystem::path& filePathOnDisk);
 
         // What needs to happen when a cache miss or eviction occurs depends on the specific use case
         // Since this class is a general implementation, a subclass needs to implement this functionality.
 
         // May be called by multiple threads simultaneously
-        virtual void load(const std::filesystem::path& filePathInDataset) = 0;
+        virtual void load(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL) = 0;
 
     protected:
         const std::filesystem::path cacheRootDirectory;
 
     public:
-        void acquireFile(const std::filesystem::path& filePathInDataset);
+        void acquireFile(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL);
         void returnFile(const std::filesystem::path& filePathInDataset);
 
         size_t getCurrentCachedDirectorySize() const;
