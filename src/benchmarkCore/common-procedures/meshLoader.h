@@ -4,13 +4,14 @@
 #include "json.hpp"
 #include "dataset/Dataset.h"
 #include "sha1.hpp"
+#include "dataset/miniballGenerator.h"
 
 namespace ShapeBench {
-    inline ShapeDescriptor::cpu::Mesh readMeshFile(const std::filesystem::path& meshFilePath, const DatasetEntry &datasetEntry) {
-        float computedBoundingSphereRadius = std::max<float>(datasetEntry.computedObjectRadius, 0.0000001);
-        ShapeDescriptor::cpu::float3 computedBoundingSphereCentre = datasetEntry.computedObjectCentre;
-
-        ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(meshFilePath);
+    inline void moveAndScaleMesh(ShapeDescriptor::cpu::Mesh& mesh, const DatasetEntry &datasetEntry) {
+        float computedBoundingSphereRadius = std::max<float>(float(datasetEntry.computedObjectRadius), 0.0000001f);
+        ShapeDescriptor::cpu::float3 computedBoundingSphereCentre = {float(datasetEntry.computedObjectCentre.at(0)),
+                                                                     float(datasetEntry.computedObjectCentre.at(1)),
+                                                                     float(datasetEntry.computedObjectCentre.at(2))};
 
         // Scale mesh down to a unit sphere
         float scaleFactor = 1.0f / float(computedBoundingSphereRadius);
@@ -18,7 +19,6 @@ namespace ShapeBench {
             mesh.vertices[i] = scaleFactor * (mesh.vertices[i] - computedBoundingSphereCentre);
             mesh.normals[i] = normalize(mesh.normals[i]);
         }
-        return mesh;
     }
 
     inline ShapeDescriptor::cpu::Mesh readDatasetMesh(const nlohmann::json &config, ShapeBench::LocalDatasetCache* cache, const DatasetEntry &datasetEntry) {
@@ -40,8 +40,20 @@ namespace ShapeBench {
             throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
         }
 
-        ShapeDescriptor::cpu::Mesh mesh = readMeshFile(compressedMeshPath, datasetEntry);
+        ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(compressedMeshPath);
+
+        if(config.at("datasetSettings").at("verifyFileIntegrity") && mesh.vertexCount > 0) {
+            ShapeBench::Miniball ball = computeMiniball(mesh);
+            ShapeBench::Miniball storedBall;
+            storedBall.radius = datasetEntry.computedObjectRadius;
+            storedBall.origin = datasetEntry.computedObjectCentre;
+            verifyMiniballValidity(ball, storedBall);
+        }
+
+        moveAndScaleMesh(mesh, datasetEntry);
+
         cache->returnFile(compressedMeshPath);
+
         return mesh;
     }
 }

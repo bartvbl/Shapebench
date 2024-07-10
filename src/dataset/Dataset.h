@@ -24,9 +24,9 @@ namespace ShapeBench {
         std::filesystem::path meshFile;
         uint32_t vertexCount = 0;
         uint32_t id = 0xFFFFFFFF;
-        float computedObjectRadius = 0;
+        double computedObjectRadius = 0;
         std::string compressedMeshFileSHA1 = "";
-        ShapeDescriptor::cpu::float3 computedObjectCentre = {0, 0, 0};
+        std::array<double, 3> computedObjectCentre = {0, 0, 0};
 
         bool operator<(DatasetEntry& other);
     };

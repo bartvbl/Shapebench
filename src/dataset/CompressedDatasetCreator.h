@@ -6,9 +6,10 @@
 #include "json.hpp"
 #include "nlohmann/json.hpp"
 #include "sha1.hpp"
-#include "Seb.h"
+
 #include "utils/prettyprint.h"
 #include "replication/RandomSubset.h"
+#include "miniballGenerator.h"
 
 namespace ShapeBench {
     // Takes in a dataset of file formats supported by the libShapeDescriptor library and compresses it using the library's compact mesh format
@@ -120,9 +121,6 @@ namespace ShapeBench {
                 std::filesystem::path compressedMeshPath = compressedDatasetDirectory / filePath;
                 compressedMeshPath.replace_extension(".cm");
 
-                std::vector<double> coordinate(3);
-                std::vector<Seb::Point<double>> vertices;
-
                 try {
                     if (isPointCloud) {
                         #pragma omp atomic
@@ -135,7 +133,6 @@ namespace ShapeBench {
                             if(datasetEntry.at("compressedFileSha1") != compressedFileSha1) {
                                 throw std::logic_error("FATAL: file digest of compressed file " + filePath.string() + " did not match the one on record!");
                             }
-                        } else {
                         }
                         datasetEntry["compressedFileSha1"] = compressedFileSha1;
 
@@ -148,13 +145,18 @@ namespace ShapeBench {
                         }
                         ShapeDescriptor::free(readCloud);
 
-                        vertices.reserve(cloud.pointCount);
-                        for (uint32_t vertex = 0; vertex < cloud.pointCount; vertex++) {
-                            ShapeDescriptor::cpu::float3 point = cloud.vertices[vertex];
-                            coordinate.at(0) = point.x;
-                            coordinate.at(1) = point.y;
-                            coordinate.at(2) = point.z;
-                            vertices.emplace_back(3, coordinate.begin());
+                        if(cloud.pointCount > 0) {
+                            ShapeBench::Miniball ball = computeMiniball(cloud);
+                            if(!entryIsMissing) {
+                                ShapeBench::Miniball storedMiniball;
+                                storedMiniball.radius = datasetEntry["boundingSphereRadius"];
+                                storedMiniball.origin = {
+                                        datasetEntry["boundingSphereCentre"].at(0), datasetEntry["boundingSphereCentre"].at(1), datasetEntry["boundingSphereCentre"].at(2)
+                                };
+                                verifyMiniballValidity(ball, storedMiniball);
+                            }
+                            datasetEntry["boundingSphereCentre"] = ball.origin;
+                            datasetEntry["boundingSphereRadius"] = ball.radius;
                         }
 
                         ShapeDescriptor::free(cloud);
@@ -167,7 +169,6 @@ namespace ShapeBench {
                             if(datasetEntry.at("compressedFileSha1") != compressedFileSha1) {
                                 throw std::logic_error("FATAL: file digest of compressed file " + filePath.string() + " did not match the one on record!");
                             }
-                        } else {
                         }
                         datasetEntry["compressedFileSha1"] = compressedFileSha1;
 
@@ -179,13 +180,18 @@ namespace ShapeBench {
                         }
                         ShapeDescriptor::free(readMesh);
 
-                        vertices.reserve(mesh.vertexCount);
-                        for (uint32_t vertex = 0; vertex < mesh.vertexCount; vertex++) {
-                            ShapeDescriptor::cpu::float3 point = mesh.vertices[vertex];
-                            coordinate.at(0) = point.x;
-                            coordinate.at(1) = point.y;
-                            coordinate.at(2) = point.z;
-                            vertices.emplace_back(3, coordinate.begin());
+                        if(mesh.vertexCount > 0) {
+                            ShapeBench::Miniball ball = computeMiniball(mesh);
+                            if(!entryIsMissing) {
+                                ShapeBench::Miniball storedMiniball;
+                                storedMiniball.radius = datasetEntry["boundingSphereRadius"];
+                                storedMiniball.origin = {
+                                        datasetEntry["boundingSphereCentre"].at(0), datasetEntry["boundingSphereCentre"].at(1), datasetEntry["boundingSphereCentre"].at(2)
+                                };
+                                verifyMiniballValidity(ball, storedMiniball);
+                            }
+                            datasetEntry["boundingSphereCentre"] = ball.origin;
+                            datasetEntry["boundingSphereRadius"] = ball.radius;
                         }
 
                         ShapeDescriptor::free(mesh);
@@ -196,33 +202,6 @@ namespace ShapeBench {
                     datasetEntry["parseFailed"] = true;
                     datasetEntry["parseFailedReason"] = e.what();
                     datasetEntry["vertexCount"] = -1;
-                }
-
-                if (!vertices.empty()) {
-                    Seb::Smallest_enclosing_ball<double> ball(3, vertices);
-                    double boundingRadius = ball.radius();
-                    for (int j = 0; j < 3; j++) {
-                        coordinate.at(j) = ball.center_begin()[j];
-                    }
-                    if(!entryIsMissing) {
-                        if(datasetEntry.at("boundingSphereRadius") != boundingRadius) {
-                            throw std::logic_error("FATAL: The computed bounding sphere radius deviates from the one in the cache: " + std::to_string(double(datasetEntry.at("boundingSphereRadius"))) + " vs " + std::to_string(boundingRadius));
-                        }
-                        if(datasetEntry.at("boundingSphereCentre").at(0) != coordinate.at(0)
-                        || datasetEntry.at("boundingSphereCentre").at(1) != coordinate.at(1)
-                        || datasetEntry.at("boundingSphereCentre").at(2) != coordinate.at(2)) {
-                            throw std::logic_error("FATAL: The computed bounding sphere coordinate deviated from the one in the cache: (" +
-                                                      std::to_string(double(datasetEntry.at("boundingSphereCentre").at(0))) + ", "
-                                                    + std::to_string(double(datasetEntry.at("boundingSphereCentre").at(1))) + ", "
-                                                    + std::to_string(double(datasetEntry.at("boundingSphereCentre").at(2)))
-                                                    + ") vs ("
-                                                    + std::to_string(coordinate.at(0)) + ", "
-                                                    + std::to_string(coordinate.at(1)) + ", "
-                                                    + std::to_string(coordinate.at(2)) + ")");
-                        }
-                    }
-                    datasetEntry["boundingSphereCentre"] = {coordinate.at(0), coordinate.at(1), coordinate.at(2)};
-                    datasetEntry["boundingSphereRadius"] = boundingRadius;
                 }
 
 
