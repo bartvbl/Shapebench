@@ -25,6 +25,7 @@
 #include "filters/gaussianNoise/gaussianNoiseFilter.h"
 #include "fmt/format.h"
 #include "BenchmarkConfiguration.h"
+#include "replication/RandomSubset.h"
 
 template <typename T>
 class lockGuard
@@ -42,10 +43,13 @@ public:
     }
 };
 
-
-
 template<typename DescriptorMethod, typename DescriptorType>
-std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet, const nlohmann::json& config, const ShapeBench::Dataset& dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed, float supportRadius) {
+std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeReferenceDescriptors(const std::vector<ShapeBench::VertexInDataset>& representativeSet,
+                                                                                                 const nlohmann::json& config,
+                                                                                                 const ShapeBench::Dataset& dataset,
+                                                                                                 ShapeBench::LocalDatasetCache* fileCache,
+                                                                                                 uint64_t randomSeed,float supportRadius,
+                                                                                                 ShapeBench::RandomSubset* randomSubsetToReplicate = nullptr) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     ShapeBench::randomEngine randomEngine(randomSeed);
     std::vector<uint64_t> randomSeeds(representativeSet.size());
@@ -56,20 +60,32 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeRefe
     std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> representativeDescriptors(representativeSet.size());
     uint32_t completedCount = 0;
 
-    #pragma omp parallel for schedule(dynamic) default(none) shared(representativeSet, supportRadius, fileCache, dataset, config, randomSeeds, representativeDescriptors, completedCount, std::cout)
+    #pragma omp parallel for schedule(dynamic) default(none) shared(representativeSet, randomSubsetToReplicate, supportRadius, fileCache, dataset, config, randomSeeds, representativeDescriptors, completedCount, std::cout)
     for(int i = 0; i < representativeSet.size(); i++) {
         uint32_t currentMeshID = representativeSet.at(i).meshID;
         if(i > 0 && representativeSet.at(i - 1).meshID == currentMeshID) {
             continue;
         }
+
+        bool shouldReplicate = randomSubsetToReplicate != nullptr;
+        bool sequenceContainsItemToReplicate = randomSubsetToReplicate->contains(i);
+
         uint32_t sameMeshCount = 1;
         for(int j = i + 1; j < representativeSet.size(); j++) {
             uint32_t meshID = representativeSet.at(j).meshID;
+            if(shouldReplicate && randomSubsetToReplicate->contains(j)) {
+                sequenceContainsItemToReplicate = true;
+            }
             if(currentMeshID != meshID) {
                 break;
             }
             sameMeshCount++;
         }
+
+        if(shouldReplicate && !sequenceContainsItemToReplicate) {
+            continue;
+        }
+
         std::vector<DescriptorType> outputDescriptors(sameMeshCount);
         std::vector<ShapeDescriptor::OrientedPoint> descriptorOrigins(sameMeshCount);
         std::vector<float> radii(sameMeshCount, supportRadius);
@@ -130,6 +146,11 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeDesc
         std::string name) {
     const std::filesystem::path descriptorCacheFile = std::filesystem::path(std::string(configuration.at("cacheDirectory"))) / (name + "Descriptors-" + DescriptorMethod::getName() + ".dat");
     std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> referenceDescriptors;
+
+    bool replicateSubset = configuration.at("replicationOverrides").at(name + "DescriptorSet").at("recomputeRandomSubset");
+    uint32_t randomSubsetSize = configuration.at("replicationOverrides").at(name + "DescriptorSet").at("randomSubsetSize");
+    bool replicateEntirely = configuration.at("replicationOverrides").at(name + "DescriptorSet").at("recomputeEntirely");
+
     if(!std::filesystem::exists(descriptorCacheFile)) {
         std::cout << "    No cached " + name + " descriptors were found." << std::endl;
         std::cout << "    Computing " + name + " descriptors.." << std::endl;
@@ -167,6 +188,34 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeDesc
                                                                 "Consider regenerating the cache by deleting the file: " + descriptorCacheFile.string());
         } else if(referenceDescriptors.size() > representativeSet.size()) {
             std::cout << "    WARNING: " + errorMessage + " Since the cache contains more descriptors than necessary, execution will continue." << std::endl;
+        }
+
+        if(replicateSubset || replicateEntirely) {
+            if(replicateSubset && replicateEntirely) {
+                std::cout << "    NOTE: replication of a random subset *and* the entire descriptor set was requested. The entire set will be replicated." << std::endl;
+            }
+            std::cout << "    Replication of " << name << " descriptor set has been enabled. Performing replication.." << std::endl;
+            uint32_t numberOfDescriptorsToReplicate = replicateEntirely ? readDescriptors.length : std::min<uint32_t>(readDescriptors.length, randomSubsetSize);
+            uint64_t replicationRandomSeed = configuration.at("replicationOverrides").at("replicationRandomSeed");
+            ShapeBench::RandomSubset subset(0, readDescriptors.length, numberOfDescriptorsToReplicate, replicationRandomSeed);
+            std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> replicatedDescriptors;
+            std::cout << "    Computing descriptors.." << std::endl;
+            replicatedDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, fileCache, representativeSetRandomSeed, supportRadius, &subset);
+            std::cout << "    Comparing computed descriptors against those in the cache.." << std::endl;
+            for(uint32_t descriptorIndex = 0; descriptorIndex < representativeSet.size(); descriptorIndex++) {
+                if(!subset.contains(descriptorIndex)) {
+                    continue;
+                }
+                uint8_t* descriptorA = reinterpret_cast<uint8_t*>(&replicatedDescriptors.at(descriptorIndex).descriptor);
+                uint8_t* descriptorB = reinterpret_cast<uint8_t*>(&referenceDescriptors.at(descriptorIndex).descriptor);
+                for(uint32_t byteIndex = 0; byteIndex < sizeof(DescriptorType); byteIndex++) {
+                    if(descriptorA[byteIndex] != descriptorB[byteIndex]) {
+                        throw std::logic_error("FATAL: Descriptors at index " + std::to_string(descriptorIndex) + " failed to replicate at byte " + std::to_string(byteIndex) + "!");
+                    }
+                }
+            }
+            std::cout << "    All descriptors in the replicated set were identical to those cached on disk." << std::endl;
+            std::cout << "    Replication successful." << std::endl;
         }
     }
     return referenceDescriptors;
