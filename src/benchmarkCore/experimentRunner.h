@@ -199,7 +199,7 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeDesc
             uint64_t replicationRandomSeed = configuration.at("replicationOverrides").at("replicationRandomSeed");
             ShapeBench::RandomSubset subset(0, readDescriptors.length, numberOfDescriptorsToReplicate, replicationRandomSeed);
             std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> replicatedDescriptors;
-            std::cout << "    Computing descriptors.." << std::endl;
+            std::cout << "    Computing " << numberOfDescriptorsToReplicate << " descriptors.." << std::endl;
             replicatedDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, fileCache, representativeSetRandomSeed, supportRadius, &subset);
             std::cout << "    Comparing computed descriptors against those in the cache.." << std::endl;
             for(uint32_t descriptorIndex = 0; descriptorIndex < representativeSet.size(); descriptorIndex++) {

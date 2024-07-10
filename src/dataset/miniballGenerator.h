@@ -47,7 +47,7 @@ namespace ShapeBench {
         }
         if(!vertices.empty()) {
             Seb::Smallest_enclosing_ball<double> ball(3, vertices);
-            Miniball BALL;
+            Miniball BALL; // BALL
             BALL.radius = ball.radius();
             BALL.origin.at(0) = ball.center_begin()[0];
             BALL.origin.at(1) = ball.center_begin()[1];
