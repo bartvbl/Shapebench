@@ -251,6 +251,11 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
     // Getting a support radius
     std::cout << "Determining support radius.." << std::endl;
     float supportRadius = 0;
+
+    bool shouldReplicateSupportRadiusEntirely = configuration.at("replicationOverrides").at("supportRadius").at("recomputeEntirely");
+    bool shouldReplicateSupportRadiusPartially = configuration.at("replicationOverrides").at("supportRadius").at("recomputeSingleRadius");
+    bool shouldReplicateSupportRadius = shouldReplicateSupportRadiusEntirely || shouldReplicateSupportRadiusPartially;
+
     if (!computedConfig.containsKey(methodName, "supportRadius")) {
         std::cout << "    No support radius has been computed yet for this method." << std::endl;
         std::cout << "    Performing support radius estimation.." << std::endl;
@@ -260,7 +265,20 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
     } else {
         supportRadius = computedConfig.getFloat(methodName, "supportRadius");
         std::cout << "    Cached support radius was found for this method: " << supportRadius << std::endl;
-        engine(); // Used for RNG consistency
+        uint64_t supportRadiusRandomSeed = engine(); // Used for RNG consistency
+
+        if(shouldReplicateSupportRadius) {
+            std::cout << "    Replication of support radius was requested. Performing replication.." << std::endl;
+            float replicatedSupportRadius = ShapeBench::estimateSupportRadius<DescriptorMethod, DescriptorType>(configuration, dataset, fileCache, supportRadiusRandomSeed);
+            if(shouldReplicateSupportRadiusEntirely) {
+                if(replicatedSupportRadius != supportRadius) {
+                    throw std::logic_error("FATAL: replicated support radius does not match the one that was computed previously! Original: " + std::to_string(supportRadius) + ", replicated: " + std::to_string(replicatedSupportRadius));
+                }
+                std::cout << "    Support radius has been successfully replicated." << std::endl;
+            }
+            std::cout << "    The computed distance statistics must be validated upon completion of the benchmark executable." << std::endl;
+            std::cout << "    If you ran the benchmark through the replication script, this will be done automatically." << std::endl;
+        }
     }
 
     // Computing sample descriptors and their distance to the representative set

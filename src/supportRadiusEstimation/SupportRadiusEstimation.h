@@ -177,7 +177,7 @@ namespace ShapeBench {
                 referenceDescriptors.at(representativeSetSize * i + referenceIndex) = generatedDescriptors.at(i);
             }
 
-            if(referenceIndex == 0) {
+            /*if(referenceIndex == 0) {
                 float descriptorDigest = 0;
                 for(uint32_t descriptorIndex = 0; descriptorIndex < generatedDescriptors.size(); descriptorIndex++) {
                     float* descriptorBasePointer = reinterpret_cast<float*>(generatedDescriptors.at(descriptorIndex).contents);
@@ -187,7 +187,7 @@ namespace ShapeBench {
                     }
                 }
                 std::cout << std::endl << "Digest of first descriptor set: " << std::hex << descriptorDigest << std::dec << std::endl;
-            }
+            }*/
 
             if(DescriptorMethod::usesPointCloudInput()) {
                 ShapeDescriptor::free(representativeSetPointCloud);
@@ -235,7 +235,8 @@ namespace ShapeBench {
     float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
         static_assert(std::is_base_of<ShapeBench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
 
-
+        bool shouldReplicateSingleRadius = config.at("replicationOverrides").at("supportRadius").at("recomputeSingleRadius");
+        uint32_t radiusToRecompute = config.at("replicationOverrides").at("supportRadius").at("radiusIndexToRecompute");
         ShapeBench::randomEngine randomEngine(randomSeed);
 
         const nlohmann::json& supportRadiusConfig = config.at("parameterSelection").at("supportRadius");
@@ -244,6 +245,12 @@ namespace ShapeBench {
         float supportRadiusStart = supportRadiusConfig.at("radiusSearchStart");
         float supportRadiusStep = supportRadiusConfig.at("radiusSearchStep");
         uint32_t numberOfSupportRadiiToTry = supportRadiusConfig.at("numberOfSupportRadiiToTry");
+
+        // Override settings in case of replicating a single radius
+        if(shouldReplicateSingleRadius) {
+            numberOfSupportRadiiToTry = 1;
+            supportRadiusStart = supportRadiusStart + float(radiusToRecompute) * float(supportRadiusStep);
+        }
 
         std::vector<VertexInDataset> representativeSet = dataset.sampleVertices(randomEngine(), representativeSetSize, 1);
         std::vector<VertexInDataset> sampleVerticesSet = dataset.sampleVertices(randomEngine(), sampleDescriptorSetSize, 1);
@@ -308,7 +315,8 @@ namespace ShapeBench {
             distanceStats.at(i) = stats;
 
             std::stringstream outputLine;
-            outputLine << i << ", " << (float(i) * supportRadiusStep + supportRadiusStart) << ", ";
+            uint32_t radiusIndex = shouldReplicateSingleRadius ? radiusToRecompute : i;
+            outputLine << radiusIndex << ", " << (float(i) * supportRadiusStep + supportRadiusStart) << ", ";
             outputLine << stats.minMeans << ", " << stats.meanOfMeans << ", " << stats.maxMeans << ", "
                        << stats.minVariance << ", " << stats.meanOfVariance << ", " << stats.maxVariance << std::endl;
             std::string lineString = outputLine.str();
