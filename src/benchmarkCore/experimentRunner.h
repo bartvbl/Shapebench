@@ -68,7 +68,7 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeRefe
         }
 
         bool shouldReplicate = randomSubsetToReplicate != nullptr;
-        bool sequenceContainsItemToReplicate = randomSubsetToReplicate->contains(i);
+        bool sequenceContainsItemToReplicate = randomSubsetToReplicate != nullptr && randomSubsetToReplicate->contains(i);
 
         uint32_t sameMeshCount = 1;
         for(int j = i + 1; j < representativeSet.size(); j++) {
