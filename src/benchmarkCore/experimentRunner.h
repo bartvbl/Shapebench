@@ -349,6 +349,8 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
 
 
+
+
     // --- Running experiments ---
     for(uint32_t experimentIndex = 0; experimentIndex < experimentCount; experimentIndex++) {
         ShapeBench::ExperimentResult experimentResult;
@@ -369,6 +371,27 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
         std::string experimentName = experimentConfig.at("name");
         std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": " << experimentName << std::endl;
+
+        ShapeBench::RandomSubset replicationSubset;
+        if(setup.replicationSettings.enabled) {
+            std::cout << "    Replication mode enabled." << std::endl;
+            bool replicateEntirely = configuration.at("replicationOverrides").at("experiment").at("recomputeEntirely");
+            bool replicateSubset = configuration.at("replicationOverrides").at("experiment").at("recomputeRandomSubset");
+            if(!(replicateEntirely || replicateSubset)) {
+                std::cout << "    WARNING: Configuration file did not specify the extent to which the given results file should be replicated. It will be replicated entirely." << std::endl;
+                replicateEntirely = true;
+            } else if(replicateEntirely && replicateSubset) {
+                replicateSubset = false;
+            }
+
+            uint32_t numberOfResultsToReplicate = sampleSetSize;
+            if(replicateSubset) {
+                numberOfResultsToReplicate = configuration.at("replicationOverrides").at("experiment").at("randomSubsetSize");
+            }
+            uint64_t replicationRandomSeed = configuration.at("replicationOverrides").at("replicationRandomSeed");
+            replicationSubset = ShapeBench::RandomSubset(0, sampleSetSize, numberOfResultsToReplicate, replicationRandomSeed);
+            std::cout << "    Replicating " << numberOfResultsToReplicate << " results.." << std::endl;
+        }
 
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
         uint32_t testedObjectCount = sampleSetSize / verticesPerSampleObject;
@@ -392,8 +415,18 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             threadsToLaunch = experimentConfig.at("threadLimit");
         }
 
-        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(fileCache, resultsDirectory, intermediateSaveFrequency, experimentResult, enablePRCComparisonMode, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, filterInstanceMap)
+        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(setup, replicationSubset, fileCache, resultsDirectory, intermediateSaveFrequency, experimentResult, enablePRCComparisonMode, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, filterInstanceMap)
         for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject * illustrativeObjectStride) {
+            if(setup.replicationSettings.enabled) {
+                bool objectContainsResultToReplicate = false;
+                for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                    objectContainsResultToReplicate = objectContainsResultToReplicate || replicationSubset.contains(sampleVertexIndex + i);
+                }
+                if(!objectContainsResultToReplicate) {
+                    continue;
+                }
+            }
+
             ShapeBench::randomEngine experimentInstanceRandomEngine(experimentRandomSeeds.at(sampleVertexIndex / verticesPerSampleObject));
 
             ShapeBench::VertexInDataset firstSampleVertex = sampleVerticesSet.at(sampleVertexIndex);
@@ -517,7 +550,6 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
                     uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors.at(sampleVertexIndex + i), filteredDescriptors.at(i), referenceDescriptors);
 
                     if(enablePRCComparisonMode) {
-                        //TODO: compute PRC info struct
                         ShapeBench::DescriptorOfVertexInDataset<DescriptorType> filteredDescriptor;
                         filteredDescriptor.vertex = filteredMesh.originalReferenceVertices.at(i);
                         filteredDescriptor.descriptor = filteredDescriptors.at(i);
