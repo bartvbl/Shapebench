@@ -28,7 +28,7 @@ namespace ShapeBench {
 
         // Replication settings
         bool forceInvalidateCache = replicationConfiguration.at("recomputeEntirely");
-        bool recomputeRandomSubset = replicationConfiguration.at("verifyRandomSubset");
+        bool recomputeRandomSubset = replicationConfiguration.at("recomputeRandomSubset");
 
         if(forceInvalidateCache && recomputeRandomSubset) {
             std::cout << "WARNING: recomputation of the entire dataset is enabled, but also the verification of a random subset. The latter is meaningless in this context and is disabled." << std::endl;

@@ -48,7 +48,8 @@
         },
         "datasetCache": {
             "recomputeEntirely": false,
-            "verifyRandomSubset": false,
+            "recomputeRandomSubset": false,
+            "randomSubsetSize": 100
             "randomSubsetSize": 100
         }
     },
