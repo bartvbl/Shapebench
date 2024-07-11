@@ -24,7 +24,7 @@ namespace ShapeBench {
 
         // There's somehow a bunch of problems compiling regular functions called from a template with a config object as parameter
         // This is a workaround to avoid those problems, as ugly as it might be
-        friend inline void loadAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config);
+        friend inline void loadAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config, bool loadEmpty);
         friend inline void saveAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config);
 
         long entryCount();
@@ -34,7 +34,7 @@ namespace ShapeBench {
         throw std::runtime_error("Failed to read cache file at: " + path.string() + " - Reason: " + reason);
     }
 
-    inline void loadAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config) {
+    inline void loadAdditiveNoiseCache(AdditiveNoiseCache& cache, const nlohmann::json& config, bool loadEmpty) {
         std::unique_lock<std::mutex> lock {cache.cacheLock};
         std::filesystem::path cacheFilePath = std::filesystem::path(std::string(config.at("cacheDirectory"))) / cache.cacheFileName;
         uint32_t configuredObjectsPerEntry = uint32_t(config.at("filterSettings").at("additiveNoise").at("addedObjectCount")) + 1;
@@ -42,7 +42,7 @@ namespace ShapeBench {
         // Objects per entry = 1 reference mesh + n added noise objects
         cache.objectsPerEntry = configuredObjectsPerEntry;
 
-        if(std::filesystem::exists(cacheFilePath)) {
+        if(std::filesystem::exists(cacheFilePath) && !loadEmpty) {
             std::ifstream inputFile(cacheFilePath, std::ios::binary);
             if(!inputFile) {
                 reportNoiseCacheReadError("Failed to open file", cacheFilePath);

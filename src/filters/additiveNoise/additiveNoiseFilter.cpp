@@ -248,8 +248,8 @@ void ShapeBench::AdditiveNoiseFilter::init(const nlohmann::json &config, bool in
     // Register all Jolt physics types
     JPH::RegisterTypes();
 
+    ShapeBench::loadAdditiveNoiseCache(additiveNoiseCache, config, invalidateCaches);
     if(!invalidateCaches) {
-        ShapeBench::loadAdditiveNoiseCache(additiveNoiseCache, config);
         std::cout << "    Loaded Additive Noise filter cache (" << additiveNoiseCache.entryCount() << " entries)" << std::endl;
     } else {
         std::cout << "    Additive Noise cache was invalidated and not loaded." << std::endl;
