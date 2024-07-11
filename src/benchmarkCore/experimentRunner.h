@@ -26,6 +26,7 @@
 #include "fmt/format.h"
 #include "BenchmarkConfiguration.h"
 #include "replication/RandomSubset.h"
+#include "replication/ExperimentResultsValidator.h"
 
 template <typename T>
 class lockGuard

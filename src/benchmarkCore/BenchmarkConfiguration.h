@@ -9,6 +9,7 @@ namespace ShapeBench {
         bool enabled = false;
         std::string methodName = "UNKNOWN_METHOD";
         uint32_t experimentIndex = 0;
+        nlohmann::json experimentResults;
     };
 
     struct BenchmarkConfiguration {
