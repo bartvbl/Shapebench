@@ -109,7 +109,7 @@ include_directories (
         lib/v-hacd/include
         lib/glad/include
         lib/fmt-10.2.1/include
-        lib/tabulate-1.5/include
+        lib/tabulate-master-3a58301067bbc03da89ae5a51b3e05b7da719d38/include
         lib/cmake-git
         lib/sha1-1.4
         ../libShapeDescriptor/lib/glm

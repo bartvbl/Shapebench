@@ -53,7 +53,7 @@ namespace ShapeBench {
 
         tabulate::Table outputTable;
         outputTable.add_row({"Result", "Total Deviation", "Average Deviation"});
-        outputTable.add_row({"Clutter", std::to_string(fractionAddedNoise_deviationSum), std::to_string(fractionAddedNoise_deviationAverage)});
+        outputTable.add_row(tabulate::RowStream{} << "Clutter" << fractionAddedNoise_deviationSum << fractionAddedNoise_deviationAverage);
         std::cout << outputTable << std::endl << std::endl;
 
         std::cout << "    Validated " << validatedResultCount << " results." << std::endl;
