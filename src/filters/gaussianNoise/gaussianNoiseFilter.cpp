@@ -103,7 +103,7 @@ ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::
     return meta;
 }
 
-void ShapeBench::GaussianNoiseFilter::init(const nlohmann::json &config) {
+void ShapeBench::GaussianNoiseFilter::init(const nlohmann::json &config, bool invalidateCaches) {
 
 }
 

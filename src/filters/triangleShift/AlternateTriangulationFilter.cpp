@@ -62,7 +62,7 @@ void ShapeBench::internal::calculateAverageEdgeLength(const ShapeDescriptor::cpu
 }
 
 
-void ShapeBench::AlternateTriangulationFilter::init(const nlohmann::json &config) {
+void ShapeBench::AlternateTriangulationFilter::init(const nlohmann::json &config, bool invalidateCaches) {
 
 }
 

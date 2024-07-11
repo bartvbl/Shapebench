@@ -47,6 +47,6 @@ void ShapeBench::SupportRadiusNoiseFilter::destroy() {
 
 }
 
-void ShapeBench::SupportRadiusNoiseFilter::init(const nlohmann::json &config) {
+void ShapeBench::SupportRadiusNoiseFilter::init(const nlohmann::json &config, bool invalidateCaches) {
 
 }

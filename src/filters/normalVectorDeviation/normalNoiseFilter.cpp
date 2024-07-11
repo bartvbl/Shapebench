@@ -79,7 +79,7 @@ ShapeBench::FilterOutput ShapeBench::NormalNoiseFilter::apply(const nlohmann::js
     return meta;
 }
 
-void ShapeBench::NormalNoiseFilter::init(const nlohmann::json &config) {
+void ShapeBench::NormalNoiseFilter::init(const nlohmann::json &config, bool invalidateCaches) {
 
 }
 

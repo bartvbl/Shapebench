@@ -3,7 +3,7 @@
 #include <random>
 
 
-void ShapeBench::OcclusionFilter::init(const nlohmann::json &config) {
+void ShapeBench::OcclusionFilter::init(const nlohmann::json &config, bool invalidateCaches) {
     uint32_t visibilityImageWidth = config.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(0);
     uint32_t visibilityImageHeight = config.at("filterSettings").at("subtractiveNoise").at("visibilityImageResolution").at(1);
     sceneGenerator.init(visibilityImageWidth, visibilityImageHeight);

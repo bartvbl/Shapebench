@@ -405,7 +405,8 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
         for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
             std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
-            filterInstanceMap.at(filterName)->init(configuration);
+            bool forceCacheInvalidation = setup.replicationSettings.enabled;
+            filterInstanceMap.at(filterName)->init(configuration, forceCacheInvalidation);
         }
 
         std::vector<uint32_t> threadActivity;
@@ -633,9 +634,11 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
                     if(sampleVertexIndex % intermediateSaveFrequency == 0) {
                         std::cout << std::endl << "    Writing caches.." << std::endl;
                         writeExperimentResults(experimentResult, resultsDirectory, false, enablePRCComparisonMode, setup.replicationSettings.enabled);
-                        for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
-                            std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
-                            filterInstanceMap.at(filterName)->saveCaches(configuration);
+                        if(!setup.replicationSettings.enabled) {
+                            for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                                std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
+                                filterInstanceMap.at(filterName)->saveCaches(configuration);
+                            }
                         }
                     }
 
@@ -661,10 +664,15 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             }
         }
 
-        std::cout << "Writing caches.." << std::endl;
+        if(!setup.replicationSettings.enabled) {
+            std::cout << "Writing caches.." << std::endl;
+            for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
+                std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
+                filterInstanceMap.at(filterName)->saveCaches(configuration);
+            }
+        }
         for (uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
             std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
-            filterInstanceMap.at(filterName)->saveCaches(configuration);
             filterInstanceMap.at(filterName)->destroy();
         }
     }

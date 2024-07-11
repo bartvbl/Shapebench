@@ -16,7 +16,7 @@ namespace ShapeBench {
         AdditiveNoiseCache additiveNoiseCache;
 
     public:
-        void init(const nlohmann::json& config) override;
+        void init(const nlohmann::json& config, bool invalidateCaches) override;
         void destroy() override;
         void saveCaches(const nlohmann::json& config) override;
 

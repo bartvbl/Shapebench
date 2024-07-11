@@ -12,7 +12,7 @@ namespace ShapeBench {
     class Filter {
 
     public:
-        virtual void init(const nlohmann::json& config) = 0;
+        virtual void init(const nlohmann::json& config, bool invalidateCaches) = 0;
         virtual void destroy() = 0;
         virtual void saveCaches(const nlohmann::json& config) = 0;
 

@@ -16,7 +16,7 @@ namespace ShapeBench {
         OccludedSceneGenerator sceneGenerator;
 
     public:
-        virtual void init(const nlohmann::json& config);
+        virtual void init(const nlohmann::json& config, bool invalidateCaches);
         virtual void destroy();
         virtual void saveCaches(const nlohmann::json& config);
 

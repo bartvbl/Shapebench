@@ -234,7 +234,7 @@ bool anyBodyActive(JPH::BodyInterface *bodyInterface, const std::vector<JPH::Bod
     return false;
 }
 
-void ShapeBench::AdditiveNoiseFilter::init(const nlohmann::json &config) {
+void ShapeBench::AdditiveNoiseFilter::init(const nlohmann::json &config, bool invalidateCaches) {
     // Register allocation hook
     JPH::RegisterDefaultAllocator();
 
@@ -248,8 +248,12 @@ void ShapeBench::AdditiveNoiseFilter::init(const nlohmann::json &config) {
     // Register all Jolt physics types
     JPH::RegisterTypes();
 
-    ShapeBench::loadAdditiveNoiseCache(additiveNoiseCache, config);
-    std::cout << "    Loaded Additive Noise filter cache (" << additiveNoiseCache.entryCount() << " entries)" << std::endl;
+    if(!invalidateCaches) {
+        ShapeBench::loadAdditiveNoiseCache(additiveNoiseCache, config);
+        std::cout << "    Loaded Additive Noise filter cache (" << additiveNoiseCache.entryCount() << " entries)" << std::endl;
+    } else {
+        std::cout << "    Additive Noise cache was invalidated and not loaded." << std::endl;
+    };
 }
 
 void ShapeBench::AdditiveNoiseFilter::destroy() {
