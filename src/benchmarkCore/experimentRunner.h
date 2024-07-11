@@ -632,7 +632,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
                     if(sampleVertexIndex % intermediateSaveFrequency == 0) {
                         std::cout << std::endl << "    Writing caches.." << std::endl;
-                        writeExperimentResults(experimentResult, resultsDirectory, false, enablePRCComparisonMode);
+                        writeExperimentResults(experimentResult, resultsDirectory, false, enablePRCComparisonMode, setup.replicationSettings.enabled);
                         for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
                             std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
                             filterInstanceMap.at(filterName)->saveCaches(configuration);
@@ -647,8 +647,12 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
         if(!enableIllustrationGenerationMode) {
             std::cout << "Writing experiment results file.." << std::endl;
-            writeExperimentResults(experimentResult, resultsDirectory, true, enablePRCComparisonMode);
+            writeExperimentResults(experimentResult, resultsDirectory, true, enablePRCComparisonMode, setup.replicationSettings.enabled);
             std::cout << "Experiment complete." << std::endl;
+
+            if(setup.replicationSettings.enabled) {
+                ShapeBench::checkReplicatedExperimentResults(experimentResult, setup.replicationSettings.experimentResults);
+            }
         } else {
             std::string fileName = "descriptors_" + DescriptorMethod::getName() + "_" + ShapeDescriptor::generateUniqueFilenameString() + "_" + std::string(experimentConfig.at("name")) + ".png";
             std::filesystem::path outputFilePath = illustrativeObjectOutputDirectory / fileName;

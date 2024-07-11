@@ -66,6 +66,13 @@ int main(int argc, const char** argv) {
         setup.computedConfiguration = resultsFileContents.at("computedConfiguration");
         setup.replicationSettings.methodName = resultsFileContents.at("method").at("name");
         setup.replicationSettings.experimentIndex = resultsFileContents.at("experiment").at("index");
+        setup.replicationSettings.experimentResults = resultsFileContents.at("results");
+
+        if(resultsFileContents.contains("replicatedResults") && resultsFileContents.at("replicatedResults")) {
+            throw std::runtime_error("The specified results file contains the results of a run that replicated another set of results. "
+                                     "These results are not guaranteed to be replicable, because they for example may have only recomputed a subset of results. "
+                                     "Please replicate the original results file instead.");
+        }
     }
 
 

@@ -33,7 +33,7 @@ nlohmann::json toJSON(ShapeDescriptor::cpu::float3 in) {
     return out;
 }
 
-void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputBaseDirectory, bool isFinalResult, bool isPRCEnabled) {
+void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputBaseDirectory, bool isFinalResult, bool isPRCEnabled, bool areReplicatedResults) {
 
     // 1: Initial version
     // 1.1: Added information about each filter
@@ -55,6 +55,8 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
 
     jsonOutput["method"]["name"] = results.methodName;
     jsonOutput["method"]["metadata"] = results.methodMetadata;
+
+    jsonOutput["replicatedResults"] = areReplicatedResults;
 
     jsonOutput["configuration"] = results.usedConfiguration;
     jsonOutput["computedConfiguration"] = results.usedComputedConfiguration.toJSON();
