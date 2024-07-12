@@ -70,6 +70,7 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
             continue;
         }
 
+        entryJson["resultID"] = i;
         entryJson["fractionAddedNoise"] = entry.fractionAddedNoise;
         entryJson["fractionSurfacePartiality"] = entry.fractionSurfacePartiality;
         entryJson["filteredDescriptorRank"] = entry.filteredDescriptorRank;
