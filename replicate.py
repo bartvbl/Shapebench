@@ -6,9 +6,9 @@ import random
 import sys
 import multiprocessing
 import hashlib
+import base64
 from scripts.simple_term_menu import TerminalMenu
 from scripts.prettytable import PrettyTable
-
 
 if not (sys.version_info.major == 3 and sys.version_info.minor >= 8):
     print("This script requires Python 3.8 or higher.")
@@ -24,13 +24,14 @@ def ask_for_confirmation(message):
     choice = confirmation_menu.show()
     return choice == 0
 
-def downloadFile(fileURL, tempFile, extractInDirectory, name):
+def downloadFile(fileURL, tempFile, extractInDirectory, name, unzipCommand = 'p7zip -k -d {}'):
+    os.makedirs('input/download', exist_ok=True)
     if not os.path.isfile('input/download/' + tempFile) or ask_for_confirmation('It appears the ' + name + ' archive file has already been downloaded. Would you like to download it again?'):
         print('Downloading the ' + name + ' archive file..')
         run_command_line_command('wget --output-document ' + tempFile + ' ' + fileURL, 'input/download/')
     print()
     os.makedirs(extractInDirectory, exist_ok=True)
-    run_command_line_command('p7zip -k -d ' + os.path.join(os.path.relpath('input/download', extractInDirectory), tempFile), extractInDirectory)
+    run_command_line_command(unzipCommand.format(os.path.join(os.path.relpath('input/download', extractInDirectory), tempFile)), extractInDirectory)
     #if ask_for_confirmation('Download and extraction complete. Would you like to delete the compressed archive to save disk space?'):
     #    os.remove('input/download/' + tempFile)
     print()
@@ -57,13 +58,16 @@ def downloadDatasetsMenu():
 
 def installDependencies():
     run_command_line_command('sudo apt install cmake g++ gcc build-essential wget')
-    run_command_line_command('pip3 install simple-term-menu xlwt xlrd numpy matplotlib pillow PyQt5 wcwidth')
+    run_command_line_command('pip3 install simple-term-menu numpy matplotlib plotly wcwidth')
 
 def compileProject():
     os.makedirs('bin', exist_ok=True)
     run_command_line_command('rm -rf bin/*')
 
     run_command_line_command('cmake .. -DCMAKE_BUILD_TYPE=Release -G Ninja', 'bin')
+    run_command_line_command('configure', 'lib/gmp-6.3.0/')
+    run_command_line_command('make -j', 'lib/gmp-6.3.0/')
+    run_command_line_command('make check', 'lib/gmp-6.3.0/')
     run_command_line_command('ninja ', 'bin')
 
     print()
@@ -136,6 +140,7 @@ def changeReplicationSettings():
             'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
             'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
             'Replication of experiment results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
+            'Visualise clutter simulations: ' + ('enabled' if config['filterSettings']['additiveNoise']['enableDebugCamera'] else 'disabled'),
             "back"], title='------------------ Configure Replication ------------------')
 
         choice = download_menu.show() + 1
@@ -158,9 +163,20 @@ def changeReplicationSettings():
         if choice == 7:
             config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Experiment Results')
         if choice == 8:
+            config['filterSettings']['additiveNoise']['enableDebugCamera'] = not config['filterSettings']['additiveNoise']['enableDebugCamera']
+        if choice == 9:
             with open('cfg/config_replication.json', 'w') as cfgFile:
                 json.dump(config, cfgFile, indent=4)
             return
+
+def replicateSimilarityVisualisationFigure():
+    #downloadFile('http://graphics.stanford.edu/pub/3Dscanrep/armadillo/Armadillo.ply.gz', 'armadillo.ply.gz', os.path.abspath('input/figure1'), 'Figure 1 armadillo model', 'gunzip -c {} > ./armadillo.ply')
+    os.makedirs('output/figure1', exist_ok=True)
+    run_command_line_command('../../bin/armadillo ../../input/figure1/Armadillo_vres2_small_scaled_0.ply', 'output/figure1')
+    gradientImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAgAAAAABCAYAAACouxZ2AAABbmlDQ1BpY2MAACiRdZHPKwRhGMc/u1bEag8cJIc5IIdVQnJkHVw2aVEWl5kxu6tm1zQzm+SqXByUg7j4dfAfcFWulFKkJEdnvy7SeF67tZvWO73zfPq+7/fpfb8vhJO2mfci/ZAv+G5qIqHNpee1hhci1BNliCbd9Jyxqakk/47PO0Kq3vapXv/vqzmalyzPhFCj8LDpuL7wqHBy1XcUbwm3mTl9SfhQOO7KAYWvlG6U+FlxtsTvit2Z1DiEVU8tW8VGFZs5Ny/cK9yVt4tm+TzqJlGrMDsttUNmJx4pJkigYVBkGRufPqkFyay2r//XN8mKeEz5O6zhiiNLTrxxUYvS1ZKaEd2Sz2ZN5f43Ty8zOFDqHk1A/VMQvHVDww58bwfB11EQfB9D3SNcFCr+Fclp5EP07YrWdQCxDTi7rGjGLpxvQvuDo7v6r1QnM5zJwOsptKSh9QaaFkpZldc5uYeZdXmia9jbhx7ZH1v8AcVWZ+8Oq3sSAAAACXBIWXMAAA9hAAAPYQGoP6dpAAAAKElEQVRIx2P8/+/ffwYY+P8fgpH5o/QoTSk9Ggaj9GjaHKVH6UGXRgGGtvwRQRE4UwAAAABJRU5ErkJggg=='
+    decodedGradientImage = base64.b64decode(gradientImageBase64)
+    with open('output/figure1/gradient.png', 'wb') as output_file:
+        output_file.write(decodedGradientImage)
 
 def runMainMenu():
     while True:
@@ -180,11 +196,11 @@ def runMainMenu():
             installDependencies()
         if choice == 2:  #
             downloadDatasetsMenu()
-        if choice == 3:  #
+        if choice == 3:  # Done
             compileProject()
-        if choice == 4:  #
+        if choice == 4:  # Done
             changeReplicationSettings()
-        if choice == 5:
+        if choice == 5:  #
             replicateSimilarityVisualisationFigure()
         if choice == 6:  #
             replicateSupportRadiusFigures()
