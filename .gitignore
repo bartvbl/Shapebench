@@ -44,3 +44,6 @@ tools/*.pdf
 tools/charter/old/*
 *.bak*
 cfg/previousconfigs/*
+bin/*
+input/*
+output/*
