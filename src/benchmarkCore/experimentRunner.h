@@ -519,14 +519,18 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
                 std::vector<DescriptorType> filteredDescriptors(verticesPerSampleObject);
                 std::vector<float> radii(verticesPerSampleObject, supportRadius);
-                ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
-                        combinedMesh,
-                        {filteredMesh.mappedReferenceVertices.size(), filteredMesh.mappedReferenceVertices.data()},
-                        configuration,
-                        radii,
-                        pointCloudSamplingSeed,
-                        sampleDescriptorGenerationSeed,
-                        filteredDescriptors);
+                bool doDryRun = configuration.contains("debug_dryrun") && configuration.at("debug_dryrun");
+                if(!doDryRun) {
+                    ShapeBench::computeDescriptors<DescriptorMethod, DescriptorType>(
+                            combinedMesh,
+                            {filteredMesh.mappedReferenceVertices.size(), filteredMesh.mappedReferenceVertices.data()},
+                            configuration,
+                            radii,
+                            pointCloudSamplingSeed,
+                            sampleDescriptorGenerationSeed,
+                            filteredDescriptors);
+                }
+
 
                 for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
                     resultsEntries.at(i).included = filteredMesh.mappedVertexIncluded.at(i);
@@ -549,7 +553,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
                         continue;
                     }
 
-                    uint32_t imageIndex = ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors.at(sampleVertexIndex + i), filteredDescriptors.at(i), referenceDescriptors);
+                    uint32_t imageIndex = !doDryRun ? ShapeBench::computeImageIndex<DescriptorMethod, DescriptorType>(cleanSampleDescriptors.at(sampleVertexIndex + i), filteredDescriptors.at(i), referenceDescriptors) : 0;
 
                     if(enablePRCComparisonMode) {
                         ShapeBench::DescriptorOfVertexInDataset<DescriptorType> filteredDescriptor;
@@ -561,12 +565,13 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
                         resultsEntries.at(i).prcMetadata = ShapeBench::computePRCInfo<DescriptorMethod, DescriptorType>(filteredDescriptor, cleanSampleDescriptors.at(sampleVertexIndex + i), referenceDescriptors, cleanSampleDescriptors, false);
                     }
 
-                    ShapeBench::AreaEstimate areaEstimate = ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed);
+                    ShapeBench::AreaEstimate areaEstimate = !doDryRun ? ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed) : ShapeBench::AreaEstimate();
 
                     resultsEntries.at(i).filteredDescriptorRank = imageIndex;
                     resultsEntries.at(i).fractionAddedNoise = areaEstimate.addedAdrea;
                     resultsEntries.at(i).fractionSurfacePartiality = areaEstimate.subtractiveArea;
                 }
+
 
 
                 ShapeDescriptor::free(combinedMesh);
