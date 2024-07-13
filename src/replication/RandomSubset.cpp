@@ -1,5 +1,6 @@
 #include <cassert>
 #include <vector>
+#include <random>
 #include "RandomSubset.h"
 #include "benchmarkCore/randomEngine.h"
 

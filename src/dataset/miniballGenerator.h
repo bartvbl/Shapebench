@@ -59,12 +59,13 @@ namespace ShapeBench {
     }
 
     inline void verifyMiniballValidity(const Miniball ball, const Miniball otherBall) {
-        if(otherBall.radius != ball.radius) {
+        const double MAX_ERROR = 0.0000001;
+        if(std::abs(otherBall.radius - ball.radius) >= MAX_ERROR) {
             throw std::logic_error("FATAL: The computed bounding sphere radius deviates from the one in the cache: " + std::to_string(otherBall.radius) + " vs " + std::to_string(ball.radius));
         }
-        if(otherBall.origin.at(0) != ball.origin.at(0)
-        || otherBall.origin.at(1) != ball.origin.at(1)
-        || otherBall.origin.at(2) != ball.origin.at(2)) {
+        if(std::abs(otherBall.origin.at(0) - ball.origin.at(0)) >= MAX_ERROR
+        || std::abs(otherBall.origin.at(1) - ball.origin.at(1)) >= MAX_ERROR
+        || std::abs(otherBall.origin.at(2) - ball.origin.at(2)) >= MAX_ERROR) {
             throw std::logic_error("FATAL: The computed bounding sphere coordinate deviated from the one in the cache: (" +
                  std::to_string(otherBall.origin.at(0)) + ", "
                + std::to_string(otherBall.origin.at(1)) + ", "

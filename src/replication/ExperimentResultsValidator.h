@@ -57,6 +57,10 @@ namespace ShapeBench {
         std::vector<SinglePropertyStatistics<double>> filterProperties;
         std::vector<std::string> filterPropertyNames;
 
+        // I forgot to include an ID of some kind into the results.
+        // Since the chosen vertex and mesh ID are
+        uint32_t excludedResultCount = 0;
+
         for(uint32_t vertexIndex = 0; vertexIndex < replicatedResults.vertexResults.size(); vertexIndex++) {
             const ExperimentResultsEntry& replicatedResult = replicatedResults.vertexResults.at(vertexIndex);
             const nlohmann::json& originalResult = previouslyComputedResults.at(vertexIndex);
