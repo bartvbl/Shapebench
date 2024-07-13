@@ -126,10 +126,12 @@ def selectReplicationRandomSeed(originalSeed):
         return int(selectedRandomSeed)
     return originalSeed
 
-
-def changeReplicationSettings():
+def readConfigFile():
     with open('cfg/config_replication.json', 'r') as cfgFile:
         config = json.load(cfgFile)
+        return config
+def changeReplicationSettings():
+    config = readConfigFile()
 
     while True:
         download_menu = TerminalMenu([
@@ -177,6 +179,78 @@ def replicateSimilarityVisualisationFigure():
     decodedGradientImage = base64.b64decode(gradientImageBase64)
     with open('output/figure1/gradient.png', 'wb') as output_file:
         output_file.write(decodedGradientImage)
+    print('Done. The output file has been written to: output/figure1/armadillo.obj')
+    print()
+
+def generateRadiusReplicationSettingsString(config):
+    if config['replicationOverrides']['supportRadius']['recomputeEntirely']:
+        return 'recompute entirely'
+    elif config['replicationOverrides']['supportRadius']['recomputeSingleRadius']:
+        selectedRadiusIndex = config['replicationOverrides']['supportRadius']['radiusIndexToRecompute']
+        radiusMinValue = config['parameterSelection']['supportRadius']['radiusSearchStart']
+        radiusStepValue = config['parameterSelection']['supportRadius']['radiusSearchStep']
+        selectedRadius = str(radiusMinValue + float(selectedRadiusIndex) * radiusStepValue)
+        return 'recompute statistics for radius ' + selectedRadius + ' only'
+    else:
+        return 'nothing is replicated'
+
+allMethods = ['QUICCI', 'RICI', 'RoPS', 'SI', 'SHOT', 'USC']
+
+def editSupportRadiusExtent(config):
+    download_menu = TerminalMenu([
+        "Recompute the support radius from scratch",
+        "Replicate the statistics computed for one specific support radius",
+        'back'],
+        title='------------------ Support Radius Replication ------------------')
+
+    choice = download_menu.show() + 1
+
+    if choice == 1:
+        config['replicationOverrides']['supportRadius']['recomputeEntirely'] = True
+        config['replicationOverrides']['supportRadius']['recomputeSingleRadius'] = False
+    if choice == 2:
+        config['replicationOverrides']['supportRadius']['recomputeEntirely'] = False
+        config['replicationOverrides']['supportRadius']['recomputeSingleRadius'] = True
+        radiusSteps = config['parameterSelection']['supportRadius']['numberOfSupportRadiiToTry']
+        radiusMinValue = config['parameterSelection']['supportRadius']['radiusSearchStart']
+        radiusStepValue = config['parameterSelection']['supportRadius']['radiusSearchStep']
+        print('The minimum, maximum, and average descriptor distances will be computed for a total of ' + str(radiusSteps) + ' radii.')
+        print('These vary between {} and {}, in steps of {}.'.format(radiusMinValue, radiusMinValue + float(radiusSteps) * radiusStepValue, radiusStepValue))
+        selectedRadius = input('Enter the index of the radius that should be replicated (integer between 0 and {}): '.format(radiusSteps))
+        config['replicationOverrides']['supportRadius']['radiusIndexToRecompute'] = int(selectedRadius)
+    return config
+
+def replicateSupportRadiusFigures():
+    config = readConfigFile()
+    while True:
+        download_menu = TerminalMenu([
+            'Select replication extent. Currently selected: ' + generateRadiusReplicationSettingsString(config)]
+            + ['Run replication for method ' + x for x in allMethods] + ['back'],
+            title='------------------ Replicate Support Radius Figures ------------------')
+
+        choice = download_menu.show() + 1
+        radiusConfigFile = 'cfg/config_support_radius_replication.json'
+
+        if choice == 1:
+            config = editSupportRadiusExtent(config)
+            with open(radiusConfigFile, 'w') as outfile:
+                json.dump(config, outfile, indent=4)
+        if choice > 1 and choice <= len(allMethods) + 1:
+            methodName = allMethods[choice - 2]
+
+            # Edit config file to only select the selected method
+            with open(radiusConfigFile, 'r') as infile:
+                config = json.load(infile)
+            for method in allMethods:
+                config['methodSettings'][method]['enabled'] = method == methodName
+            with open(radiusConfigFile, 'w') as outfile:
+                json.dump(config, outfile, indent=4)
+
+            run_command_line_command('./shapebench --configuration-file=../cfg/config_support_radius_replication.json', 'bin')
+
+
+        if choice == len(allMethods) + 2:
+            return
 
 def runMainMenu():
     while True:
@@ -200,7 +274,7 @@ def runMainMenu():
             compileProject()
         if choice == 4:  # Done
             changeReplicationSettings()
-        if choice == 5:  #
+        if choice == 5:  # Done
             replicateSimilarityVisualisationFigure()
         if choice == 6:  #
             replicateSupportRadiusFigures()
