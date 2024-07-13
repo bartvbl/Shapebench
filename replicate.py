@@ -277,9 +277,8 @@ def replicateSupportRadiusFigures():
             print()
             run_command_line_command('cat precomputed_results/support_radius_estimation/' + supportRadiusResultFiles[methodIndex])
             print()
-            print('You should compare the line printed out by the replication run to the corresponding line in the file here.')
+            print('You should compare the line(s) printed out by the replication run to the corresponding line in the file here.')
             print()
-
 
         if choice == len(allMethods) + 2:
             return
