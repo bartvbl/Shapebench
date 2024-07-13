@@ -82,42 +82,81 @@ def generateReplicationSettingsString(node):
         return 'recompute ' + str(node['randomSubsetSize']) + ' at random'
     else:
         return 'disabled'
+
+def editSettings(node, name):
+    download_menu = TerminalMenu([
+        "Recompute entirely",
+        "Recompute random subset",
+        "Disable replication",
+        "back"], title='------------------ Replication Settings for ' + name + ' ------------------')
+
+    choice = download_menu.show() + 1
+
+    if choice == 1:
+        node['recomputeEntirely'] = True
+        node['recomputeRandomSubset'] = False
+    if choice == 2:
+        node['recomputeEntirely'] = False
+        node['recomputeRandomSubset'] = True
+        print()
+        numberOfSamplesToReplicate = int(input('Number of samples to replicate: '))
+        node['randomSubsetSize'] = numberOfSamplesToReplicate
+    if choice == 3:
+        node['recomputeEntirely'] = False
+        node['recomputeRandomSubset'] = False
+
+    return node
+
+def selectReplicationRandomSeed(originalSeed):
+    download_menu = TerminalMenu([
+        "Pick new seed at random",
+        "Enter a specific random seed",
+        "Keep previous seed (" + str(originalSeed) + ')̈́'], title='------------------ Select New Random Seed ------------------')
+
+    choice = download_menu.show() + 1
+
+    if choice == 1:
+        return random.getrandbits(64)
+    if choice == 2:
+        selectedRandomSeed = input('Enter new random seed: ')
+        return int(selectedRandomSeed)
+    return originalSeed
+
+
 def changeReplicationSettings():
     with open('cfg/config_replication.json', 'r') as cfgFile:
         config = json.load(cfgFile)
 
-
     while True:
         download_menu = TerminalMenu([
             'Print individual experiment results: ' + ('enabled' if config['verboseOutput'] else 'disabled'),
+            'Random seed used when selecting random subsets to replicate: ' + str(config['replicationOverrides']['replicationRandomSeed']),
             'Verify computed minimum bounding sphere of input objects: ' + ('enabled' if config['datasetSettings']['verifyFileIntegrity'] else 'disabled'),
             'Size of dataset file cache in GB: ' + str(config['datasetSettings']['cacheSizeLimitGB']),
-            'Replication of dataset cache: ' + generateReplicationSettingsString(config['replicationOverrides']['datasetCache']),
             'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
             'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
             'Replication of experiment results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
             "back"], title='------------------ Configure Replication ------------------')
 
         choice = download_menu.show() + 1
-        os.makedirs('input/download/', exist_ok=True)
 
         if choice == 1:
             config['verboseOutput'] = not config['verboseOutput']
         if choice == 2:
-            config['datasetSettings']['verifyFileIntegrity'] = not config['datasetSettings']['verifyFileIntegrity']
+            config['replicationOverrides']['replicationRandomSeed'] = selectReplicationRandomSeed(config['replicationOverrides']['replicationRandomSeed'])
         if choice == 3:
+            config['datasetSettings']['verifyFileIntegrity'] = not config['datasetSettings']['verifyFileIntegrity']
+        if choice == 4:
             print()
             newSize = int(input('Size of dataset file cache in GB: '))
             config['datasetSettings']['cacheSizeLimitGB'] = newSize
             print()
-        if choice == 4:
-            pass
         if choice == 5:
-            pass
+            config['replicationOverrides']['referenceDescriptorSet'] = editSettings(config['replicationOverrides']['referenceDescriptorSet'], 'Reference Descriptor Set')
         if choice == 6:
-            pass
+            config['replicationOverrides']['sampleDescriptorSet'] = editSettings(config['replicationOverrides']['sampleDescriptorSet'], 'Sample Object Unfiltered Descriptor Set')
         if choice == 7:
-            pass
+            config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Experiment Results')
         if choice == 8:
             with open('cfg/config_replication.json', 'w') as cfgFile:
                 json.dump(config, cfgFile, indent=4)
