@@ -195,6 +195,18 @@ def generateRadiusReplicationSettingsString(config):
         return 'nothing is replicated'
 
 allMethods = ['QUICCI', 'RICI', 'RoPS', 'SI', 'SHOT', 'USC']
+allExperiments = [
+    ('additive-noise-only', 'Clutter'),
+    ('subtractive-noise-only', 'Occlusion'),
+    ('repeated-capture-only', 'Alternate triangulation'),
+    ('normal-noise-only', 'Deviated normal vector'),
+    ('support-radius-deviation-only', 'Deviated support radius'),
+    ('gaussian-noise-only', 'Gaussian noise'),
+    ('depth-camera-capture-only', 'Alternate mesh resolution'),
+    ('additive-and-subtractive-only', 'Clutter and Occlusion'),
+    ('additive-and-gaussian-only', 'Clutter and Gaussian noise'),
+    ('subtractive-and-gaussian-only', 'Occlusion and Gaussian noise')
+]
 
 def editSupportRadiusExtent(config):
     download_menu = TerminalMenu([
@@ -218,6 +230,7 @@ def editSupportRadiusExtent(config):
         print('These vary between {} and {}, in steps of {}.'.format(radiusMinValue, radiusMinValue + float(radiusSteps) * radiusStepValue, radiusStepValue))
         selectedRadius = input('Enter the index of the radius that should be replicated (integer between 0 and {}): '.format(radiusSteps))
         config['replicationOverrides']['supportRadius']['radiusIndexToRecompute'] = int(selectedRadius)
+    print()
     return config
 
 def replicateSupportRadiusFigures():
@@ -236,21 +249,49 @@ def replicateSupportRadiusFigures():
             with open(radiusConfigFile, 'w') as outfile:
                 json.dump(config, outfile, indent=4)
         if choice > 1 and choice <= len(allMethods) + 1:
-            methodName = allMethods[choice - 2]
+            methodIndex = choice - 2
+            methodName = allMethods[methodIndex]
 
             # Edit config file to only select the selected method
             with open(radiusConfigFile, 'r') as infile:
                 config = json.load(infile)
             for method in allMethods:
                 config['methodSettings'][method]['enabled'] = method == methodName
+            for index, experiment in enumerate(allExperiments):
+                config['experimentsToRun'][index]['enabled'] = False
             with open(radiusConfigFile, 'w') as outfile:
                 json.dump(config, outfile, indent=4)
 
-            run_command_line_command('./shapebench --configuration-file=../cfg/config_support_radius_replication.json', 'bin')
+            #run_command_line_command('./shapebench --configuration-file=../cfg/config_support_radius_replication.json', 'bin')
+
+            supportRadiusResultFiles = \
+                ['support_radii_meanvariance_QUICCI_20240521-041001.txt',
+                 'support_radii_meanvariance_RICI_20240520-235415.txt',
+                 'support_radii_meanvariance_RoPS_20240521-173103.txt',
+                 'support_radii_meanvariance_SHOT_20240531-200850.txt',
+                 'support_radii_meanvariance_SI_20240522-033710.txt',
+                 'support_radii_meanvariance_USC_20240529-135954.txt']
+
+            print()
+            print('Contents of the support radius file computed by the author:')
+            print()
+            run_command_line_command('cat precomputed_results/support_radius_estimation/' + supportRadiusResultFiles[methodIndex])
+            print()
+            print('You should compare the line printed out by the replication run to the corresponding line in the file here.')
+            print()
 
 
         if choice == len(allMethods) + 2:
             return
+
+
+def replicateExperimentsFigures():
+    download_menu = TerminalMenu([
+        "",
+        "Replicate the statistics computed for one specific support radius",
+        'back'],
+        title='------------------ Support Radius Replication ------------------')
+
 
 def runMainMenu():
     while True:
