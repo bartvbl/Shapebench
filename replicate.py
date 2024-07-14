@@ -258,7 +258,9 @@ def replicateSupportRadiusFigures():
     while True:
         download_menu = TerminalMenu([
             'Select replication extent. Currently selected: ' + generateRadiusReplicationSettingsString(config)]
-            + ['Run replication for method ' + x for x in allMethods] + ['back'],
+            + ['Run replication for method ' + x for x in allMethods] + [
+             'Generate charts from precomputed support radius CSV files',
+             'back'],
             title='------------------ Replicate Support Radius Figures ------------------')
 
         choice = download_menu.show() + 1
@@ -301,6 +303,12 @@ def replicateSupportRadiusFigures():
             print()
 
         if choice == len(allMethods) + 2:
+            os.makedirs('output/charts', exist_ok=True)
+            run_command_line_command('python3 tools/charter/charter.py '
+                                     '--results-directory=precomputed_results/support_radius_estimation '
+                                     '--output-dir=output/charts '
+                                     '--mode=support-radius', '.')
+        if choice == len(allMethods) + 3:
             return
 
 def runCharter():
