@@ -256,7 +256,6 @@ def computeStackedHistogram(rawResults, config, settings):
     if settings.PRCEnabled:
         taoStep = 0.01
         taoStepCount = int(1 / taoStep)
-        print(taoStepCount)
         taoValues = [x * taoStep for x in range(0, taoStepCount)]
 
         areaUnderCurves = []
@@ -350,7 +349,6 @@ def generateSupportRadiusChart(results_directory, output_directory):
             countsFigure = go.Figure()
 
             lineLocation = xValues[yValues_Sequence2.index(max(yValues_Sequence2))]
-            print(lineLocation)
 
             methodName = csvFileName.split("_")[3]
             yAxisRange = [0, max(yValues_Sequence3)]
