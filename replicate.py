@@ -15,6 +15,9 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 8):
     print("You are using Python {}.{}.".format(sys.version_info.major, sys.version_info.minor))
     sys.exit(1)
 
+os.makedirs('input/objaverse-cache', exist_ok=True)
+os.makedirs('input/objaverse-uncompressed', exist_ok=True)
+
 def run_command_line_command(command, working_directory='.'):
     print('>> Executing command:', command)
     subprocess.run(command, shell=True, check=False, cwd=working_directory)
@@ -40,7 +43,7 @@ def downloadDatasetsMenu():
     download_menu = TerminalMenu([
         "Download all",
         "Download computed results (XXX MB download, XXX GB uncompressed)",
-        "Download cache files (XXX MB download, XXX GB uncompressed)",
+        "Download cache files (7.4GB download, 8.0GB uncompressed)",
         "back"], title='------------------ Download Datasets ------------------')
 
     while True:
@@ -48,11 +51,11 @@ def downloadDatasetsMenu():
         os.makedirs('input/download/', exist_ok=True)
 
         if choice == 1 or choice == 2:
-           downloadFile('https://ntnu.box.com/shared/static/zb2co430vdcpao7gwco3vaxsf7ahz09u.7z', 'SHREC2016.7z',
-                        'input', 'SHREC 2016 Partial Retrieval Dataset')
+            downloadFile('https://ntnu.box.com/shared/static/d4s6o4xf1hhfzf45qiewltelbro8i64a.7z',
+                         'precomputed_results.7z', 'precomputed_results/', 'Results computed by the author')
         if choice == 1 or choice == 3:
-            downloadFile('https://ntnu.box.com/shared/static/y29rpwz5n9dj6ljaghr40uj34njs3s4j.7z',
-                         'precomputed_descriptors.7z', 'input/', 'Precomputed QUICCI Descriptors')
+            downloadFile('https://ntnu.box.com/shared/static/1oo864m02zj9itdptzbwvvj04epigyio.7z', 'cache.7z',
+                         'cache', 'Precomputed cache files')
         if choice == 4:
             return
 
@@ -298,9 +301,9 @@ def replicateSupportRadiusFigures():
 def replicateExperimentsFigures():
     download_menu = TerminalMenu([
         "",
-        "Replicate the statistics computed for one specific support radius",
+        "",
         'back'],
-        title='------------------ Support Radius Replication ------------------')
+        title='------------------ Replicate Benchmark Results ------------------')
 
 
 def runMainMenu():
