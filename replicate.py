@@ -133,6 +133,10 @@ def readConfigFile():
     with open('cfg/config_replication.json', 'r') as cfgFile:
         config = json.load(cfgFile)
         return config
+
+def writeConfigFile(config):
+    with open('cfg/config_replication.json', 'w') as cfgFile:
+        json.dump(config, cfgFile, indent=4)
 def changeReplicationSettings():
     config = readConfigFile()
 
@@ -331,23 +335,11 @@ def runCharter():
     print('Charts created. You can find them in the output/charts directory.')
     print()
 
-
-def generateExperimentReplicationSettingsString(config):
-    if config['replicationOverrides']['supportRadius']['recomputeEntirely']:
-        return 'recompute entirely'
-    elif config['replicationOverrides']['supportRadius']['recomputeSingleRadius']:
-        selectedRadiusIndex = config['replicationOverrides']['supportRadius']['radiusIndexToRecompute']
-        radiusMinValue = config['parameterSelection']['supportRadius']['radiusSearchStart']
-        radiusStepValue = config['parameterSelection']['supportRadius']['radiusSearchStep']
-        selectedRadius = str(radiusMinValue + float(selectedRadiusIndex) * radiusStepValue)
-        return 'recompute statistics for radius ' + selectedRadius + ' only'
-    else:
-        return 'nothing is replicated'
 def replicateExperimentResults(figureIndex):
     config = readConfigFile()
     while True:
         replication_menu = TerminalMenu([
-            'Select replication extent. Currently selected: ' + generateExperimentReplicationSettingsString(config)]
+            'Select replication extent. Currently selected: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment'])]
             + ['Subfigure ({}): {}'.format(list('abcdef')[index], method) for index, method in enumerate(allMethods)] + [
             "back"],
             title='------------------ Replicate Figure {}: {} ------------------'.format(7 + figureIndex, allExperiments[figureIndex][1]))
@@ -355,7 +347,26 @@ def replicateExperimentResults(figureIndex):
         choice = replication_menu.show() + 1
 
         if choice == 1:
-            pass
+            config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Benchmark Results')
+            writeConfigFile(config)
+        if choice > 1 and choice < len(allMethods) + 2:
+            methodIndex = choice - 2
+            methodName = allMethods[methodIndex]
+            precomputedResultsDir = os.path.join('precomputed_results', allExperiments[figureIndex][0])
+            resultFiles = [x for x in os.listdir(precomputedResultsDir) if methodName in x]
+            if len(resultFiles) != 1:
+                raise Exception('There should be exactly one result file for each method in the precomputed results directory. Found {}.'.format(len(resultFiles)))
+            fileToReplicate = os.path.join(precomputedResultsDir, resultFiles[0])
+
+            print()
+            enableVisualisations = config['filterSettings']['additiveNoise']['enableDebugCamera']
+            commandPreamble = 'xvfb-run ' if not enableVisualisations else ''
+            run_command_line_command(commandPreamble + './shapebench --replicate-results-file={} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate), 'bin')
+            print()
+            print('Complete.')
+            print('If you enabled any replication options in the settings, these have been successfully replicated if no exception was raised that caused execution to halt.')
+            print('A comparison of the replicated benchmark results should be in a table that is visible a little bit above this message (you may need to scroll a bit)')
+            print()
         if choice == 1 + len(allMethods) + 1:
             return
 
