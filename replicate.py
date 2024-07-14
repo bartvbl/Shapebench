@@ -276,7 +276,7 @@ def replicateSupportRadiusFigures():
             with open(radiusConfigFile, 'w') as outfile:
                 json.dump(config, outfile, indent=4)
 
-            #run_command_line_command('./shapebench --configuration-file=../cfg/config_support_radius_replication.json', 'bin')
+            run_command_line_command('./shapebench --configuration-file=../cfg/config_support_radius_replication.json', 'bin')
 
             supportRadiusResultFiles = \
                 ['support_radii_meanvariance_QUICCI_20240521-041001.txt',
