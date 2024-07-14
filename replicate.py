@@ -57,8 +57,8 @@ def downloadDatasetsMenu():
             return
 
 def installDependencies():
-    run_command_line_command('sudo apt install cmake g++ gcc build-essential wget')
-    run_command_line_command('pip3 install simple-term-menu numpy matplotlib plotly wcwidth')
+    run_command_line_command('sudo apt install ninja cmake g++ git libwayland-dev libxkbcommon-x11-dev xorg-dev libssl-dev m4 texinfo libboost-dev libeigen3-dev wget')
+    run_command_line_command('pip3 install numpy matplotlib plotly wcwidth')
 
 def compileProject():
     os.makedirs('bin', exist_ok=True)
@@ -306,7 +306,7 @@ def runMainMenu():
 
         choice = main_menu.show() + 1
 
-        if choice == 1:  #
+        if choice == 1:  # Done
             installDependencies()
         if choice == 2:  #
             downloadDatasetsMenu()
