@@ -139,6 +139,7 @@ def changeReplicationSettings():
             'Random seed used when selecting random subsets to replicate: ' + str(config['replicationOverrides']['replicationRandomSeed']),
             'Verify computed minimum bounding sphere of input objects: ' + ('enabled' if config['datasetSettings']['verifyFileIntegrity'] else 'disabled'),
             'Size of dataset file cache in GB: ' + str(config['datasetSettings']['cacheSizeLimitGB']),
+            'Change location of dataset file cache: ' + config['datasetSettings']['compressedRootDir'],
             'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
             'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
             'Replication of experiment results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
@@ -159,14 +160,24 @@ def changeReplicationSettings():
             config['datasetSettings']['cacheSizeLimitGB'] = newSize
             print()
         if choice == 5:
-            config['replicationOverrides']['referenceDescriptorSet'] = editSettings(config['replicationOverrides']['referenceDescriptorSet'], 'Reference Descriptor Set')
+            print()
+            chosenDirectory = input('Enter a directory path here. Write "choose" for a graphical file chooser: ')
+            if chosenDirectory == "choose":
+                from tkinter import filedialog
+                from tkinter import *
+                root = Tk()
+                root.withdraw()
+                chosenDirectory = filedialog.askdirectory()
+            config['datasetSettings']['compressedRootDir'] = chosenDirectory
         if choice == 6:
-            config['replicationOverrides']['sampleDescriptorSet'] = editSettings(config['replicationOverrides']['sampleDescriptorSet'], 'Sample Object Unfiltered Descriptor Set')
+            config['replicationOverrides']['referenceDescriptorSet'] = editSettings(config['replicationOverrides']['referenceDescriptorSet'], 'Reference Descriptor Set')
         if choice == 7:
-            config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Experiment Results')
+            config['replicationOverrides']['sampleDescriptorSet'] = editSettings(config['replicationOverrides']['sampleDescriptorSet'], 'Sample Object Unfiltered Descriptor Set')
         if choice == 8:
-            config['filterSettings']['additiveNoise']['enableDebugCamera'] = not config['filterSettings']['additiveNoise']['enableDebugCamera']
+            config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Experiment Results')
         if choice == 9:
+            config['filterSettings']['additiveNoise']['enableDebugCamera'] = not config['filterSettings']['additiveNoise']['enableDebugCamera']
+        if choice == 10:
             with open('cfg/config_replication.json', 'w') as cfgFile:
                 json.dump(config, cfgFile, indent=4)
             return

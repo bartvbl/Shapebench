@@ -57,10 +57,6 @@ namespace ShapeBench {
         std::vector<SinglePropertyStatistics<double>> filterProperties;
         std::vector<std::string> filterPropertyNames;
 
-        // I forgot to include an ID of some kind into the results.
-        // Since the chosen vertex and mesh ID are
-        uint32_t excludedResultCount = 0;
-
         std::unordered_map<uint32_t, uint32_t> resultIndexConversionMap;
         for(uint32_t originalIndex = 0; originalIndex < previouslyComputedResults.size(); originalIndex++) {
             resultIndexConversionMap.insert({previouslyComputedResults.at(originalIndex).at("resultID"), originalIndex});
