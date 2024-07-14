@@ -1,0 +1,12 @@
+LICENSE
+README.md
+setup.py
+python/package/__init__.py
+simsense.egg-info/PKG-INFO
+simsense.egg-info/SOURCES.txt
+simsense.egg-info/dependency_links.txt
+simsense.egg-info/not-zip-safe
+simsense.egg-info/requires.txt
+simsense.egg-info/top_level.txt
+test/test1.py
+test/test2.py

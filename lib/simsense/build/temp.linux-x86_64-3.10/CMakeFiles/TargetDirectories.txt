@@ -1,0 +1,6 @@
+/home/bart/git/Shapebench/lib/simsense/build/temp.linux-x86_64-3.10/CMakeFiles/simsense.dir
+/home/bart/git/Shapebench/lib/simsense/build/temp.linux-x86_64-3.10/CMakeFiles/pysimsense.dir
+/home/bart/git/Shapebench/lib/simsense/build/temp.linux-x86_64-3.10/CMakeFiles/edit_cache.dir
+/home/bart/git/Shapebench/lib/simsense/build/temp.linux-x86_64-3.10/CMakeFiles/rebuild_cache.dir
+/home/bart/git/Shapebench/lib/simsense/build/temp.linux-x86_64-3.10/3rd_party/pybind11/CMakeFiles/edit_cache.dir
+/home/bart/git/Shapebench/lib/simsense/build/temp.linux-x86_64-3.10/3rd_party/pybind11/CMakeFiles/rebuild_cache.dir

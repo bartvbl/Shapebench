@@ -1,0 +1,72 @@
+Laptop 0.98
+Running 8 tests...
+points_perf: 594.619 FPS
+pointsize_perf: 928.290 FPS
+lines_perf: 172.756 FPS
+triangles_perf: 15.833 FPS
+tri_interp_perf: 19.586 FPS
+tri_clipxy_perf: 403.226 FPS
+tri_clipz_perf: 93.672 FPS
+tri_clipxyz_perf: 183.234 FPS
+
+Laptop 0.97 (clipping against all planes)
+Running 8 tests...
+points_perf: 418.454 FPS
+pointsize_perf: 555.556 FPS
+lines_perf: 190.494 FPS
+triangles_perf: 19.377 FPS
+tri_interp_perf: 21.166 FPS
+tri_clipxy_perf: 85.086 FPS
+tri_clipz_perf: 19.059 FPS
+tri_clipxyz_perf: 49.114 FPS
+
+
+Desktop 0.98 HEAD gcc 
+robert@pop-os:~/programming/C/PortableGL/testing$ time ./perf_tests 
+Running 11 tests...
+points_perf: 1496.110 FPS
+pointsize_perf: 2470.356 FPS
+lines_perf: 511.247 FPS
+lines8_perf: 65.291 FPS
+lines16_perf: 37.425 FPS
+triangles_perf: 44.438 FPS
+tri_interp_perf: 55.208 FPS
+tri_clipxy_perf: 1089.918 FPS
+tri_clipz_perf: 274.236 FPS
+tri_clipxyz_perf: 525.210 FPS
+blend_perf: 450.450 FPS
+
+real	1m13.919s
+user	1m9.483s
+sys	0m0.172s
+
+Changing to draw_thick_line_simple()
+lines8_perf: 81.699 FPS
+lines16_perf: 41.446 FPS
+
+// Initial attempt at new algorithm in draw_thick_line()
+robert@pop-os:~/programming/C/PortableGL/testing$ time ./perf_tests lines8_perf lines16_perf
+Attempting to run 2 tests...
+lines8_perf: 19.203 FPS
+lines16_perf: 14.728 FPS
+
+// add "last" pixel in row logic
+robert@pop-os:~/programming/C/PortableGL/testing$ time ./perf_tests lines8_perf lines16_perf
+Attempting to run 2 tests...
+lines8_perf: 29.284 FPS
+lines16_perf: 20.194 FPS
+robert@pop-os:~/programming/C/PortableGL/testing$ time ./perf_tests lines8_perf lines16_perf
+Attempting to run 2 tests...
+lines8_perf: 29.635 FPS
+lines16_perf: 20.542 FPS
+
+// pre-calculate correct x_min and x_max for each row
+robert@pop-os:~/programming/C/PortableGL/testing$ time ./perf_tests lines8_perf lines16_perf
+Attempting to run 2 tests...
+lines8_perf: 69.142 FPS
+lines16_perf: 35.411 FPS
+robert@pop-os:~/programming/C/PortableGL/testing$ time ./perf_tests lines8_perf lines16_perf
+Attempting to run 2 tests...
+lines8_perf: 68.143 FPS
+lines16_perf: 34.985 FPS
+
