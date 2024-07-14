@@ -57,7 +57,7 @@ def downloadDatasetsMenu():
             return
 
 def installDependencies():
-    run_command_line_command('sudo apt install ninja cmake g++ git libwayland-dev libxkbcommon-x11-dev xorg-dev libssl-dev m4 texinfo libboost-dev libeigen3-dev wget')
+    run_command_line_command('sudo apt install ninja cmake g++ git libwayland-dev libxkbcommon-x11-dev xorg-dev libssl-dev m4 texinfo libboost-dev libeigen3-dev wget xvfb-run')
     run_command_line_command('pip3 install numpy matplotlib plotly wcwidth')
 
 def compileProject():
