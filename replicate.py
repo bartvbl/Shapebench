@@ -60,8 +60,8 @@ def downloadDatasetsMenu():
             return
 
 def installDependencies():
-    run_command_line_command('sudo apt install ninja cmake g++ git libwayland-dev libxkbcommon-x11-dev xorg-dev libssl-dev m4 texinfo libboost-dev libeigen3-dev wget xvfb-run')
-    run_command_line_command('pip3 install numpy matplotlib plotly wcwidth')
+    run_command_line_command('sudo apt install ninja cmake g++ git libwayland-dev libxkbcommon-x11-dev xorg-dev libssl-dev m4 texinfo libboost-dev libeigen3-dev wget xvfb-run python3-tk')
+    run_command_line_command('pip3 install numpy matplotlib plotly wcwidth kaleido')
 
 def compileProject():
     os.makedirs('bin', exist_ok=True)
@@ -167,7 +167,7 @@ def changeReplicationSettings():
             chosenDirectory = input('Enter a directory path here. Write "choose" for a graphical file chooser: ')
             if chosenDirectory == "choose":
                 from tkinter import filedialog
-                from tkinter import *
+                from tkinter import Tk
                 root = Tk()
                 root.withdraw()
                 chosenDirectory = filedialog.askdirectory()
