@@ -300,9 +300,10 @@ def replicateSupportRadiusFigures():
 
 def replicateExperimentsFigures():
     download_menu = TerminalMenu([
-        "",
-        "",
-        'back'],
+        ""] +
+        ['Replicate subfigure in Figure {}: {}'.format(index + 7, x[1]) for index, x in enumerate(allExperiments)]
+        + ['Generate charts from precomputed results',
+           'back'],
         title='------------------ Replicate Benchmark Results ------------------')
 
 
@@ -322,7 +323,7 @@ def runMainMenu():
 
         if choice == 1:  # Done
             installDependencies()
-        if choice == 2:  #
+        if choice == 2:  # Done
             downloadDatasetsMenu()
         if choice == 3:  # Done
             compileProject()
