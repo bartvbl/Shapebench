@@ -32,7 +32,7 @@ set (CMAKE_SUPPRESS_REGENERATION TRUE) # Suppresses ZERO_CHECK
 
 # Method specific settings
 add_definitions(-DspinImageWidthPixels=32)
-add_subdirectory(../libShapeDescriptor libShapeDescriptor)
+add_subdirectory(lib/libShapeDescriptor libShapeDescriptor)
 
 # Makes Jolt about 8% slower but makes simulation completely deterministic no matter where the code is run
 set(CROSS_PLATFORM_DETERMINISTIC ON)

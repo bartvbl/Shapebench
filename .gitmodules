@@ -23,3 +23,6 @@
 	path = lib/glad
 	url = https://github.com/Dav1dde/glad.git
 	branch = glad2
+[submodule "lib/libShapeDescriptor"]
+	path = lib/libShapeDescriptor
+	url = https://github.com/bartvbl/libShapeDescriptor
