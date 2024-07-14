@@ -7,6 +7,7 @@ import sys
 import multiprocessing
 import hashlib
 import base64
+from shutil import which
 from scripts.simple_term_menu import TerminalMenu
 from scripts.prettytable import PrettyTable
 
@@ -60,14 +61,30 @@ def downloadDatasetsMenu():
             return
 
 def installDependencies():
-    run_command_line_command('sudo apt install ninja cmake g++ git libwayland-dev libxkbcommon-x11-dev xorg-dev libssl-dev m4 texinfo libboost-dev libeigen3-dev wget xvfb-run python3-tk')
+    run_command_line_command('sudo apt install ninja-build cmake g++ git libwayland-dev libxkbcommon-x11-dev xorg-dev libssl-dev m4 texinfo libboost-dev libeigen3-dev wget xvfb python3-tk')
     run_command_line_command('pip3 install numpy matplotlib plotly wcwidth kaleido')
 
 def compileProject():
     os.makedirs('bin', exist_ok=True)
     run_command_line_command('rm -rf bin/*')
 
-    run_command_line_command('cmake .. -DCMAKE_BUILD_TYPE=Release -G Ninja', 'bin')
+    cudaCompiler = ''
+    if which('nvcc') is None:
+        print()
+        print('It appears that the CUDA NVCC compiler is not on your path.')
+        print('This usually means that CMake doesn\'t manage to find it.')
+        print('The most common path at which NVCC is found is: /usr/local/cuda/bin/nvcc')
+        nvccPath = input('Please paste the path to NVCC here, or leave empty to try and run CMake as-is: ')
+        if nvccPath != '':
+            cudaCompiler = ' -DCMAKE_CUDA_COMPILER=' + nvccPath
+
+
+    run_command_line_command('cmake .. -DCMAKE_BUILD_TYPE=Release -G Ninja' + cudaCompiler, 'bin')
+    if not os.path.isfile('bin/build.ninja'):
+        print()
+        print('Failed to compile the project: CMake exited with an error.')
+        print()
+        return
     run_command_line_command('configure', 'lib/gmp-6.3.0/')
     run_command_line_command('make -j', 'lib/gmp-6.3.0/')
     run_command_line_command('make check', 'lib/gmp-6.3.0/')
