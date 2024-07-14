@@ -1,0 +1,21 @@
+{
+    "QUICCI": {
+        "supportRadius": 0.38999998569488525
+    },
+    "RICI": {
+        "supportRadius": 0.255
+    },
+    "RoPS": {
+        "supportRadius": 0.6749999523162842
+    },
+    "SI": {
+        "supportRadius": 0.809999942779541
+    },
+    "USC": {
+        "supportRadius": 0.13499999046325684
+    },
+    "SHOT": {
+        "supportRadius": 0.14999999105930328
+    },
+    "version": 1.0
+}
