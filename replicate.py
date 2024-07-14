@@ -308,11 +308,28 @@ def replicateSupportRadiusFigures():
                                      '--results-directory=precomputed_results/support_radius_estimation '
                                      '--output-dir=output/charts '
                                      '--mode=support-radius', '.')
+            print()
+            print('Charts created. You can find them in the output/charts directory.')
+            print()
         if choice == len(allMethods) + 3:
             return
 
 def runCharter():
-    pass
+    os.makedirs('output/charts', exist_ok=True)
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=additive-and-gaussian-noise')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=additive-and-subtractive-noise')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=additive-noise-only')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=depth-camera-capture-only')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=gaussian-noise-only')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=normal-noise-only')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=repeated-capture-only')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=subtractive-and-gaussian-noise')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=subtractive-noise-only')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=support-radius-deviation-only')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=support_radius_estimation')
+    print()
+    print('Charts created. You can find them in the output/charts directory.')
+    print()
 
 
 def generateExperimentReplicationSettingsString(config):
