@@ -146,7 +146,7 @@ def changeReplicationSettings():
             'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
             'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
             'Replication of experiment results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
-            'Visualise clutter simulations: ' + ('enabled' if config['filterSettings']['additiveNoise']['enableDebugCamera'] else 'disabled'),
+            'Enable visualisations of generated occluded scenes and clutter simulations: ' + ('enabled' if config['filterSettings']['additiveNoise']['enableDebugCamera'] else 'disabled'),
             "back"], title='------------------ Configure Replication ------------------')
 
         choice = download_menu.show() + 1
@@ -180,6 +180,12 @@ def changeReplicationSettings():
             config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Experiment Results')
         if choice == 9:
             config['filterSettings']['additiveNoise']['enableDebugCamera'] = not config['filterSettings']['additiveNoise']['enableDebugCamera']
+            if config['filterSettings']['additiveNoise']['enableDebugCamera']:
+                warningBox = TerminalMenu([
+                    "Ok"], title='Note: enabling these visualisations will likely cause filters that rely on OpenGL rendering to not replicate properly.')
+
+                warningBox.show()
+
         if choice == 10:
             with open('cfg/config_replication.json', 'w') as cfgFile:
                 json.dump(config, cfgFile, indent=4)
