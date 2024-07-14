@@ -214,7 +214,7 @@ def generateRadiusReplicationSettingsString(config):
     else:
         return 'nothing is replicated'
 
-allMethods = ['QUICCI', 'RICI', 'RoPS', 'SI', 'SHOT', 'USC']
+allMethods = ['QUICCI', 'RICI', 'SI', 'RoPS', 'SHOT', 'USC']
 allExperiments = [
     ('additive-noise-only', 'Clutter'),
     ('subtractive-noise-only', 'Occlusion'),
@@ -303,14 +303,56 @@ def replicateSupportRadiusFigures():
         if choice == len(allMethods) + 2:
             return
 
+def runCharter():
+    pass
+
+
+def generateExperimentReplicationSettingsString(config):
+    if config['replicationOverrides']['supportRadius']['recomputeEntirely']:
+        return 'recompute entirely'
+    elif config['replicationOverrides']['supportRadius']['recomputeSingleRadius']:
+        selectedRadiusIndex = config['replicationOverrides']['supportRadius']['radiusIndexToRecompute']
+        radiusMinValue = config['parameterSelection']['supportRadius']['radiusSearchStart']
+        radiusStepValue = config['parameterSelection']['supportRadius']['radiusSearchStep']
+        selectedRadius = str(radiusMinValue + float(selectedRadiusIndex) * radiusStepValue)
+        return 'recompute statistics for radius ' + selectedRadius + ' only'
+    else:
+        return 'nothing is replicated'
+def replicateExperimentResults(figureIndex):
+    config = readConfigFile()
+    while True:
+        replication_menu = TerminalMenu([
+            'Select replication extent. Currently selected: ' + generateExperimentReplicationSettingsString(config)]
+            + ['Subfigure ({}): {}'.format(list('abcdef')[index], method) for index, method in enumerate(allMethods)] + [
+            "back"],
+            title='------------------ Replicate Figure {}: {} ------------------'.format(7 + figureIndex, allExperiments[figureIndex][1]))
+
+        choice = replication_menu.show() + 1
+
+        if choice == 1:
+            pass
+        if choice == 1 + len(allMethods) + 1:
+            return
 
 def replicateExperimentsFigures():
-    download_menu = TerminalMenu([
-        ""] +
-        ['Replicate subfigure in Figure {}: {}'.format(index + 7, x[1]) for index, x in enumerate(allExperiments)]
+    experiments_menu = TerminalMenu([
+        "Edit replication settings (shortcut to same option in main menu)"] +
+        ['Replicate Figure {}: {}'.format(index + 7, x[1]) for index, x in enumerate(allExperiments)]
         + ['Generate charts from precomputed results',
            'back'],
         title='------------------ Replicate Benchmark Results ------------------')
+    while True:
+
+
+        choice = experiments_menu.show() + 1
+        if choice == 1:  #
+            changeReplicationSettings()
+        if choice > 1 and choice <= len(allExperiments) + 1:
+            replicateExperimentResults(choice - 2)
+        if choice == len(allExperiments) + 2:  #
+            runCharter()
+        if choice == len(allExperiments) + 3:  #
+            return
 
 
 def runMainMenu():
@@ -337,7 +379,7 @@ def runMainMenu():
             changeReplicationSettings()
         if choice == 5:  # Done
             replicateSimilarityVisualisationFigure()
-        if choice == 6:  #
+        if choice == 6:  # Done
             replicateSupportRadiusFigures()
         if choice == 7:  #
             replicateExperimentsFigures()
