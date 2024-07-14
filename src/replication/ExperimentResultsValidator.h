@@ -61,14 +61,27 @@ namespace ShapeBench {
         // Since the chosen vertex and mesh ID are
         uint32_t excludedResultCount = 0;
 
+        std::unordered_map<uint32_t, uint32_t> resultIndexConversionMap;
+        for(uint32_t originalIndex = 0; originalIndex < previouslyComputedResults.size(); originalIndex++) {
+            resultIndexConversionMap.insert({previouslyComputedResults.at(originalIndex).at("resultID"), originalIndex});
+        }
+
         for(uint32_t vertexIndex = 0; vertexIndex < replicatedResults.vertexResults.size(); vertexIndex++) {
             const ExperimentResultsEntry& replicatedResult = replicatedResults.vertexResults.at(vertexIndex);
-            const nlohmann::json& originalResult = previouslyComputedResults.at(vertexIndex);
 
             if(!replicatedResult.included) {
                 continue;
             }
 
+            if(!resultIndexConversionMap.contains(vertexIndex)) {
+                throw std::runtime_error("Replication failed: previously computed results is missing one of the results that was replicated (index " + std::to_string(vertexIndex));
+            }
+            uint32_t mappedIndex = resultIndexConversionMap.at(vertexIndex);
+            const nlohmann::json& originalResult = previouslyComputedResults.at(mappedIndex);
+
+
+
+            // Detecting properties that any filters might have added
             uint32_t propertyIndex = 0;
             auto originalResultFilterOutputIterator = originalResult["filterOutput"].begin();
             for(const auto& [key, value] : replicatedResult.filterOutput.items()) {
@@ -92,7 +105,6 @@ namespace ShapeBench {
             meshIDCorrectStats.registerValue(originalResult["meshID"] == replicatedResult.sourceVertex.meshID ? 0 : 1);
             nearestNeighbourPRCStats.registerValue(originalResult["PRC"]["distanceToNearestNeighbour"], replicatedResult.prcMetadata.distanceToNearestNeighbour);
             secondNearestNeighbourPRCStats.registerValue(originalResult["PRC"]["distanceToSecondNearestNeighbour"], replicatedResult.prcMetadata.distanceToSecondNearestNeighbour);
-
 
             /*
              * entryJson["fractionAddedNoise"] = entry.fractionAddedNoise;
