@@ -168,7 +168,6 @@ def changeReplicationSettings():
             'Change location of dataset file cache: ' + config['datasetSettings']['compressedRootDir'],
             'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
             'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
-            'Replication of experiment results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
             'Enable visualisations of generated occluded scenes and clutter simulations: ' + ('enabled' if config['filterSettings']['additiveNoise']['enableDebugCamera'] else 'disabled'),
             "back"], title='------------------ Configure Replication ------------------')
 
@@ -200,8 +199,6 @@ def changeReplicationSettings():
         if choice == 7:
             config['replicationOverrides']['sampleDescriptorSet'] = editSettings(config['replicationOverrides']['sampleDescriptorSet'], 'Sample Object Unfiltered Descriptor Set')
         if choice == 8:
-            config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Experiment Results')
-        if choice == 9:
             config['filterSettings']['additiveNoise']['enableDebugCamera'] = not config['filterSettings']['additiveNoise']['enableDebugCamera']
             if config['filterSettings']['additiveNoise']['enableDebugCamera']:
                 warningBox = TerminalMenu([
@@ -209,7 +206,7 @@ def changeReplicationSettings():
 
                 warningBox.show()
 
-        if choice == 10:
+        if choice == 9:
             with open('cfg/config_replication.json', 'w') as cfgFile:
                 json.dump(config, cfgFile, indent=4)
             return
