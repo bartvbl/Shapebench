@@ -278,6 +278,11 @@ def editSupportRadiusExtent(config):
 
 def replicateSupportRadiusFigures():
     config = readConfigFile()
+    radiusConfigFile = 'cfg/config_support_radius_replication.json'
+    if not os.path.isfile(radiusConfigFile):
+        with open(radiusConfigFile, 'w') as outfile:
+            json.dump(config, outfile, indent=4)
+
     while True:
         download_menu = TerminalMenu([
             'Select replication extent. Currently selected: ' + generateRadiusReplicationSettingsString(config)]
@@ -287,8 +292,7 @@ def replicateSupportRadiusFigures():
             title='------------------ Replicate Support Radius Figures ------------------')
 
         choice = download_menu.show() + 1
-        radiusConfigFile = 'cfg/config_support_radius_replication.json'
-
+        
         if choice == 1:
             config = editSupportRadiusExtent(config)
             with open(radiusConfigFile, 'w') as outfile:
