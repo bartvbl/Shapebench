@@ -47,8 +47,8 @@
         },
         "experiment": {
             "recomputeEntirely": false,
-            "recomputeRandomSubset": false,
-            "randomSubsetSize": 25
+            "recomputeRandomSubset": true,
+            "randomSubsetSize": 100
         }
     },
     "experimentsToRun": [
