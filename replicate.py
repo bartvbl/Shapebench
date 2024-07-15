@@ -148,8 +148,8 @@ def selectReplicationRandomSeed(originalSeed):
         return int(selectedRandomSeed)
     return originalSeed
 
-def readConfigFile():
-    with open('cfg/config_replication.json', 'r') as cfgFile:
+def readConfigFile(path = 'cfg/config_replication.json'):
+    with open(path, 'r') as cfgFile:
         config = json.load(cfgFile)
         return config
 
@@ -454,6 +454,15 @@ def runIntroSequence():
     print()
     print('It is recommended you refer to the included PDF manual for instructions')
     print()
+
+    # Patching in absolute paths
+    config = readConfigFile('../cfg/config_replication_base.json')
+    config['cacheDirectory'] = os.path.abspath(config['cacheDirectory'])
+    config['resultsDirectory'] = os.path.abspath(config['resultsDirectory'])
+    config['datasetSettings']['compressedRootDir'] = os.path.abspath(config['datasetSettings']['compressedRootDir'])
+    config['datasetSettings']['objaverseRootDir'] = os.path.abspath(config['datasetSettings']['objaverseRootDir'])
+    writeConfigFile(config)
+
     runMainMenu()
 
 
