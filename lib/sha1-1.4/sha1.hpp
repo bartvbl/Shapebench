@@ -324,6 +324,9 @@ inline std::string SHA1::final()
 
 inline std::string SHA1::from_file(const std::string &filename)
 {
+    if(!std::filesystem::exists(std::filesystem::path(filename))) {
+        throw std::runtime_error("The file " + filename + " could not be found!");
+    }
     std::ifstream stream(filename.c_str(), std::ios::binary);
     SHA1 checksum;
     checksum.update(stream);

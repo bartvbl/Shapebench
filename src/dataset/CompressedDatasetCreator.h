@@ -108,12 +108,11 @@ namespace ShapeBench {
                     isPointCloud = ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
                 }
                 datasetEntry["filePath"] = filePath;
-                std::string originalFileSha1 = SHA1::from_file(filePath.string());
+                std::string originalFileSha1 = SHA1::from_file((originalDatasetDirectory / filePath).string());
                 if(!entryIsMissing) {
                     if(datasetEntry.at("originalFileSha1") != originalFileSha1) {
                         throw std::logic_error("FATAL: file digest of file " + filePath.string() + " did not match the one on record!");
                     }
-                } else {
                 }
                 datasetEntry["originalFileSha1"] = originalFileSha1;
 
