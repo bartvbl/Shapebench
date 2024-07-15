@@ -292,7 +292,7 @@ def replicateSupportRadiusFigures():
             title='------------------ Replicate Support Radius Figures ------------------')
 
         choice = download_menu.show() + 1
-        
+
         if choice == 1:
             config = editSupportRadiusExtent(config)
             with open(radiusConfigFile, 'w') as outfile:
@@ -375,7 +375,7 @@ def replicateExperimentResults(figureIndex):
         if choice > 1 and choice < len(allMethods) + 2:
             methodIndex = choice - 2
             methodName = allMethods[methodIndex]
-            precomputedResultsDir = os.path.join('precomputed_results', allExperiments[figureIndex][0])
+            precomputedResultsDir = os.path.join('..', 'precomputed_results', allExperiments[figureIndex][0])
             resultFiles = [x for x in os.listdir(precomputedResultsDir) if methodName in x]
             if len(resultFiles) != 1:
                 raise Exception('There should be exactly one result file for each method in the precomputed results directory. Found {}.'.format(len(resultFiles)))
