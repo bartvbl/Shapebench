@@ -375,7 +375,7 @@ def replicateExperimentResults(figureIndex):
         if choice > 1 and choice < len(allMethods) + 2:
             methodIndex = choice - 2
             methodName = allMethods[methodIndex]
-            precomputedResultsDir = os.path.join('..', 'precomputed_results', allExperiments[figureIndex][0])
+            precomputedResultsDir = os.path.join('precomputed_results', allExperiments[figureIndex][0])
             resultFiles = [x for x in os.listdir(precomputedResultsDir) if methodName in x]
             if len(resultFiles) != 1:
                 raise Exception('There should be exactly one result file for each method in the precomputed results directory. Found {}.'.format(len(resultFiles)))
@@ -384,7 +384,7 @@ def replicateExperimentResults(figureIndex):
             print()
             enableVisualisations = config['filterSettings']['additiveNoise']['enableDebugCamera']
             commandPreamble = 'xvfb-run ' if not enableVisualisations else ''
-            run_command_line_command(commandPreamble + './shapebench --replicate-results-file={} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate), 'bin')
+            run_command_line_command(commandPreamble + './shapebench --replicate-results-file=../{} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate), 'bin')
             print()
             print('Complete.')
             print('If you enabled any replication options in the settings, these have been successfully replicated if no exception was raised that caused execution to halt.')
