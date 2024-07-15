@@ -112,7 +112,7 @@ include_directories (
         lib/tabulate-master-3a58301067bbc03da89ae5a51b3e05b7da719d38/include
         lib/cmake-git
         lib/sha1-1.4
-        ../libShapeDescriptor/lib/glm
+        lib/libShapeDescriptor/lib/glm
         lib/libcurl-8.7.1/include
         lib/CGAL-5.6.1/include
         lib/PortableGL-0.98.0
