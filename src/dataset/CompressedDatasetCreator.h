@@ -38,7 +38,7 @@ namespace ShapeBench {
         ShapeBench::RandomSubset replicationSubset;
         if(recomputeRandomSubset) {
             uint32_t numberOfFilesToRecompute = replicationConfiguration.at("randomSubsetSize");
-            if(numberOfFilesToRecompute < datasetFiles.size()) {
+            if(numberOfFilesToRecompute > datasetFiles.size()) {
                 throw std::logic_error("Failed to recompute a random subset of dataset files (requested " + std::to_string(numberOfFilesToRecompute) +
                 ", while " + std::to_string(datasetFiles.size()) + " are available). They are either missing, or you have requested to replicate more files than the dataset has.");
             }
