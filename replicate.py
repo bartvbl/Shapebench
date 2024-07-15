@@ -74,8 +74,10 @@ def compileProject():
         print('It appears that the CUDA NVCC compiler is not on your path.')
         print('This usually means that CMake doesn\'t manage to find it.')
         print('The most common path at which NVCC is found is: /usr/local/cuda/bin/nvcc')
-        nvccPath = input('Please paste the path to NVCC here, or leave empty to try and run CMake as-is: ')
+        nvccPath = input('Please paste the path to NVCC here, write "default" to use the default path listed above, or leave empty to try and run CMake as-is: ')
         if nvccPath != '':
+            if nvccPath == 'default':
+                nvccPath = '/usr/local/cuda/bin/nvcc'
             cudaCompiler = ' -DCMAKE_CUDA_COMPILER=' + nvccPath
 
 
@@ -85,7 +87,7 @@ def compileProject():
         print('Failed to compile the project: CMake exited with an error.')
         print()
         return
-    run_command_line_command('configure', 'lib/gmp-6.3.0/')
+    run_command_line_command('./configure', 'lib/gmp-6.3.0/')
     run_command_line_command('make -j', 'lib/gmp-6.3.0/')
     run_command_line_command('make check', 'lib/gmp-6.3.0/')
     run_command_line_command('ninja ', 'bin')
