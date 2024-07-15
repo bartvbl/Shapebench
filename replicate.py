@@ -456,7 +456,7 @@ def runIntroSequence():
     print()
 
     # Patching in absolute paths
-    config = readConfigFile('../cfg/config_replication_base.json')
+    config = readConfigFile('cfg/config_replication_base.json')
     config['cacheDirectory'] = os.path.abspath(config['cacheDirectory'])
     config['resultsDirectory'] = os.path.abspath(config['resultsDirectory'])
     config['datasetSettings']['compressedRootDir'] = os.path.abspath(config['datasetSettings']['compressedRootDir'])
