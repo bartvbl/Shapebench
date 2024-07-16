@@ -1,3 +1,0 @@
-[ ] Fix chart labels
-[ ] Add example figures for filtered objects
-[ ] USC is normalised during parameter selection
