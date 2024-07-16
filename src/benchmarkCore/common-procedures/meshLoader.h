@@ -37,20 +37,25 @@ namespace ShapeBench {
 
         std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
         if(compressedFileSha1 != datasetEntry.compressedMeshFileSHA1) {
-            //throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
+            throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
         }
 
         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(compressedMeshPath);
+	// Compute it live
+        ShapeBench::Miniball ball = computeMiniball(mesh);
+	DatasetEntry duplicatedEntry = datasetEntry;
+	duplicatedEntry.computedObjectRadius = ball.radius;
+	duplicatedEntry.computedObjectCentre = ball.origin;
+
 
         if(config.at("datasetSettings").at("verifyFileIntegrity") && mesh.vertexCount > 0) {
-            ShapeBench::Miniball ball = computeMiniball(mesh);
             ShapeBench::Miniball storedBall;
             storedBall.radius = datasetEntry.computedObjectRadius;
             storedBall.origin = datasetEntry.computedObjectCentre;
             verifyMiniballValidity(ball, storedBall);
         }
 
-        moveAndScaleMesh(mesh, datasetEntry);
+        moveAndScaleMesh(mesh, duplicatedEntry);
 
         cache->returnFile(compressedMeshPath);
 
