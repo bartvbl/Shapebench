@@ -243,9 +243,9 @@ allExperiments = [
     ('support-radius-deviation-only', 'Deviated support radius'),
     ('gaussian-noise-only', 'Gaussian noise'),
     ('depth-camera-capture-only', 'Alternate mesh resolution'),
-    ('additive-and-subtractive-only', 'Clutter and Occlusion'),
-    ('additive-and-gaussian-only', 'Clutter and Gaussian noise'),
-    ('subtractive-and-gaussian-only', 'Occlusion and Gaussian noise')
+    ('additive-and-subtractive-noise', 'Clutter and Occlusion'),
+    ('additive-and-gaussian-noise', 'Clutter and Gaussian noise'),
+    ('subtractive-and-gaussian-noise', 'Occlusion and Gaussian noise')
 ]
 
 def editSupportRadiusExtent(config):
