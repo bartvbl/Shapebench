@@ -161,30 +161,35 @@ def changeReplicationSettings():
 
     while True:
         download_menu = TerminalMenu([
-            'Print individual experiment results: ' + ('enabled' if config['verboseOutput'] else 'disabled'),
+            'Replication of experimental results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
+            'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
+            'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
             'Random seed used when selecting random subsets to replicate: ' + str(config['replicationOverrides']['replicationRandomSeed']),
             'Verify computed minimum bounding sphere of input objects: ' + ('enabled' if config['datasetSettings']['verifyFileIntegrity'] else 'disabled'),
             'Size of dataset file cache in GB: ' + str(config['datasetSettings']['cacheSizeLimitGB']),
             'Change location of dataset file cache: ' + config['datasetSettings']['compressedRootDir'],
-            'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
-            'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
+            'Print individual experiment results as they are being generated: ' + ('enabled' if config['verboseOutput'] else 'disabled'),
             'Enable visualisations of generated occluded scenes and clutter simulations: ' + ('enabled' if config['filterSettings']['additiveNoise']['enableDebugCamera'] else 'disabled'),
             "back"], title='------------------ Configure Replication ------------------')
 
         choice = download_menu.show() + 1
 
         if choice == 1:
-            config['verboseOutput'] = not config['verboseOutput']
+            config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'],'Benchmark Results')
         if choice == 2:
-            config['replicationOverrides']['replicationRandomSeed'] = selectReplicationRandomSeed(config['replicationOverrides']['replicationRandomSeed'])
+            config['replicationOverrides']['referenceDescriptorSet'] = editSettings(config['replicationOverrides']['referenceDescriptorSet'], 'Reference Descriptor Set')
         if choice == 3:
-            config['datasetSettings']['verifyFileIntegrity'] = not config['datasetSettings']['verifyFileIntegrity']
+            config['replicationOverrides']['sampleDescriptorSet'] = editSettings(config['replicationOverrides']['sampleDescriptorSet'], 'Sample Object Unfiltered Descriptor Set')
         if choice == 4:
+            config['replicationOverrides']['replicationRandomSeed'] = selectReplicationRandomSeed(config['replicationOverrides']['replicationRandomSeed'])
+        if choice == 5:
+            config['datasetSettings']['verifyFileIntegrity'] = not config['datasetSettings']['verifyFileIntegrity']
+        if choice == 6:
             print()
             newSize = int(input('Size of dataset file cache in GB: '))
             config['datasetSettings']['cacheSizeLimitGB'] = newSize
             print()
-        if choice == 5:
+        if choice == 7:
             print()
             chosenDirectory = input('Enter a directory path here. Write "choose" for a graphical file chooser: ')
             if chosenDirectory == "choose":
@@ -194,11 +199,9 @@ def changeReplicationSettings():
                 root.withdraw()
                 chosenDirectory = filedialog.askdirectory()
             config['datasetSettings']['compressedRootDir'] = chosenDirectory
-        if choice == 6:
-            config['replicationOverrides']['referenceDescriptorSet'] = editSettings(config['replicationOverrides']['referenceDescriptorSet'], 'Reference Descriptor Set')
-        if choice == 7:
-            config['replicationOverrides']['sampleDescriptorSet'] = editSettings(config['replicationOverrides']['sampleDescriptorSet'], 'Sample Object Unfiltered Descriptor Set')
         if choice == 8:
+            config['verboseOutput'] = not config['verboseOutput']
+        if choice == 9:
             config['filterSettings']['additiveNoise']['enableDebugCamera'] = not config['filterSettings']['additiveNoise']['enableDebugCamera']
             if config['filterSettings']['additiveNoise']['enableDebugCamera']:
                 warningBox = TerminalMenu([
@@ -206,7 +209,7 @@ def changeReplicationSettings():
 
                 warningBox.show()
 
-        if choice == 9:
+        if choice == 10:
             with open('cfg/config_replication.json', 'w') as cfgFile:
                 json.dump(config, cfgFile, indent=4)
             return
@@ -358,8 +361,14 @@ def runCharter():
 def replicateExperimentResults(figureIndex):
     config = readConfigFile()
     while True:
+        print()
+        print('Current replication settings:')
+        print('- Experimental results:', generateReplicationSettingsString(config['replicationOverrides']['experiment']))
+        print('- Replication of reference descriptor set:', generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']))
+        print('- Replication of sample object unfiltered descriptor set:', generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']))
+        print()
         replication_menu = TerminalMenu([
-            'Select replication extent. Currently selected: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment'])]
+            'Edit replication settings (shortcut to same option in main menu)']
             + ['Subfigure ({}): {}'.format(list('abcdef')[index], method) for index, method in enumerate(allMethods)] + [
             "back"],
             title='------------------ Replicate Figure {}: {} ------------------'.format(7 + figureIndex, allExperiments[figureIndex][1]))
@@ -367,8 +376,8 @@ def replicateExperimentResults(figureIndex):
         choice = replication_menu.show() + 1
 
         if choice == 1:
-            config['replicationOverrides']['experiment'] = editSettings(config['replicationOverrides']['experiment'], 'Benchmark Results')
-            writeConfigFile(config)
+            changeReplicationSettings()
+
         if choice > 1 and choice < len(allMethods) + 2:
             methodIndex = choice - 2
             methodName = allMethods[methodIndex]
@@ -449,7 +458,8 @@ def runIntroSequence():
     print('This script is intended to reproduce various figures in an interactive')
     print('(and hopefully convenient) manner.')
     print()
-    print('It is recommended you refer to the included PDF manual for instructions')
+    print('If you have not run this script before, you should run step 1 to 3 in order.')
+    print('More details can be found in the replication manual PDF file that accompanies this script.')
     print()
 
     # Patching in absolute paths
