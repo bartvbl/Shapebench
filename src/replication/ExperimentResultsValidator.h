@@ -42,8 +42,8 @@ namespace ShapeBench {
         }
     };
 
-    template<typename DescriptorMethod>
-    void checkReplicatedExperimentResults(const nlohmann::json& config,
+    inline void checkReplicatedExperimentResults(const nlohmann::json& config,
+                                          const std::string& methodName,
                                           const std::string& experimentName,
                                           const ShapeBench::ExperimentResult& replicatedResults,
                                           const nlohmann::json& previouslyComputedResults) {
@@ -67,7 +67,7 @@ namespace ShapeBench {
 
         std::filesystem::path reportsDirectory = std::filesystem::path(config.at("resultsDirectory")) / "replication-reports";
         std::filesystem::create_directories(reportsDirectory);
-        std::filesystem::path reportFilePath = reportsDirectory / (DescriptorMethod::getName() + "-" + experimentName + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".csv");
+        std::filesystem::path reportFilePath = reportsDirectory / (methodName + "-" + experimentName + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".csv");
         std::ofstream reportFile(reportFilePath);
 
         reportFile << "Result ID, Clutter,,, Occlusion,,, DDI,,, Model ID,,, PRC: distance to nearest neighbour,,, PRC: distance to second nearest neighbour" << std::endl;
