@@ -42,8 +42,11 @@ namespace ShapeBench {
         }
     };
 
-    inline void checkReplicatedExperimentResults(const ShapeBench::ExperimentResult& replicatedResults,
-                                                 const nlohmann::json& previouslyComputedResults) {
+    template<typename DescriptorMethod>
+    void checkReplicatedExperimentResults(const nlohmann::json& config,
+                                          const std::string& experimentName,
+                                          const ShapeBench::ExperimentResult& replicatedResults,
+                                          const nlohmann::json& previouslyComputedResults) {
         std::cout << "Validating replicated results.." << std::endl;
 
         uint32_t validatedResultCount = 0;
@@ -61,6 +64,14 @@ namespace ShapeBench {
         for(uint32_t originalIndex = 0; originalIndex < previouslyComputedResults.size(); originalIndex++) {
             resultIndexConversionMap.insert({previouslyComputedResults.at(originalIndex).at("resultID"), originalIndex});
         }
+
+        std::filesystem::path reportsDirectory = std::filesystem::path(config.at("resultsDirectory")) / "replication-reports";
+        std::filesystem::create_directories(reportsDirectory);
+        std::filesystem::path reportFilePath = reportsDirectory / (DescriptorMethod::getName() + "-" + experimentName + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".csv");
+        std::ofstream reportFile(reportFilePath);
+
+        reportFile << "Result ID, Clutter,,, Occlusion,,, DDI,,, Model ID,,, PRC: distance to nearest neighbour,,, PRC: distance to second nearest neighbour" << std::endl;
+        reportFile << ", author, replicated, identical?, author, replicated, identical?, author, replicated, identical?, author, replicated, identical?, author, replicated, identical?, author, replicated, identical?" << std::endl;
 
         for(uint32_t vertexIndex = 0; vertexIndex < replicatedResults.vertexResults.size(); vertexIndex++) {
             const ExperimentResultsEntry& replicatedResult = replicatedResults.vertexResults.at(vertexIndex);
@@ -95,13 +106,20 @@ namespace ShapeBench {
 
             validatedResultCount++;
 
+            reportFile << vertexIndex << ", ";
             clutterStats.registerValue(originalResult["fractionAddedNoise"], replicatedResult.fractionAddedNoise);
+            reportFile << originalResult["fractionAddedNoise"] << ", " << replicatedResult.fractionAddedNoise << ", " << (originalResult["fractionAddedNoise"] == replicatedResult.fractionAddedNoise ? "yes" : "no") << ", ";
             occlusionStats.registerValue(originalResult["fractionSurfacePartiality"], replicatedResult.fractionSurfacePartiality);
+            reportFile << originalResult["fractionSurfacePartiality"] << ", " << replicatedResult.fractionSurfacePartiality << ", " << (originalResult["fractionSurfacePartiality"] == replicatedResult.fractionSurfacePartiality ? "yes" : "no") << ", ";
             descriptorRankStats.registerValue(originalResult["filteredDescriptorRank"], replicatedResult.filteredDescriptorRank);
+            reportFile << originalResult["filteredDescriptorRank"] << ", " << replicatedResult.filteredDescriptorRank << ", " << (originalResult["filteredDescriptorRank"] == replicatedResult.filteredDescriptorRank ? "yes" : "no") << ", ";
             meshIDCorrectStats.registerValue(originalResult["meshID"] == replicatedResult.sourceVertex.meshID ? 0 : 1);
+            reportFile << originalResult["meshID"] << ", " << replicatedResult.sourceVertex.meshID << ", " << (originalResult["meshID"] == replicatedResult.sourceVertex.meshID ? "yes" : "no") << ", ";
             nearestNeighbourPRCStats.registerValue(originalResult["PRC"]["distanceToNearestNeighbour"], replicatedResult.prcMetadata.distanceToNearestNeighbour);
+            reportFile << originalResult["PRC"]["distanceToNearestNeighbour"] << ", " << replicatedResult.prcMetadata.distanceToNearestNeighbour << ", " << (originalResult["PRC"]["distanceToNearestNeighbour"] == replicatedResult.prcMetadata.distanceToNearestNeighbour ? "yes" : "no") << ", ";
             secondNearestNeighbourPRCStats.registerValue(originalResult["PRC"]["distanceToSecondNearestNeighbour"], replicatedResult.prcMetadata.distanceToSecondNearestNeighbour);
-
+            reportFile << originalResult["PRC"]["distanceToSecondNearestNeighbour"] << ", " << replicatedResult.prcMetadata.distanceToSecondNearestNeighbour << ", " << (originalResult["PRC"]["distanceToSecondNearestNeighbour"] == replicatedResult.prcMetadata.distanceToSecondNearestNeighbour ? "yes" : "no") << ", ";
+            reportFile << std::endl;
             /*
              * entryJson["fractionAddedNoise"] = entry.fractionAddedNoise;
              * entryJson["fractionSurfacePartiality"] = entry.fractionSurfacePartiality;
@@ -125,9 +143,8 @@ namespace ShapeBench {
 
         }
 
-        std::cout << "    Validation complete." << std::endl;
         std::cout << "    Table: Overview over the extent to which the replicated and original values deviate from each other." << std::endl;
-        std::cout << "           Total deviation is the sum of differences between all replicated values." << std::endl;
+        std::cout << "           Total deviation is the sum of differences between all replicated values." << std::endl << std::endl;
 
 
         tabulate::Table outputTable;
@@ -145,6 +162,8 @@ namespace ShapeBench {
 
         std::cout << outputTable << std::endl << std::endl;
 
-        std::cout << "    Validated " << validatedResultCount << " results." << std::endl;
+        std::cout << "    Replication complete." << std::endl;
+        std::cout << "    A CSV file containing a comparison between all individual results has been written to:" << std::endl;
+        std::cout << "        " << reportFilePath.string() << std::endl;
     }
 }

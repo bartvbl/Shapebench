@@ -660,7 +660,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             std::cout << "Experiment complete." << std::endl;
 
             if(setup.replicationSettings.enabled) {
-                ShapeBench::checkReplicatedExperimentResults(experimentResult, setup.replicationSettings.experimentResults);
+                ShapeBench::checkReplicatedExperimentResults<DescriptorMethod>(configuration, experimentResult, setup.replicationSettings.experimentResults);
             }
         } else {
             std::string fileName = "descriptors_" + DescriptorMethod::getName() + "_" + ShapeDescriptor::generateUniqueFilenameString() + "_" + std::string(experimentConfig.at("name")) + ".png";
