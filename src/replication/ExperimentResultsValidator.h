@@ -65,7 +65,7 @@ namespace ShapeBench {
             resultIndexConversionMap.insert({previouslyComputedResults.at(originalIndex).at("resultID"), originalIndex});
         }
 
-        std::filesystem::path reportsDirectory = std::filesystem::path(config.at("resultsDirectory")) / "replication-reports";
+        std::filesystem::path reportsDirectory = std::filesystem::path(std::string(config.at("resultsDirectory"))) / "replication-reports";
         std::filesystem::create_directories(reportsDirectory);
         std::filesystem::path reportFilePath = reportsDirectory / (methodName + "-" + experimentName + "-" + ShapeDescriptor::generateUniqueFilenameString() + ".csv");
         std::ofstream reportFile(reportFilePath);
