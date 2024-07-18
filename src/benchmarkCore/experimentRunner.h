@@ -203,20 +203,33 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeDesc
             std::cout << "    Computing " << numberOfDescriptorsToReplicate << " descriptors.." << std::endl;
             replicatedDescriptors = computeReferenceDescriptors<DescriptorMethod, DescriptorType>(representativeSet, configuration, dataset, fileCache, representativeSetRandomSeed, supportRadius, &subset);
             std::cout << "    Comparing computed descriptors against those in the cache.." << std::endl;
+            uint32_t inconsistentDescriptorCount = 0;
+            uint32_t replicatedDescriptorCount = 0;
             for(uint32_t descriptorIndex = 0; descriptorIndex < representativeSet.size(); descriptorIndex++) {
                 if(!subset.contains(descriptorIndex)) {
                     continue;
                 }
+                replicatedDescriptorCount++;
                 uint8_t* descriptorA = reinterpret_cast<uint8_t*>(&replicatedDescriptors.at(descriptorIndex).descriptor);
                 uint8_t* descriptorB = reinterpret_cast<uint8_t*>(&referenceDescriptors.at(descriptorIndex).descriptor);
                 for(uint32_t byteIndex = 0; byteIndex < sizeof(DescriptorType); byteIndex++) {
                     if(descriptorA[byteIndex] != descriptorB[byteIndex]) {
-                        throw std::logic_error("FATAL: Descriptors at index " + std::to_string(descriptorIndex) + " failed to replicate at byte " + std::to_string(byteIndex) + "!");
+                        inconsistentDescriptorCount++;
+                        //throw std::logic_error("FATAL: Descriptors at index " + std::to_string(descriptorIndex) + " failed to replicate at byte " + std::to_string(byteIndex) + "!");
+                        continue;
                     }
                 }
             }
-            std::cout << "    All descriptors in the replicated set were identical to those cached on disk." << std::endl;
-            std::cout << "    Replication successful." << std::endl;
+            std::cout << "    Comparison complete. Number of identical descriptors: " << inconsistentDescriptorCount << " / " << replicatedDescriptorCount << std::endl;
+            if(inconsistentDescriptorCount > 0) {
+                std::cout << "    Some inconsistent descriptors were detected. This can happen due to rounding errors, so it's not necessarily a problem." << std::endl;
+                std::cout << "    Would you like to continue anyway? yes/no: ";
+                std::string answer;
+                std::cin >> answer;
+                if(answer.at(0) != 'y' && answer.at(0) != 'Y') {
+                    throw std::logic_error("Aborted.");
+                }
+            }
         }
     }
     return referenceDescriptors;

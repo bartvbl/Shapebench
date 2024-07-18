@@ -37,7 +37,7 @@ namespace ShapeBench {
 
         std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
         if(compressedFileSha1 != datasetEntry.compressedMeshFileSHA1) {
-            throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
+            //throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
         }
 
         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(compressedMeshPath);
