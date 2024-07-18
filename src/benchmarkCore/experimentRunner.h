@@ -220,7 +220,7 @@ std::vector<ShapeBench::DescriptorOfVertexInDataset<DescriptorType>> computeDesc
                     }
                 }
             }
-            std::cout << "    Comparison complete. Number of identical descriptors: " << inconsistentDescriptorCount << " / " << replicatedDescriptorCount << std::endl;
+            std::cout << "    Comparison complete. Number of identical descriptors: " << (replicatedDescriptorCount - inconsistentDescriptorCount) << " / " << replicatedDescriptorCount << std::endl;
             if(inconsistentDescriptorCount > 0) {
                 std::cout << "    Some inconsistent descriptors were detected. This can happen due to rounding errors, so it's not necessarily a problem." << std::endl;
                 std::cout << "    Would you like to continue anyway? yes/no: ";
