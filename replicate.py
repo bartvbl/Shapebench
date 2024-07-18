@@ -393,7 +393,7 @@ def replicateExperimentResults(figureIndex):
             run_command_line_command(commandPreamble + './shapebench --replicate-results-file=../{} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate), 'bin')
             print()
             print('Complete.')
-            print('If you enabled any replication options in the settings, these have been successfully replicated if no exception was raised that caused execution to halt.')
+            print('If you enabled any replication options in the settings, these have been successfully replicated if you did not receive a message about it, or the program has exited with an exception.')
             print('A comparison of the replicated benchmark results should be in a table that is visible a little bit above this message (you may need to scroll a bit)')
             print()
         if choice == 1 + len(allMethods) + 1:
