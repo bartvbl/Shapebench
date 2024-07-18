@@ -580,7 +580,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
                         filteredDescriptor.meshID = sampleVerticesSet.at(sampleVertexIndex + i).meshID;
                         filteredDescriptor.vertexIndex = sampleVerticesSet.at(sampleVertexIndex + i).vertexIndex;
 
-                        resultsEntries.at(i).prcMetadata = ShapeBench::computePRCInfo<DescriptorMethod, DescriptorType>(filteredDescriptor, cleanSampleDescriptors.at(sampleVertexIndex + i), referenceDescriptors, cleanSampleDescriptors, false);
+                        resultsEntries.at(i).prcMetadata = ShapeBench::computePRCInfo<DescriptorMethod, DescriptorType>(filteredDescriptor, cleanSampleDescriptors.at(sampleVertexIndex + i), referenceDescriptors, cleanSampleDescriptors, true);
                     }
 
                     ShapeBench::AreaEstimate areaEstimate = !doDryRun ? ShapeBench::estimateAreaInSupportVolume<DescriptorMethod>(filteredMesh, resultsEntries.at(i).originalVertexLocation, resultsEntries.at(i).filteredVertexLocation, supportRadius, configuration, areaEstimationRandomSeed) : ShapeBench::AreaEstimate();
