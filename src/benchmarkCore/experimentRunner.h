@@ -392,8 +392,13 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             bool replicateEntirely = configuration.at("replicationOverrides").at("experiment").at("recomputeEntirely");
             bool replicateSubset = configuration.at("replicationOverrides").at("experiment").at("recomputeRandomSubset");
             if(!(replicateEntirely || replicateSubset)) {
-                std::cout << "    WARNING: Configuration file did not specify the extent to which the given results file should be replicated. It will be replicated entirely." << std::endl;
-                replicateEntirely = true;
+                std::cout << "    Configuration file did not specify the extent to which the given results file should be replicated." << std::endl;
+                std::cout << "    If your intent was to replicate the support radius or cached descriptors, you can ignore this message." << std::endl;
+                std::cout << "    If you want to replicate experimental results, you should enable either full replication, or replicate a subset." << std::endl;
+                std::cout << "        When using the included python script: you can change this in the replication settings under \"experiment\"" << std::endl;
+                std::cout << "        When editing the configuration file directory: enable one of the boolean options under replicationOverrides > experiment" << std::endl;
+                std::cout << "Exiting." << std::endl;
+                return;
             } else if(replicateEntirely && replicateSubset) {
                 replicateSubset = false;
             }
