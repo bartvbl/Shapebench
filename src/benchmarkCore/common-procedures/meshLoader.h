@@ -41,21 +41,16 @@ namespace ShapeBench {
         }
 
         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(compressedMeshPath);
-	// Compute it live
-        ShapeBench::Miniball ball = computeMiniball(mesh);
-	DatasetEntry duplicatedEntry = datasetEntry;
-	duplicatedEntry.computedObjectRadius = ball.radius;
-	duplicatedEntry.computedObjectCentre = ball.origin;
-
 
         if(config.at("datasetSettings").at("verifyFileIntegrity") && mesh.vertexCount > 0) {
+            ShapeBench::Miniball ball = computeMiniball(mesh);
             ShapeBench::Miniball storedBall;
             storedBall.radius = datasetEntry.computedObjectRadius;
             storedBall.origin = datasetEntry.computedObjectCentre;
             verifyMiniballValidity(ball, storedBall);
         }
 
-        moveAndScaleMesh(mesh, duplicatedEntry);
+        moveAndScaleMesh(mesh, datasetEntry);
 
         cache->returnFile(compressedMeshPath);
 
