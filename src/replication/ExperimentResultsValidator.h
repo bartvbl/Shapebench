@@ -31,9 +31,9 @@ namespace ShapeBench {
                 currentCountIndentical++;
             }
             count++;
-            currentSum += deviation;
+            currentSum += std::abs(deviation);
             currentMax = std::max<double>(currentMax, deviation);
-            currentAverage += (double(deviation) - currentAverage) / double(count);
+            currentAverage += std::abs(double(deviation) - currentAverage) / double(count);
         }
 
         void registerValue(T value1, T value2) {
@@ -73,6 +73,7 @@ namespace ShapeBench {
         reportFile << "Result ID, Clutter,,, Occlusion,,, DDI,,, Model ID,,, PRC: distance to nearest neighbour,,, PRC: distance to second nearest neighbour" << std::endl;
         reportFile << ", author, replicated, identical?, author, replicated, identical?, author, replicated, identical?, author, replicated, identical?, author, replicated, identical?, author, replicated, identical?" << std::endl;
 
+        uint32_t missingCount = 0;
         for(uint32_t vertexIndex = 0; vertexIndex < replicatedResults.vertexResults.size(); vertexIndex++) {
             const ExperimentResultsEntry& replicatedResult = replicatedResults.vertexResults.at(vertexIndex);
 
@@ -81,7 +82,8 @@ namespace ShapeBench {
             }
 
             if(!resultIndexConversionMap.contains(vertexIndex)) {
-                throw std::runtime_error("Replication failed: previously computed results is missing one of the results that was replicated (index " + std::to_string(vertexIndex));
+                missingCount++;
+                continue;
             }
             uint32_t mappedIndex = resultIndexConversionMap.at(vertexIndex);
             const nlohmann::json& originalResult = previouslyComputedResults.at(mappedIndex);
@@ -163,6 +165,9 @@ namespace ShapeBench {
         std::cout << outputTable << std::endl << std::endl;
 
         std::cout << "    Replication complete." << std::endl;
+        if(missingCount > 0) {
+            std::cout << "    NOTE: " << missingCount << " results that were replicated were missing in the input dataset." << std::endl;
+        }
         std::cout << "    A CSV file containing a comparison between all individual results has been written to:" << std::endl;
         std::cout << "        " << reportFilePath.string() << std::endl;
     }
