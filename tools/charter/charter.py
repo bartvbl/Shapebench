@@ -62,8 +62,8 @@ def getProcessingSettings(mode, fileContents):
         settings.xAxisTitle = "Clutter"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
-        settings.xAxisMax = 1
-        settings.xTick = 0.2
+        settings.xAxisMax = 10
+        settings.xTick = 1
         settings.enable2D = False
         settings.reverse = False
         settings.readValueX = lambda x: x["fractionAddedNoise"] 
