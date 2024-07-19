@@ -508,6 +508,7 @@ def createChart(results_directory, output_directory, mode):
         print("No json files were found in this directory. Aborting.")
         return
 
+    totalAreas = []
     allCounts = []
     countXValues = []
     countLabels = []
@@ -529,6 +530,20 @@ def createChart(results_directory, output_directory, mode):
             else:
                 stackedXValues, stackedYValues, stackedLabels, counts, areaUnderCurves = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
             allCounts.append(counts)
+            areaUnderZeroCurve = 0
+            previousY = 0
+            previousX = 0
+            for currentX, currentY in zip(stackedXValues, stackedYValues[0]):
+                if currentY is None:
+                    previousX = currentX
+                    previousY = 0
+                    continue
+                areaUnderZeroCurve += ((currentY + previousY) / 2.0) * (currentX - previousX)
+                #print(previousX, previousY, currentX, currentY)
+                previousY = currentY
+                previousX = currentX
+            # Not sure if correct
+            print('Total area under zero curve:', areaUnderZeroCurve)
             countLabels.append(settings.methodName)
             countXValues = stackedXValues
             stackFigure = go.Figure()
