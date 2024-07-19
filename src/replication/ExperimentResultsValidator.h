@@ -32,7 +32,7 @@ namespace ShapeBench {
             }
             count++;
             currentSum += std::abs(deviation);
-            currentMax = std::max<double>(currentMax, deviation);
+            currentMax = std::max<double>(currentMax, std::abs(deviation));
             currentAverage += std::abs(double(deviation) - currentAverage) / double(count);
         }
 
