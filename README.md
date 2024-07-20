@@ -21,6 +21,8 @@ You should subsequently run the python script to install dependencies, compile t
 
 There's nothing that should prevent the project to be compiled on Windows, but it has not been tested.
 
+While many of the experiments and filters will run on a system with 32GB of RAM, you will likely need to apply a number of thread limiters in order to reduce memory requirements. Make in any case sure to have enough swap space available, and a healthy dose of patience when using thread limiters.
+
 ### Abstract
 
 We propose the ShapeBench evaluation methodology as an extension to the popular Area Under Precision-Recall Curve (PRC/AUC) for measuring the matching performance of local 3D shape descriptors. It is observed that the PRC inadequately accounts for other similar surfaces in the same or different objects when determining whether a candidate match is a true positive. Establishing a true ground truth for such matches is intractable for large datasets. The novel Descriptor Distance Index (DDI) metric is introduced to address this limitation. In contrast to previous evaluation methodologies, which identify entire objects  in a given scene, the DDI metric measures descriptor performance by analysing point-to-point distances. The proposed methodology is used to evaluate both old and new descriptors. The results produced by the implementation of the benchmark are fully replicable, and are made publicly available.
