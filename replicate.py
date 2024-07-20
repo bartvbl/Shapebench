@@ -156,6 +156,48 @@ def readConfigFile(path = 'cfg/config_replication.json'):
 def writeConfigFile(config):
     with open('cfg/config_replication.json', 'w') as cfgFile:
         json.dump(config, cfgFile, indent=4)
+
+
+def generateThreadLimiterString(configEntry):
+    if not 'threadLimit' in configEntry:
+        return 'No thread limit'
+    else:
+        return 'limited to ' + str(configEntry['threadLimit']) + ' threads'
+
+
+def applyThreadLimiter(config):
+    print()
+    print('Thread limits ensure the number of threads working on a particular filter does not exceed a set number')
+    print('If you have problems with running out of memory, you can set a thread limiter, and see if that helps things')
+    print('Since memory usage scales linearly with more threads, that can help your situation')
+    print()
+    while True:
+        download_menu = TerminalMenu([
+            'Clutter: ' + generateThreadLimiterString(config['experimentsToRun'][0]),
+            'Occlusion: ' + generateThreadLimiterString(config['experimentsToRun'][1]),
+            'Normal vector deviation: ' + generateThreadLimiterString(config['experimentsToRun'][2]),
+            'Alternate triangulation: ' + generateThreadLimiterString(config['experimentsToRun'][3]),
+            'Support radius deviation: ' + generateThreadLimiterString(config['experimentsToRun'][4]),
+            'Alternate mesh resolution: ' + generateThreadLimiterString(config['experimentsToRun'][5]),
+            'Gaussian noise: ' + generateThreadLimiterString(config['experimentsToRun'][6]),
+            'Clutter and Occlusion: ' + generateThreadLimiterString(config['experimentsToRun'][7]),
+            'Clutter and Gaussian noise: ' + generateThreadLimiterString(config['experimentsToRun'][8]),
+            'Occlusion and Gaussian noise: ' + generateThreadLimiterString(config['experimentsToRun'][9]),
+            "back"], title='------------------ Apply Thread Limiter ------------------')
+        choice = download_menu.show()
+        if choice < 10:
+            print()
+            print('Please enter the new thread limit. Use 0 to disable the limit.')
+            limit = int(input('New thread limit: '))
+            if limit == 0:
+                if 'threadLimit' in config['experimentsToRun'][choice]:
+                    tempCopy = config['experimentsToRun'][choice]
+                    del tempCopy['threadLimit']
+                    config['experimentsToRun'][choice] = tempCopy
+            else:
+                config['experimentsToRun'][choice]['threadLimit'] = limit
+        else:
+            return config
 def changeReplicationSettings():
     config = readConfigFile()
 
@@ -168,6 +210,7 @@ def changeReplicationSettings():
             'Verify computed minimum bounding sphere of input objects: ' + ('enabled' if config['datasetSettings']['verifyFileIntegrity'] else 'disabled'),
             'Size of dataset file cache in GB: ' + str(config['datasetSettings']['cacheSizeLimitGB']),
             'Change location of dataset file cache: ' + config['datasetSettings']['compressedRootDir'],
+            'Limit the number of threads per experiment (use this if you run out of RAM)',
             'Print individual experiment results as they are being generated: ' + ('enabled' if config['verboseOutput'] else 'disabled'),
             'Enable visualisations of generated occluded scenes and clutter simulations: ' + ('enabled' if config['filterSettings']['additiveNoise']['enableDebugCamera'] else 'disabled'),
             "back"], title='------------------ Configure Replication ------------------')
@@ -200,8 +243,10 @@ def changeReplicationSettings():
                 chosenDirectory = filedialog.askdirectory()
             config['datasetSettings']['compressedRootDir'] = chosenDirectory
         if choice == 8:
-            config['verboseOutput'] = not config['verboseOutput']
+            config = applyThreadLimiter(config)
         if choice == 9:
+            config['verboseOutput'] = not config['verboseOutput']
+        if choice == 10:
             config['filterSettings']['additiveNoise']['enableDebugCamera'] = not config['filterSettings']['additiveNoise']['enableDebugCamera']
             if config['filterSettings']['additiveNoise']['enableDebugCamera']:
                 warningBox = TerminalMenu([
@@ -209,7 +254,7 @@ def changeReplicationSettings():
 
                 warningBox.show()
 
-        if choice == 10:
+        if choice == 11:
             with open('cfg/config_replication.json', 'w') as cfgFile:
                 json.dump(config, cfgFile, indent=4)
             return
