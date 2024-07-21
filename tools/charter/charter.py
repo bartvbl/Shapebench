@@ -36,7 +36,7 @@ def getProcessingSettings(mode, fileContents):
     sharedYAxisTitle = "Proportion of DDI"
 
     if experimentName == "normal-noise-only":
-        settings.chartShortName = "Deviating normal vector"
+        settings.chartShortName = "Deviating<br>normal vector"
         settings.xAxisTitle = "Normal vector rotation (°)"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
@@ -72,7 +72,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["fractionAddedNoise"] 
         return settings
     elif experimentName == "support-radius-deviation-only":
-        settings.chartShortName = "Deviating support radius"
+        settings.chartShortName = "Deviating<br>support radius"
         settings.xAxisTitle = "Support radius scale factor"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 1 - fileContents['configuration']['filterSettings']['supportRadiusDeviation'][
@@ -86,7 +86,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
         return settings
     elif experimentName == "repeated-capture-only":
-        settings.chartShortName = "Alternate triangulation"
+        settings.chartShortName = "Alternate<br>triangulation"
         settings.xAxisTitle = "Vertex displacement distance"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
@@ -98,7 +98,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
         return settings
     elif experimentName == "gaussian-noise-only":
-        settings.chartShortName = "Gaussian noise"
+        settings.chartShortName = "Gaussian<br>noise"
         settings.xAxisTitle = "Standard Deviation"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
@@ -109,7 +109,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     elif experimentName == "depth-camera-capture-only":
-        settings.chartShortName = "Alternate mesh resolution"
+        settings.chartShortName = "Alternate<br>mesh resolution"
         settings.xAxisTitle = "Object distance from camera"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisTitleAdjustment = 6
@@ -543,19 +543,23 @@ def createChart(results_directory, output_directory, mode):
             allCounts.append(counts)
 
             areaUnderDDIZeroCurve = 0
-            previousY = 0
-            previousX = 0
+            previousX = stackedXValues[0]
+            previousY = stackedYValues[0][0]
             for currentX, currentY in zip(stackedXValues, stackedYValues[0]):
                 if currentY is None:
                     previousX = currentX
                     previousY = 0
                     continue
-                areaUnderDDIZeroCurve += ((currentY + previousY) / 2.0) * ((currentX - previousX)) #/ (settings.xAxisMax - settings.xAxisMin))
+                deltaX = currentX - previousX
+                averageY = (currentY + previousY) / 2.0
+                areaUnderDDIZeroCurve += deltaX * averageY
                 previousY = currentY
                 previousX = currentX
-            # Not sure if correct
+
             print('Total area under zero curve:', areaUnderDDIZeroCurve)
-            chartAreas[settings.methodName] = areaUnderDDIZeroCurve
+            maxDDIArea = (settings.xAxisMax - settings.xAxisMin) * 1
+            normalisedAreaUnderDDICurve = areaUnderDDIZeroCurve / maxDDIArea
+            chartAreas[settings.methodName] = normalisedAreaUnderDDICurve
             countLabels.append(settings.methodName)
             countXValues = stackedXValues
             stackFigure = go.Figure()
@@ -635,13 +639,15 @@ def writeOverviewChart(contents, outputFile):
             resultsByMethod[methodName][chartName] = contents[chartName][methodName]
 
     countsFigure = go.Figure()
-    for methodName in resultsByMethod:
+    for methodName in ['QUICCI', 'RICI', 'Spin Image', 'RoPS', 'SHOT', 'USC']:
         chartTitles = [x for x in resultsByMethod[methodName]]
         areas = [resultsByMethod[methodName][x] for x in chartTitles]
         countsFigure.add_trace(go.Bar(x=chartTitles, y=areas, name=methodName))
-
-    countsFigure.update_layout(margin={'t': 0, 'l': 0, 'b': 0, 'r': 0})
-    pio.kaleido.scope.default_width = 1500
+    countsFigure.update_xaxes(categoryorder='array',
+                              categoryarray=['Clutter', 'Occlusion', 'Alternate<br>triangulation', 'Deviating<br>normal vector', 'Deviating<br>support radius', 'Gaussian<br>noise', 'Alternate<br>mesh resolution'])
+    countsFigure.update_yaxes(range=[0, 1])
+    countsFigure.update_layout(margin={'t': 0, 'l': 0, 'b': 0, 'r': 0}, font=dict(size=18), yaxis_title='Normalised AUC')
+    pio.kaleido.scope.default_width = 1100
     pio.kaleido.scope.default_height = 300
     pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
 
@@ -670,6 +676,7 @@ def main():
         elif not os.path.isdir(os.path.join(args.results_directory, directoryToProcess)):
             continue
         else:
+            continue
             overallTableEntry = createChart(os.path.join(args.results_directory, directoryToProcess), args.output_dir, 'auto')
             if overallTableEntry is None:
                 continue
@@ -677,6 +684,15 @@ def main():
             areasByMethod, chartName = overallTableEntry
             overviewChartContents[chartName] = areasByMethod
 
+    print(overviewChartContents)
+    '''overviewChartContents = {'Clutter': {'QUICCI': 0.27537532256709957, 'RICI': 0.4817495333351075, 'RoPS': 0.0009022093801893217, 'SHOT': 0.0010631403592512914, 'USC': 9.909914802135964e-06},
+                             'Alternate<br>mesh resolution': {'QUICCI': 0.0962596790459941, 'RICI': 0.03974363574185445, 'RoPS': 0.03168536649079715, 'SHOT': 0.1104174845859617, 'Spin Image': 0.3428006584188961, 'USC': 0.09709257533197806},
+                             'Gaussian<br>noise': {'QUICCI': 0.39707256910400024, 'RICI': 0.4074890509257194, 'RoPS': 0.45957462383613135, 'SHOT': 0.7562214479671908, 'Spin Image': 0.8620130648078511},
+                             'Deviating<br>normal vector': {'QUICCI': 0.1218925743771634, 'RICI': 0.12186936063433425, 'RoPS': 0.9618210014817647, 'SHOT': 0.4891446012780454},
+                             'Alternate<br>triangulation': {'QUICCI': 0.19443432036867744, 'RICI': 0.17943185429462727, 'RoPS': 0.3629179457231485, 'SHOT': 0.35798841271997395},
+                             'Occlusion': {'QUICCI': 0.6869910717319178, 'RICI': 0.4852920579620921, 'RoPS': 0.06538493124967049, 'SHOT': 0.3394370957042049, 'Spin Image': 0.5394741221349988, 'USC': 0.2310877690226886},
+                             'Deviating<br>support radius': {'QUICCI': 0.17763820035060865, 'RICI': 0.1788041819189112, 'RoPS': 0.2504897186655886, 'SHOT': 0.9161040264480456, 'Spin Image': 0.5040284113714978}}
+    '''
     writeOverviewChart(overviewChartContents, os.path.join(args.output_dir, 'overview.pdf'))
 
 
