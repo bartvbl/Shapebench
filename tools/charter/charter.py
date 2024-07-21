@@ -645,9 +645,9 @@ def writeOverviewChart(contents, outputFile):
         countsFigure.add_trace(go.Bar(x=chartTitles, y=areas, name=methodName))
     countsFigure.update_xaxes(categoryorder='array',
                               categoryarray=['Clutter', 'Occlusion', 'Alternate<br>triangulation', 'Deviating<br>normal vector', 'Deviating<br>support radius', 'Gaussian<br>noise', 'Alternate<br>mesh resolution'])
-    countsFigure.update_yaxes(range=[0, 1])
+    countsFigure.update_yaxes(range=[0, 1], dtick=0.1)
     countsFigure.update_layout(margin={'t': 0, 'l': 0, 'b': 0, 'r': 0}, font=dict(size=18), yaxis_title='Normalised AUC')
-    pio.kaleido.scope.default_width = 1100
+    pio.kaleido.scope.default_width = 1400
     pio.kaleido.scope.default_height = 300
     pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
 
@@ -676,7 +676,7 @@ def main():
         elif not os.path.isdir(os.path.join(args.results_directory, directoryToProcess)):
             continue
         else:
-            continue
+            #continue
             overallTableEntry = createChart(os.path.join(args.results_directory, directoryToProcess), args.output_dir, 'auto')
             if overallTableEntry is None:
                 continue
@@ -692,7 +692,7 @@ def main():
                              'Alternate<br>triangulation': {'QUICCI': 0.19443432036867744, 'RICI': 0.17943185429462727, 'RoPS': 0.3629179457231485, 'SHOT': 0.35798841271997395},
                              'Occlusion': {'QUICCI': 0.6869910717319178, 'RICI': 0.4852920579620921, 'RoPS': 0.06538493124967049, 'SHOT': 0.3394370957042049, 'Spin Image': 0.5394741221349988, 'USC': 0.2310877690226886},
                              'Deviating<br>support radius': {'QUICCI': 0.17763820035060865, 'RICI': 0.1788041819189112, 'RoPS': 0.2504897186655886, 'SHOT': 0.9161040264480456, 'Spin Image': 0.5040284113714978}}
-    '''
+'''
     writeOverviewChart(overviewChartContents, os.path.join(args.output_dir, 'overview.pdf'))
 
 
