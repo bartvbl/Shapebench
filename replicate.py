@@ -388,17 +388,7 @@ def replicateSupportRadiusFigures():
 
 def runCharter():
     os.makedirs('output/charts', exist_ok=True)
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/additive-and-gaussian-noise')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/additive-and-subtractive-noise')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/additive-noise-only')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/depth-camera-capture-only')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/gaussian-noise-only')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/normal-noise-only')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/repeated-capture-only')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/subtractive-and-gaussian-noise')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/subtractive-noise-only')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/support-radius-deviation-only')
-    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --mode=auto --results-directory=precomputed_results/support_radius_estimation')
+    run_command_line_command('python3 tools/charter/charter.py --output-dir=output/charts --results-directory=precomputed_results')
     print()
     print('Charts created. You can find them in the output/charts directory.')
     print()
