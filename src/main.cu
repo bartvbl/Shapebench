@@ -158,6 +158,7 @@ void patchReplicationConfiguration(nlohmann::json &replicationConfig, nlohmann::
     patchKey(replicationConfig, regularConfig, "resultsDirectory");
     patchKey(replicationConfig, regularConfig, "computedConfigFile");
     patchKey(replicationConfig, regularConfig, "verboseOutput");
+    patchKey(replicationConfig, regularConfig, "debug_fixPartialFile");
 
     // Each results file only contains one active method and experiment
     // So we ensure here that in both cases only one is marked as active
@@ -169,6 +170,11 @@ void patchReplicationConfiguration(nlohmann::json &replicationConfig, nlohmann::
     // And ensure here that only the experiment being replicated is active
     for(int i = 0; i < replicationConfig.at("experimentsToRun").size(); i++) {
         replicationConfig.at("experimentsToRun").at(i).at("enabled") = i == replicationSettings.experimentIndex;
+    }
+
+    // More manual patching
+    if(regularConfig.at("commonExperimentSettings").contains("intermediateSaveFrequency")) {
+        replicationConfig.at("commonExperimentSettings")["intermediateSaveFrequency"] = regularConfig.at("commonExperimentSettings").at("intermediateSaveFrequency");
     }
 }
 

@@ -333,6 +333,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
     uint64_t experimentBaseRandomSeed = engine();
 
     const uint32_t intermediateSaveFrequency = configuration.at("commonExperimentSettings").at("intermediateSaveFrequency");
+    std::cout << "    Results will be saved every " << intermediateSaveFrequency << " samples." << std::endl;
     std::mutex resultWriteLock;
 
     bool enableIllustrationGenerationMode = configuration.at("illustrationDataGenerationOverride").at("enableIllustrationDataGeneration");
@@ -387,6 +388,8 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
         std::cout << "Experiment " << (experimentIndex + 1) << "/" << experimentCount << ": " << experimentName << std::endl;
 
         ShapeBench::RandomSubset replicationSubset;
+        std::unordered_map<uint32_t, uint32_t> debug_existingEntries;
+        bool debug_fixMissingEntries = configuration.contains("debug_fixPartialFile") && configuration.at("debug_fixPartialFile");
         if(setup.replicationSettings.enabled) {
             std::cout << "    Replication mode enabled." << std::endl;
             bool replicateEntirely = configuration.at("replicationOverrides").at("experiment").at("recomputeEntirely");
@@ -410,6 +413,15 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             uint64_t replicationRandomSeed = configuration.at("replicationOverrides").at("replicationRandomSeed");
             replicationSubset = ShapeBench::RandomSubset(0, sampleSetSize, numberOfResultsToReplicate, replicationRandomSeed);
             std::cout << "    Replicating " << numberOfResultsToReplicate << " results.." << std::endl;
+
+            if(debug_fixMissingEntries) {
+                std::cout << "Fixing of results file is enabled." << std::endl;
+                std::cout << "    Locating completed samples.." << std::endl;
+                for(uint32_t i = 0; i < setup.replicationSettings.experimentResults.size(); i++) {
+                    debug_existingEntries.insert({uint32_t(setup.replicationSettings.experimentResults.at(i).at("resultID")), i});
+                }
+                std::cout << "    Results file contains " << debug_existingEntries.size() << " entries." << std::endl;
+            }
         }
 
         ShapeBench::randomEngine experimentSeedEngine(experimentBaseRandomSeed);
@@ -435,7 +447,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             threadsToLaunch = experimentConfig.at("threadLimit");
         }
 
-        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(setup, replicationSubset, fileCache, resultsDirectory, intermediateSaveFrequency, experimentResult, enablePRCComparisonMode, cleanSampleDescriptors, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, filterInstanceMap)
+        #pragma omp parallel for schedule(dynamic) num_threads(threadsToLaunch) default(none) shared(setup, replicationSubset, fileCache, resultsDirectory, intermediateSaveFrequency, experimentResult, enablePRCComparisonMode, cleanSampleDescriptors, debug_existingEntries, debug_fixMissingEntries, referenceDescriptors, illustrationImages, supportRadius, configuration, sampleSetSize, verticesPerSampleObject, illustrativeObjectStride, experimentRandomSeeds, sampleVerticesSet, dataset, enableIllustrationGenerationMode, resultWriteLock, threadActivity, std::cout, illustrativeObjectLimit, experimentIndex, experimentName, illustrativeObjectOutputDirectory, experimentConfig, filterInstanceMap)
         for (uint32_t sampleVertexIndex = 0; sampleVertexIndex < sampleSetSize; sampleVertexIndex += verticesPerSampleObject * illustrativeObjectStride) {
             if(setup.replicationSettings.enabled) {
                 bool objectContainsResultToReplicate = false;
@@ -444,6 +456,17 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
                 }
                 if(!objectContainsResultToReplicate) {
                     continue;
+                }
+
+                if(debug_fixMissingEntries) {
+                    bool anyResultExists = false;
+                    for(uint32_t i = 0; i < verticesPerSampleObject; i++) {
+                        anyResultExists = anyResultExists || debug_existingEntries.contains(sampleVertexIndex + i);
+                    }
+                    if(anyResultExists) {
+                        std::cout << "Skipped " << sampleVertexIndex << std::endl;
+                        continue;
+                    }
                 }
             }
 
@@ -657,7 +680,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
                     if(sampleVertexIndex % intermediateSaveFrequency == 0) {
                         std::cout << std::endl << "    Writing caches.." << std::endl;
-                        writeExperimentResults(experimentResult, resultsDirectory, false, enablePRCComparisonMode, setup.replicationSettings.enabled);
+                        writeExperimentResults(experimentResult, resultsDirectory, false, enablePRCComparisonMode, setup.replicationSettings, debug_fixMissingEntries, debug_existingEntries);
                         if(!setup.replicationSettings.enabled) {
                             for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at("filters").size(); filterStepIndex++) {
                                 std::string filterName = experimentConfig.at("filters").at(filterStepIndex).at("type");
@@ -674,7 +697,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
 
         if(!enableIllustrationGenerationMode) {
             std::cout << "Writing experiment results file.." << std::endl;
-            writeExperimentResults(experimentResult, resultsDirectory, true, enablePRCComparisonMode, setup.replicationSettings.enabled);
+            writeExperimentResults(experimentResult, resultsDirectory, true, enablePRCComparisonMode, setup.replicationSettings, debug_fixMissingEntries, debug_existingEntries);
             std::cout << "Experiment complete." << std::endl;
 
             if(setup.replicationSettings.enabled) {
