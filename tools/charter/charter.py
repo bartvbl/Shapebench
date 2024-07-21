@@ -36,6 +36,7 @@ def getProcessingSettings(mode, fileContents):
     sharedYAxisTitle = "Proportion of DDI"
 
     if experimentName == "normal-noise-only":
+        settings.chartShortName = "Deviating normal vector"
         settings.xAxisTitle = "Normal vector rotation (°)"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
@@ -48,6 +49,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["filterOutput"]["normal-noise-deviationAngle"]
         return settings
     elif experimentName == "subtractive-noise-only":
+        settings.chartShortName = "Occlusion"
         settings.xAxisTitle = "Occlusion"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisOutOfRangeMode = 'clamp'
@@ -59,6 +61,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["fractionSurfacePartiality"]
         return settings
     elif experimentName == "additive-noise-only":
+        settings.chartShortName = "Clutter"
         settings.xAxisTitle = "Clutter"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
@@ -69,6 +72,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["fractionAddedNoise"] 
         return settings
     elif experimentName == "support-radius-deviation-only":
+        settings.chartShortName = "Deviating support radius"
         settings.xAxisTitle = "Support radius scale factor"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 1 - fileContents['configuration']['filterSettings']['supportRadiusDeviation'][
@@ -82,6 +86,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
         return settings
     elif experimentName == "repeated-capture-only":
+        settings.chartShortName = "Alternate triangulation"
         settings.xAxisTitle = "Vertex displacement distance"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
@@ -93,6 +98,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
         return settings
     elif experimentName == "gaussian-noise-only":
+        settings.chartShortName = "Gaussian noise"
         settings.xAxisTitle = "Standard Deviation"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisMin = 0
@@ -103,6 +109,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueX = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     elif experimentName == "depth-camera-capture-only":
+        settings.chartShortName = "Alternate mesh resolution"
         settings.xAxisTitle = "Object distance from camera"
         settings.yAxisTitle = sharedYAxisTitle
         settings.xAxisTitleAdjustment = 6
@@ -116,6 +123,7 @@ def getProcessingSettings(mode, fileContents):
         # / float(x["filterOutput"]["depth-camera-capture-filtered-vertex-count"]))
         return settings
     elif experimentName == "additive-and-gaussian-noise":
+        settings.chartShortName = "Clutter and Gaussian noise"
         settings.xAxisTitle = "Clutter"
         settings.yAxisTitle = "Standard Deviation"
         settings.xAxisBounds = [0, 25]
@@ -129,6 +137,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueY = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     elif experimentName == "additive-and-subtractive-noise":
+        settings.chartShortName = "Clutter and occlusion"
         settings.xAxisTitle = "Occlusion"
         settings.yAxisTitle = "Clutter"
         settings.xAxisTitleAdjustment = 0
@@ -143,6 +152,7 @@ def getProcessingSettings(mode, fileContents):
         settings.readValueY = lambda x: x["fractionAddedNoise"]
         return settings
     elif experimentName == "subtractive-and-gaussian-noise":
+        settings.chartShortName = "Occlusion and Gaussian noise"
         settings.xAxisTitle = "Occlusion"
         settings.yAxisTitle = "Standard Deviation"
         settings.xAxisOutOfRangeMode = 'clamp'
@@ -183,7 +193,7 @@ def processSingleFile(jsonContent, settings):
         else:
             rawResult = [settings.readValueX(result), settings.readValueY(result), result['filteredDescriptorRank']]
         if settings.PRCEnabled:
-            tao = result["PRC"]["distanceToNearestNeighbour"] / result["PRC"]["distanceToSecondNearestNeighbour"]
+            tao = 0 if result["PRC"]["distanceToSecondNearestNeighbour"] == 0 else result["PRC"]["distanceToNearestNeighbour"] / result["PRC"]["distanceToSecondNearestNeighbour"]
             delta = [result["PRC"]["nearestNeighbourVertexModel"][i] - result["PRC"]["nearestNeighbourVertexScene"][i] for i in range(0, 3)]
             distanceBetweenVertices = math.sqrt(dot(delta, delta))
             meshIDsEquivalent = result["PRC"]["modelPointMeshID"] == result["PRC"]["scenePointMeshID"]
@@ -498,7 +508,7 @@ def createChart(results_directory, output_directory, mode):
 
     if mode == "support-radius":
         generateSupportRadiusChart(results_directory, output_directory)
-        return
+        return None
 
     # Find all JSON files in results directory
     jsonFilePaths = [x.name for x in os.scandir(results_directory) if x.name.endswith(".json")]
@@ -513,6 +523,7 @@ def createChart(results_directory, output_directory, mode):
     countXValues = []
     countLabels = []
     lastSettings = ""
+    chartAreas = {}
 
     print("Found {} json files".format(len(jsonFilePaths)))
     for jsonFilePath in jsonFilePaths:
@@ -530,7 +541,8 @@ def createChart(results_directory, output_directory, mode):
             else:
                 stackedXValues, stackedYValues, stackedLabels, counts, areaUnderCurves = computeStackedHistogram(rawResults, jsonContents["configuration"], settings)
             allCounts.append(counts)
-            areaUnderZeroCurve = 0
+
+            areaUnderDDIZeroCurve = 0
             previousY = 0
             previousX = 0
             for currentX, currentY in zip(stackedXValues, stackedYValues[0]):
@@ -538,12 +550,12 @@ def createChart(results_directory, output_directory, mode):
                     previousX = currentX
                     previousY = 0
                     continue
-                areaUnderZeroCurve += ((currentY + previousY) / 2.0) * (currentX - previousX)
-                #print(previousX, previousY, currentX, currentY)
+                areaUnderDDIZeroCurve += ((currentY + previousY) / 2.0) * ((currentX - previousX)) #/ (settings.xAxisMax - settings.xAxisMin))
                 previousY = currentY
                 previousX = currentX
             # Not sure if correct
-            print('Total area under zero curve:', areaUnderZeroCurve)
+            print('Total area under zero curve:', areaUnderDDIZeroCurve)
+            chartAreas[settings.methodName] = areaUnderDDIZeroCurve
             countLabels.append(settings.methodName)
             countXValues = stackedXValues
             stackFigure = go.Figure()
@@ -606,18 +618,38 @@ def createChart(results_directory, output_directory, mode):
         pio.kaleido.scope.default_width = 435
         pio.kaleido.scope.default_height = 300
         pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
+        return (chartAreas, settings.chartShortName)
 
     print('Done.')
+    return None
 
+
+def writeOverviewChart(contents, outputFile):
+    # have: chart name -> method name -> value
+    # need: method name -> chart name -> value
+    resultsByMethod = {}
+    for chartName in contents:
+        for methodName in contents[chartName]:
+            if methodName not in resultsByMethod:
+                resultsByMethod[methodName] = {}
+            resultsByMethod[methodName][chartName] = contents[chartName][methodName]
+
+    countsFigure = go.Figure()
+    for methodName in resultsByMethod:
+        chartTitles = [x for x in resultsByMethod[methodName]]
+        areas = [resultsByMethod[methodName][x] for x in chartTitles]
+        countsFigure.add_trace(go.Bar(x=chartTitles, y=areas, name=methodName))
+
+    countsFigure.update_layout(margin={'t': 0, 'l': 0, 'b': 0, 'r': 0})
+    pio.kaleido.scope.default_width = 1500
+    pio.kaleido.scope.default_height = 300
+    pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)
 
 def main():
     parser = argparse.ArgumentParser(description="Generates charts for the experiment results")
-    parser.add_argument("--results-directory", help="Directory containing JSON output files produced by ShapeBench",
+    parser.add_argument("--results-directory", help="Results directory specified in the configuration JSON file",
                         required=True)
     parser.add_argument("--output-dir", help="Where to write the chart images", required=True)
-    parser.add_argument("--mode", help="Specifies what the x-axis of the chart should represent",
-                        choices=["auto", "support-radius"],
-                        default="auto", required=False)
     args = parser.parse_args()
 
     if not os.path.exists(args.results_directory):
@@ -628,7 +660,28 @@ def main():
               f"directory rather than individual JSON files.")
         return
 
-    createChart(args.results_directory, args.output_dir, args.mode)
+    directoriesToProcess = os.listdir(args.results_directory)
+    overviewChartContents = {}
+    for directoryToProcess in directoriesToProcess:
+        if directoryToProcess == 'charts':
+            continue
+        elif directoriesToProcess == 'support_radius_estimation':
+            createChart(args.results_directory, args.output_dir, 'support-radius')
+        elif not os.path.isdir(os.path.join(args.results_directory, directoryToProcess)):
+            continue
+        else:
+            overallTableEntry = createChart(os.path.join(args.results_directory, directoryToProcess), args.output_dir, 'auto')
+            if overallTableEntry is None:
+                continue
+            print(overallTableEntry)
+            areasByMethod, chartName = overallTableEntry
+            overviewChartContents[chartName] = areasByMethod
+
+    writeOverviewChart(overviewChartContents, os.path.join(args.output_dir, 'overview.pdf'))
+
+
+
+
 
 
 if __name__ == "__main__":

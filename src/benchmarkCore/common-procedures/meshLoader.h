@@ -37,6 +37,8 @@ namespace ShapeBench {
 
         std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
         if(compressedFileSha1 != datasetEntry.compressedMeshFileSHA1) {
+            // The compression library turned out to not produce identical files :(
+            // Need to decompress the data first, then compute a hash instead.
             //throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
         }
 
