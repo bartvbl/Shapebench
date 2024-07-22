@@ -669,9 +669,10 @@ def main():
     directoriesToProcess = os.listdir(args.results_directory)
     overviewChartContents = {}
     for directoryToProcess in directoriesToProcess:
+        print('Entering directory:', directoryToProcess)
         if directoryToProcess == 'charts':
             continue
-        elif directoriesToProcess == 'support_radius_estimation':
+        elif directoryToProcess == 'support_radius_estimation':
             createChart(args.results_directory, args.output_dir, 'support-radius')
         elif not os.path.isdir(os.path.join(args.results_directory, directoryToProcess)):
             continue
