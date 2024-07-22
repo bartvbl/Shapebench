@@ -646,7 +646,7 @@ def writeOverviewChart(contents, outputFile):
     countsFigure.update_xaxes(categoryorder='array',
                               categoryarray=['Clutter', 'Occlusion', 'Alternate<br>triangulation', 'Deviating<br>normal vector', 'Deviating<br>support radius', 'Gaussian<br>noise', 'Alternate<br>mesh resolution'])
     countsFigure.update_yaxes(range=[0, 1], dtick=0.1)
-    countsFigure.update_layout(margin={'t': 0, 'l': 0, 'b': 0, 'r': 0}, font=dict(size=18), yaxis_title='Normalised AUC')
+    countsFigure.update_layout(margin={'t': 0, 'l': 0, 'b': 0, 'r': 0}, font=dict(size=18), yaxis_title='Normalised DDI AUC')
     pio.kaleido.scope.default_width = 1400
     pio.kaleido.scope.default_height = 300
     pio.write_image(countsFigure, outputFile, engine="kaleido", validate=True)

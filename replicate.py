@@ -43,8 +43,8 @@ def downloadFile(fileURL, tempFile, extractInDirectory, name, unzipCommand = 'p7
 def downloadDatasetsMenu():
     download_menu = TerminalMenu([
         "Download all",
-        "Download computed results (7.0GB download, 77GB uncompressed)",
-        "Download cache files (7.4GB download, 8.0GB uncompressed)",
+        "Download computed results (7.4GB download, 81.7GB uncompressed)",
+        "Download cache files (7.4GB download, 8.4GB uncompressed)",
         "back"], title='------------------ Download Datasets ------------------')
 
     while True:
@@ -52,7 +52,7 @@ def downloadDatasetsMenu():
         os.makedirs('input/download/', exist_ok=True)
 
         if choice == 1 or choice == 2:
-            downloadFile('https://ntnu.box.com/shared/static/b22ym0jshyyf4n0d5yldh42lwnspifji.7z',
+            downloadFile('https://ntnu.box.com/shared/static/rily0qg6tpzb9prym8ois0korr3x4vxa.7z',
                          'precomputed_results.7z', 'precomputed_results/', 'Results computed by the author')
         if choice == 1 or choice == 3:
             downloadFile('https://ntnu.box.com/shared/static/1oo864m02zj9itdptzbwvvj04epigyio.7z', 'cache.7z',
