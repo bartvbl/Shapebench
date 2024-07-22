@@ -681,11 +681,11 @@ def main():
             overallTableEntry = createChart(os.path.join(args.results_directory, directoryToProcess), args.output_dir, 'auto')
             if overallTableEntry is None:
                 continue
-            print(overallTableEntry)
+            #print(overallTableEntry)
             areasByMethod, chartName = overallTableEntry
             overviewChartContents[chartName] = areasByMethod
 
-    print(overviewChartContents)
+    #print(overviewChartContents)
     '''overviewChartContents = {'Clutter': {'QUICCI': 0.27537532256709957, 'RICI': 0.4817495333351075, 'RoPS': 0.0009022093801893217, 'SHOT': 0.0010631403592512914, 'USC': 9.909914802135964e-06},
                              'Alternate<br>mesh resolution': {'QUICCI': 0.0962596790459941, 'RICI': 0.03974363574185445, 'RoPS': 0.03168536649079715, 'SHOT': 0.1104174845859617, 'Spin Image': 0.3428006584188961, 'USC': 0.09709257533197806},
                              'Gaussian<br>noise': {'QUICCI': 0.39707256910400024, 'RICI': 0.4074890509257194, 'RoPS': 0.45957462383613135, 'SHOT': 0.7562214479671908, 'Spin Image': 0.8620130648078511},
