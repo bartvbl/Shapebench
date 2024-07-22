@@ -13,6 +13,9 @@ Clone the repository using the --recursive flag:
 git clone https://github.com/bartvbl/ShapeBench --recursive
 ```
 You should subsequently run the python script to install dependencies, compile the project, and download precompiled cache files. Refer to the included PDF file for information about replicating the results produced for the paper.
+```
+python3 replicate.py
+```
 
 ### System requirements
 * 32GB of RAM (64GB is highly recommended)
