@@ -2,9 +2,9 @@
 
 This is the code repository for the evaluation strategy described in the paper:
 
-van Blokland, Bart Iver. "ShapeBench: a new approach to benchmarking local 3D shape descriptors." Computers & Graphics XX (2024): XXX-XXX.
+van Blokland BI. ShapeBench: A new approach to benchmarking local 3D shape descriptors. Computers & Graphics. 2024 Aug 22:104052.
 
-doi, TBA
+[Link to paper](https://doi.org/10.1016/j.cag.2024.104052)
 
 ### Getting started
 
@@ -33,4 +33,19 @@ The ShapeBench evaluation methodology is proposed as an extension to the popular
 
 ### Citation
 
-TBA
+```
+@article{van2024shapebench,
+  title={ShapeBench: A new approach to benchmarking local 3D shape descriptors},
+  author={van Blokland, Bart Iver},
+  journal={Computers \& Graphics},
+  pages={104052},
+  year={2024},
+  publisher={Elsevier}
+}
+```
+
+### Troubleshooting
+To ensure compatibility with the default LibEigen3 installation from `apt`, please modify line `27` of [CMakeLists](https://github.com/bartvbl/ShapeBench-Replication-Archive/blob/main/CMakeLists.txt) to
+```
+find_package(Eigen3 3.3.0 REQUIRED)
+```
