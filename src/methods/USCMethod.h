@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Method.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "utils/methodUtils/commonSupportVolumeIntersectionTests.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
@@ -9,8 +9,7 @@
 
 namespace ShapeBench {
 
-
-    struct USCMethod : public ShapeBench::Method<ShapeDescriptor::UniqueShapeContextDescriptor> {
+    struct USCMethod {
         inline static float minSupportRadiusFactor = 0;
         inline static float pointDensityRadius = 0;
 
@@ -22,45 +21,18 @@ namespace ShapeBench {
             pointDensityRadius = readDescriptorConfigValue<float>(config, "USC", "pointDensityRadius");
         }
 
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
+        __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const ShapeDescriptor::UniqueShapeContextDescriptor& descriptor,
-                const ShapeDescriptor::UniqueShapeContextDescriptor& otherDescriptor) {
+                const ShapeDescriptor::UniqueShapeContextDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistanceGPU<ShapeDescriptor::UniqueShapeContextDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
+        }
 
-#ifdef __CUDA_ARCH__
-            float threadSquaredDistance = 0;
-            for (short binIndex = threadIdx.x; binIndex < elementsPerShapeContextDescriptor; binIndex += blockDim.x) {
-                float needleBinValue = descriptor.contents[binIndex];
-                float haystackBinValue = otherDescriptor.contents[binIndex];
-                float binDelta = needleBinValue - haystackBinValue;
-                threadSquaredDistance += binDelta * binDelta;
-            }
-
-            float combinedSquaredDistance = ShapeDescriptor::warpAllReduceSum(threadSquaredDistance);
-            if(combinedSquaredDistance == 0) {
-                return 0;
-            }
-            return std::sqrt(combinedSquaredDistance);
-#else
-            float combinedSquaredDistance = 0;
-            for (short binIndex = 0; binIndex < elementsPerShapeContextDescriptor; binIndex++) {
-                float needleBinValue = descriptor.contents[binIndex];
-                float haystackBinValue = otherDescriptor.contents[binIndex];
-                float binDelta = needleBinValue - haystackBinValue;
-                combinedSquaredDistance += binDelta * binDelta;
-            }
-
-            if(combinedSquaredDistance == 0) {
-                return 0;
-            }
-
-            float distance = std::sqrt(combinedSquaredDistance);
-            if(std::isnan(distance)) {
-                throw std::runtime_error("Found a NaN!");
-            }
-
-            return distance;
-
-#endif
+        static inline float computeDescriptorDistance(
+                const ShapeDescriptor::UniqueShapeContextDescriptor& descriptor,
+                const ShapeDescriptor::UniqueShapeContextDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistance<ShapeDescriptor::UniqueShapeContextDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
         }
 
         static bool usesMeshInput() {
@@ -75,17 +47,13 @@ namespace ShapeBench {
             return false;
         }
 
-        static bool shouldUseGPUKernel() {
-            return false;
-        }
-
         static ShapeDescriptor::gpu::array<ShapeDescriptor::UniqueShapeContextDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::Mesh& mesh,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::UniqueShapeContextDescriptor> computeDescriptors(
@@ -94,7 +62,7 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
 
@@ -104,10 +72,9 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
-
         static ShapeDescriptor::cpu::array<ShapeDescriptor::UniqueShapeContextDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::PointCloud& cloud,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
@@ -138,6 +105,18 @@ namespace ShapeBench {
             }
 #endif
             return descriptors;
+        }
+
+        static ShapeBench::IntersectingAreaEstimationStrategy getIntersectingAreaEstimationStrategy() {
+            return ShapeBench::IntersectingAreaEstimationStrategy::CUSTOM;
+        }
+
+        static double computeIntersectingAreaCustom(ShapeBench::IntersectionAreaParameters& parameters) {
+            // ONLY needed when getIntersectingAreaEstimationStrategy() indicates a custom method will be used
+            // Refer to the documentation for useful utility functions that may help you
+            double outerArea = ShapeBench::computeAreaInSphericalSupportVolume(parameters.mesh, parameters.descriptorOrigin, parameters.supportRadius);
+            double innerArea = ShapeBench::computeAreaInSphericalSupportVolume(parameters.mesh, parameters.descriptorOrigin, minSupportRadiusFactor * parameters.supportRadius);
+            return outerArea - innerArea;
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {

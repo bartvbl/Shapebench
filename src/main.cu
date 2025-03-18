@@ -117,6 +117,9 @@ int main(int argc, const char** argv) {
 
     // --- Run experiments ---
     const nlohmann::json& methodSettings = setup.configuration.at("methodSettings");
+
+    // ADD METHODS TO TEST HERE BY DUPLICATING THE CALL TO testMethod() ALONG WITH ITS SURROUNDING IF STATEMENT
+
     if(methodSettings.at(ShapeBench::QUICCIMethod::getName()).at("enabled")) {
         testMethod<ShapeBench::QUICCIMethod, ShapeDescriptor::QUICCIDescriptor>(setup, fileCache);
     }

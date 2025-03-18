@@ -9,4 +9,5 @@ namespace ShapeBench {
             ShapeDescriptor::cpu::float3* normals,
             ShapeDescriptor::cpu::float3* colours,
             unsigned int vertexCount);
+    void destroyVertexArray(GeometryBuffer buffer);
 }

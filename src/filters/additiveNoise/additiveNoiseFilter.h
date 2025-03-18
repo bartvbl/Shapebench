@@ -2,7 +2,7 @@
 
 class AdditiveNoiseCache;
 #include <shapeDescriptor/shapeDescriptor.h>
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "benchmarkCore/ComputedConfig.h"
 #include "dataset/Dataset.h"
 #include "filters/FilteredMeshPair.h"

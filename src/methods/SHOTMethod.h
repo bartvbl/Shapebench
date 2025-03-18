@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Method.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "utils/methodUtils/commonSupportVolumeIntersectionTests.h"
+#include "distanceFunctions/euclideanDistance.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 #include <cfloat>
@@ -10,52 +11,24 @@
 
 namespace ShapeBench {
     template<typename SHOTDescriptor = ShapeDescriptor::SHOTDescriptor<>>
-    struct SHOTMethod : public ShapeBench::Method<SHOTDescriptor> {
-
+    struct SHOTMethod {
 
         static void init(const nlohmann::json& config) {
 
         }
 
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
+        __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const SHOTDescriptor& descriptor,
-                const SHOTDescriptor& otherDescriptor) {
+                const SHOTDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistanceGPU<SHOTDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
+        }
 
-#ifdef __CUDA_ARCH__
-            float threadSquaredDistance = 0;
-            for (short binIndex = threadIdx.x; binIndex < SHOTDescriptor::totalBinCount; binIndex += blockDim.x) {
-                float needleBinValue = descriptor.contents[binIndex];
-                float haystackBinValue = otherDescriptor.contents[binIndex];
-                float binDelta = needleBinValue - haystackBinValue;
-                threadSquaredDistance += binDelta * binDelta;
-            }
-
-            float combinedSquaredDistance = ShapeDescriptor::warpAllReduceSum(threadSquaredDistance);
-            if(combinedSquaredDistance == 0) {
-                return 0;
-            }
-            return std::sqrt(combinedSquaredDistance);
-#else
-            float combinedSquaredDistance = 0;
-            for (uint32_t binIndex = 0; binIndex < descriptor.totalBinCount; binIndex++) {
-                float needleBinValue = descriptor.contents[binIndex];
-                float haystackBinValue = otherDescriptor.contents[binIndex];
-                float binDelta = needleBinValue - haystackBinValue;
-                combinedSquaredDistance += binDelta * binDelta;
-            }
-
-            if(combinedSquaredDistance == 0) {
-                return 0;
-            }
-
-            float distance = std::sqrt(combinedSquaredDistance);
-            if(std::isnan(distance)) {
-                throw std::runtime_error("Found a NaN!");
-            }
-
-            return distance;
-
-#endif
+        static inline float computeDescriptorDistance(
+                const SHOTDescriptor& descriptor,
+                const SHOTDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistance<SHOTDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
         }
 
         static bool usesMeshInput() {
@@ -70,17 +43,13 @@ namespace ShapeBench {
             return false;
         }
 
-        static bool shouldUseGPUKernel() {
-            return false;
-        }
-
         static ShapeDescriptor::gpu::array<SHOTDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::Mesh& mesh,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            Method<SHOTDescriptor>::throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<SHOTDescriptor> computeDescriptors(
@@ -89,7 +58,7 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            Method<SHOTDescriptor>::throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
 
@@ -99,10 +68,9 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            Method<SHOTDescriptor>::throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
-
         static ShapeDescriptor::cpu::array<SHOTDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::PointCloud& cloud,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
@@ -112,8 +80,17 @@ namespace ShapeBench {
             return ShapeDescriptor::generateSHOTDescriptorsMultiRadius(cloud, descriptorOrigins, supportRadii);
         }
 
+        static ShapeBench::IntersectingAreaEstimationStrategy getIntersectingAreaEstimationStrategy() {
+            return ShapeBench::IntersectingAreaEstimationStrategy::FAST_SPHERICAL;
+        }
+
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
             return ShapeBench::isPointInSphericalVolume(descriptorOrigin, supportRadius, samplePoint);
+        }
+
+        static double computeIntersectingAreaCustom(const ShapeBench::IntersectionAreaParameters& parameters) {
+            Method::throwUnimplementedException();
+            return 0;
         }
 
         static std::string getName() {

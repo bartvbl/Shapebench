@@ -1,7 +1,7 @@
 #pragma once
 
 #include <filesystem>
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "dataset/Dataset.h"
 
 namespace ShapeBench {

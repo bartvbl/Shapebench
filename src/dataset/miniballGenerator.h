@@ -2,7 +2,7 @@
 
 #include <shapeDescriptor/shapeDescriptor.h>
 #include "Seb.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 
 namespace ShapeBench {
     struct Miniball {

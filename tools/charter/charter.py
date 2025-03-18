@@ -46,7 +46,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xAxisTitleAdjustment = 3
         settings.enable2D = False
         settings.reverse = False
-        settings.readValueX = lambda x: x["filterOutput"]["normal-noise-deviationAngle"]
+        settings.readValueX = lambda x: x["sceneObject"]["filterOutput"]["normal-noise-deviationAngle"]
         return settings
     elif experimentName == "subtractive-noise-only":
         settings.chartShortName = "Occlusion"
@@ -58,7 +58,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xTick = 0.2
         settings.enable2D = False
         settings.reverse = True
-        settings.readValueX = lambda x: x["fractionSurfacePartiality"]
+        settings.readValueX = lambda x: x["sceneObject"]["fractionSurfacePartiality"]
         return settings
     elif experimentName == "additive-noise-only":
         settings.chartShortName = "Clutter"
@@ -69,7 +69,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xTick = 1
         settings.enable2D = False
         settings.reverse = False
-        settings.readValueX = lambda x: x["fractionAddedNoise"] 
+        settings.readValueX = lambda x: x["sceneObject"]["fractionAddedNoise"]
         return settings
     elif experimentName == "support-radius-deviation-only":
         settings.chartShortName = "Deviating<br>support radius"
@@ -83,7 +83,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xAxisTitleAdjustment = 2
         settings.enable2D = False
         settings.reverse = True # scale factor used is stored as-is, but the relative change to the support radius is the inverse
-        settings.readValueX = lambda x: x["filterOutput"]["support-radius-scale-factor"]
+        settings.readValueX = lambda x: x["sceneObject"]["filterOutput"]["support-radius-scale-factor"]
         return settings
     elif experimentName == "repeated-capture-only":
         settings.chartShortName = "Alternate<br>triangulation"
@@ -95,7 +95,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xTick = 0.03
         settings.enable2D = False
         settings.reverse = False
-        settings.readValueX = lambda x: x["filterOutput"]["triangle-shift-average-edge-length"]
+        settings.readValueX = lambda x: x["sceneObject"]["filterOutput"]["triangle-shift-average-edge-length"]
         return settings
     elif experimentName == "gaussian-noise-only":
         settings.chartShortName = "Gaussian<br>noise"
@@ -106,7 +106,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xTick = 0.005
         settings.enable2D = False
         settings.reverse = False
-        settings.readValueX = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
+        settings.readValueX = lambda x: x["sceneObject"]["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     elif experimentName == "depth-camera-capture-only":
         settings.chartShortName = "Alternate<br>mesh resolution"
@@ -118,7 +118,7 @@ def getProcessingSettings(mode, fileContents):
         settings.xTick = 1
         settings.enable2D = False
         settings.reverse = False
-        settings.readValueX = lambda x: x["filterOutput"][
+        settings.readValueX = lambda x: x["sceneObject"]["filterOutput"][
             "depth-camera-capture-distance-from-camera"]  # (float(x["filterOutput"]["depth-camera-capture-initial-vertex-count"])
         # / float(x["filterOutput"]["depth-camera-capture-filtered-vertex-count"]))
         return settings
@@ -133,8 +133,8 @@ def getProcessingSettings(mode, fileContents):
         settings.binCount = 50
         settings.enable2D = True
         settings.reverseX = False
-        settings.readValueX = lambda x: x["fractionAddedNoise"]
-        settings.readValueY = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
+        settings.readValueX = lambda x: x["sceneObject"]["fractionAddedNoise"]
+        settings.readValueY = lambda x: x["sceneObject"]["filterOutput"]["gaussian-noise-max-deviation"]
         return settings
     elif experimentName == "additive-and-subtractive-noise":
         settings.chartShortName = "Clutter and occlusion"
@@ -148,8 +148,8 @@ def getProcessingSettings(mode, fileContents):
         settings.binCount = 50
         settings.enable2D = True
         settings.reverseX = True
-        settings.readValueX = lambda x: x["fractionSurfacePartiality"]
-        settings.readValueY = lambda x: x["fractionAddedNoise"]
+        settings.readValueX = lambda x: x["sceneObject"]["fractionSurfacePartiality"]
+        settings.readValueY = lambda x: x["sceneObject"]["fractionAddedNoise"]
         return settings
     elif experimentName == "subtractive-and-gaussian-noise":
         settings.chartShortName = "Occlusion and Gaussian noise"
@@ -164,8 +164,24 @@ def getProcessingSettings(mode, fileContents):
         settings.binCount = 35
         settings.enable2D = True
         settings.reverseX = True
-        settings.readValueX = lambda x: x["fractionSurfacePartiality"]
-        settings.readValueY = lambda x: x["filterOutput"]["gaussian-noise-max-deviation"]
+        settings.readValueX = lambda x: x["sceneObject"]["fractionSurfacePartiality"]
+        settings.readValueY = lambda x: x["sceneObject"]["filterOutput"]["gaussian-noise-max-deviation"]
+        return settings
+    elif experimentName == "multi-filter-subtractive-gaussian":
+        settings.chartShortName = "Occlusion and Gaussian noise"
+        settings.xAxisTitle = "Model: Gaussian Noise"
+        settings.yAxisTitle = "Scene: Partiality"
+        settings.xAxisOutOfRangeMode = 'clamp'
+        settings.xAxisTitleAdjustment = 0
+        settings.xAxisBounds = [0, 1]
+        settings.yAxisBounds = [0, 0.01]
+        settings.xTick = 0.2
+        settings.yTick = 0.002
+        settings.binCount = 35
+        settings.enable2D = True
+        settings.reverseX = True
+        settings.readValueX = lambda x: x["modelObject"]["filterOutput"]["gaussian-noise-max-deviation"]
+        settings.readValueY = lambda x: x["sceneObject"]["fractionSurfacePartiality"]
         return settings
     else:
         raise Exception("Failed to determine chart settings: Unknown experiment name: " + experimentName)

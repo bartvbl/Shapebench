@@ -1,129 +1,42 @@
 #pragma once
 
 #include "Method.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
+#include "distanceFunctions/pearsonCorrelation.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 
 namespace ShapeBench {
     static float supportAngleDegrees;
 
-    struct SIMethod : public ShapeBench::Method<ShapeDescriptor::SpinImageDescriptor> {
+    struct SIMethod {
 
 
         static void init(const nlohmann::json& config) {
             supportAngleDegrees = readDescriptorConfigValue<float>(config, "SI", "supportAngle");
         }
 
-        __host__ __device__ static __inline__ float computePearsonCorrelation(
+
+
+        static inline float computeDescriptorDistance(
                 const ShapeDescriptor::SpinImageDescriptor& descriptor,
-                const ShapeDescriptor::SpinImageDescriptor& otherDescriptor) {
-#ifdef __CUDA_ARCH__
-            float threadSumX = 0;
-            float threadSumY = 0;
+                const ShapeDescriptor::SpinImageDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            // Adapter such that the distance function satisfies the "higher distance is worse" criterion
+            float correlation = ShapeBench::computePearsonCorrelation<ShapeDescriptor::SpinImageDescriptor, float>(descriptor, otherDescriptor);
 
-            // Move input values closer to 0 for better numerical stability
-            const float numericalStabilityFactor = 1000.0f;
-
-            const uint32_t count = spinImageWidthPixels * spinImageWidthPixels;
-
-            for (int index = threadIdx.x; index < count; index += warpSize) {
-                spinImagePixelType pixelValueX = descriptor.contents[index] / numericalStabilityFactor;
-                spinImagePixelType pixelValueY = otherDescriptor.contents[index] / numericalStabilityFactor;
-
-                threadSumX += pixelValueX;
-                threadSumY += pixelValueY;
-            }
-
-            float threadMultiplicativeSum = 0;
-            float threadDeviationSquaredSumX = 0;
-            float threadDeviationSquaredSumY = 0;
-
-            float sumX = ShapeDescriptor::warpAllReduceSum(threadSumX);
-            float sumY = ShapeDescriptor::warpAllReduceSum(threadSumY);
-
-            if(sumX == 0 && sumY == 0) {
-                return -1;
-            }
-
-            float averageX = sumX / float(count);
-            float averageY = sumY / float(count);
-
-            for (int index = threadIdx.x; index < count; index += warpSize) {
-                spinImagePixelType pixelValueX = descriptor.contents[index] / numericalStabilityFactor;
-                spinImagePixelType pixelValueY = otherDescriptor.contents[index] / numericalStabilityFactor;
-
-                float deviationX = pixelValueX - averageX;
-                float deviationY = pixelValueY - averageY;
-
-                threadDeviationSquaredSumX += deviationX * deviationX;
-                threadDeviationSquaredSumY += deviationY * deviationY;
-                threadMultiplicativeSum += deviationX * deviationY;
-            }
-
-            float deviationSquaredSumX = ShapeDescriptor::warpAllReduceSum(threadDeviationSquaredSumX);
-            float deviationSquaredSumY = ShapeDescriptor::warpAllReduceSum(threadDeviationSquaredSumY);
-            float multiplicativeSum = ShapeDescriptor::warpAllReduceSum(threadMultiplicativeSum);
-
-            float correlation = multiplicativeSum / (sqrt(deviationSquaredSumX) * sqrt(deviationSquaredSumY));
-
-            if(isnan(correlation)) {
-                return 0;
-            }
-
-            return correlation;
-#else
-
-            float sumX = 0;
-            float sumY = 0;
-
-            // Move input values closer to 0 for better numerical stability
-            const float numericalStabilityFactor = 1000.0f;
-
-            const uint32_t count = spinImageWidthPixels * spinImageWidthPixels;
-
-            for (int index = 0; index < count; index++) {
-                spinImagePixelType pixelValueX = descriptor.contents[index] / numericalStabilityFactor;
-                spinImagePixelType pixelValueY = otherDescriptor.contents[index] / numericalStabilityFactor;
-
-                sumX += pixelValueX;
-                sumY += pixelValueY;
-            }
-
-            float multiplicativeSum = 0;
-            float deviationSquaredSumX = 0;
-            float deviationSquaredSumY = 0;
-
-            float averageX = sumX / float(count);
-            float averageY = sumY / float(count);
-
-            for (int index = 0; index < count; index++) {
-                spinImagePixelType pixelValueX = descriptor.contents[index] / numericalStabilityFactor;
-                spinImagePixelType pixelValueY = otherDescriptor.contents[index] / numericalStabilityFactor;
-
-                float deviationX = pixelValueX - averageX;
-                float deviationY = pixelValueY - averageY;
-
-                deviationSquaredSumX += deviationX * deviationX;
-                deviationSquaredSumY += deviationY * deviationY;
-                multiplicativeSum += deviationX * deviationY;
-            }
-
-            float correlation = multiplicativeSum / (sqrt(deviationSquaredSumX) * sqrt(deviationSquaredSumY));
-
-            if(std::isnan(correlation)) {
-                correlation = 0;
-            }
-
-            return correlation;
-#endif
+            // Pearson correlation varies between -1 and 1
+            // This makes it such that 0 = best and 2 = worst
+            float adjustedCorrelation = 1 - correlation;
+            return adjustedCorrelation;
         }
 
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
+        __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const ShapeDescriptor::SpinImageDescriptor& descriptor,
-                const ShapeDescriptor::SpinImageDescriptor& otherDescriptor) {
+                const ShapeDescriptor::SpinImageDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
             // Adapter such that the distance function satisfies the "higher distance is worse" criterion
-            float correlation = computePearsonCorrelation(descriptor, otherDescriptor);
+            float correlation = ShapeBench::computePearsonCorrelationGPU<ShapeDescriptor::SpinImageDescriptor, float>(descriptor, otherDescriptor);
 
             // Pearson correlation varies between -1 and 1
             // This makes it such that 0 = best and 2 = worst
@@ -140,16 +53,13 @@ namespace ShapeBench {
         static bool hasGPUKernels() {
             return false;
         }
-        static bool shouldUseGPUKernel() {
-            return false;
-        }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::Mesh& mesh,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
@@ -158,7 +68,7 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::cpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
@@ -167,9 +77,10 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
+
         static ShapeDescriptor::cpu::array<ShapeDescriptor::SpinImageDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::PointCloud& cloud,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
@@ -180,8 +91,17 @@ namespace ShapeBench {
             return ShapeDescriptor::generateSpinImagesMultiRadius(cloud, descriptorOrigins, supportRadii, supportAngleDegrees);
         }
 
+        static ShapeBench::IntersectingAreaEstimationStrategy getIntersectingAreaEstimationStrategy() {
+            return ShapeBench::IntersectingAreaEstimationStrategy::FAST_SPHERICAL;
+        }
+
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
             return isPointInCylindricalVolume(descriptorOrigin, supportRadius, supportRadius, samplePoint);
+        }
+
+        static double computeIntersectingAreaCustom(const ShapeBench::IntersectionAreaParameters& parameters) {
+            Method::throwUnimplementedException();
+            return 0;
         }
 
         static std::string getName() {

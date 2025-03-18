@@ -1,10 +1,11 @@
 #pragma once
 
 #include <shapeDescriptor/shapeDescriptor.h>
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "dataset/Dataset.h"
 #include "sha1.hpp"
 #include "dataset/miniballGenerator.h"
+#include "utils/FileHasher.h"
 
 namespace ShapeBench {
     inline void moveAndScaleMesh(ShapeDescriptor::cpu::Mesh& mesh, const DatasetEntry &datasetEntry) {
@@ -35,16 +36,16 @@ namespace ShapeBench {
 
         cache->acquireFile(compressedMeshPath, pathInDataset);
 
-        std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
-        if(compressedFileSha1 != datasetEntry.compressedMeshFileSHA1) {
-            // The compression library turned out to not produce identical files :(
-            // Need to decompress the data first, then compute a hash instead.
-            //throw std::logic_error("FATAL: SHA1 digest of file " + compressedMeshPath.string() + " did not match the one from the dataset cache file.");
-        }
-
         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(compressedMeshPath);
 
-        if(config.at("datasetSettings").at("verifyFileIntegrity") && mesh.vertexCount > 0) {
+        std::string readMeshSHA1 = ShapeBench::computeMeshHash(mesh);
+        if(config.at("datasetSettings").at("verifyFileIntegrity") && readMeshSHA1 != datasetEntry.meshIntegrityDigest) {
+            // The compression library turned out to not produce identical files :(
+            // Need to decompress the data first, then compute a hash instead.
+            throw std::logic_error("FATAL: SHA1 digest of mesh read from file " + compressedMeshPath.string() + " did not match the one from the dataset cache file. ");
+        }
+
+        if(config.at("datasetSettings").at("verifyMiniballComputation") && mesh.vertexCount > 0) {
             ShapeBench::Miniball ball = computeMiniball(mesh);
             ShapeBench::Miniball storedBall;
             storedBall.radius = datasetEntry.computedObjectRadius;

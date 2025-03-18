@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Method.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "utils/methodUtils/commonSupportVolumeIntersectionTests.h"
+#include "distanceFunctions/euclideanDistance.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 #include <cfloat>
@@ -11,47 +12,25 @@ namespace ShapeBench {
     static float RoPSPointCloudSamplingDensity;
     static uint32_t RoPSPointCloudSampleLimit;
 
-    struct RoPSMethod : public ShapeBench::Method<ShapeDescriptor::RoPSDescriptor> {
-
-        static constexpr int elementsPerRoPSDescriptor = ROPS_NUM_ROTATIONS * 3 * 3 * 5;
+    struct RoPSMethod {
 
         static void init(const nlohmann::json& config) {
             RoPSPointCloudSamplingDensity = readDescriptorConfigValue<float>(config, "RoPS", "pointSamplingDensity");
             RoPSPointCloudSampleLimit = readDescriptorConfigValue<uint32_t>(config, "RoPS", "pointSampleLimit");
-
         }
 
-        __host__ __device__ static __inline__ float computeEuclideanDistance(
+        __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const ShapeDescriptor::RoPSDescriptor& descriptor,
-                const ShapeDescriptor::RoPSDescriptor& otherDescriptor) {
-#ifdef __CUDA_ARCH__
-            float threadSquaredDistance = 0;
-            for (short binIndex = threadIdx.x; binIndex < elementsPerRoPSDescriptor; binIndex += blockDim.x) {
-                float needleBinValue = descriptor.contents[binIndex];
-                float haystackBinValue = otherDescriptor.contents[binIndex];
-                float binDelta = needleBinValue - haystackBinValue;
-                threadSquaredDistance += binDelta * binDelta;
-            }
-
-            float totalSquaredDistance = ShapeDescriptor::warpAllReduceSum(threadSquaredDistance);
-            return sqrt(totalSquaredDistance);
-#else
-            float combinedSquaredDistance = 0;
-            for (short binIndex = 0; binIndex < elementsPerRoPSDescriptor; binIndex++) {
-                float needleBinValue = descriptor.contents[binIndex];
-                float haystackBinValue = otherDescriptor.contents[binIndex];
-                float binDelta = needleBinValue - haystackBinValue;
-                combinedSquaredDistance += binDelta * binDelta;
-            }
-
-            return std::sqrt(combinedSquaredDistance);
-#endif
+                const ShapeDescriptor::RoPSDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistanceGPU<ShapeDescriptor::RoPSDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
         }
 
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
+        static inline float computeDescriptorDistance(
                 const ShapeDescriptor::RoPSDescriptor& descriptor,
-                const ShapeDescriptor::RoPSDescriptor& otherDescriptor) {
-            return computeEuclideanDistance(descriptor, otherDescriptor);
+                const ShapeDescriptor::RoPSDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistance<ShapeDescriptor::RoPSDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
         }
 
         static bool usesMeshInput() {
@@ -66,17 +45,13 @@ namespace ShapeBench {
             return false;
         }
 
-        static bool shouldUseGPUKernel() {
-            return false;
-        }
-
         static ShapeDescriptor::gpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::Mesh& mesh,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
@@ -85,10 +60,9 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
-
         static ShapeDescriptor::cpu::array<ShapeDescriptor::RoPSDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::Mesh& mesh,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
@@ -116,12 +90,20 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
+        }
+        static ShapeBench::IntersectingAreaEstimationStrategy getIntersectingAreaEstimationStrategy() {
+            return ShapeBench::IntersectingAreaEstimationStrategy::FAST_SPHERICAL;
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {
             return ShapeBench::isPointInSphericalVolume(descriptorOrigin, supportRadius, samplePoint);
+        }
+
+        static double computeIntersectingAreaCustom(const ShapeBench::IntersectionAreaParameters& parameters) {
+            Method::throwUnimplementedException();
+            return 0;
         }
 
         static std::string getName() {

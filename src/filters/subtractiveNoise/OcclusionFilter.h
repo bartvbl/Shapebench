@@ -2,7 +2,7 @@
 
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <mutex>
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "benchmarkCore/ComputedConfig.h"
 #include "dataset/Dataset.h"
 #include "utils/gl/Shader.h"

@@ -39,5 +39,5 @@ namespace ShapeBench {
         }
     }
 
-    GLFWwindow* GLinitialise(uint32_t windowWidth, uint32_t windowHeight);
+    GLFWwindow* GLinitialise(uint32_t windowWidth, uint32_t windowHeight, std::string windowTitle = "ShapeBench");
 }

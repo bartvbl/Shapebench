@@ -6,7 +6,7 @@
 #include <mutex>
 #include <fstream>
 #include "utils/Orientation.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "AdditiveNoiseFilterSettings.h"
 
 namespace ShapeBench {

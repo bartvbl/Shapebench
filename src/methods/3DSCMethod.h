@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Method.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "utils/methodUtils/commonSupportVolumeIntersectionTests.h"
+#include "distanceFunctions/euclideanDistance.h"
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <bitset>
 #include <cfloat>
@@ -11,7 +12,7 @@ namespace ShapeBench {
     static float minSupportRadiusFactor;
     static float pointDensityRadius;
 
-    struct ShapeContextMethod : public ShapeBench::Method<ShapeDescriptor::ShapeContextDescriptor> {
+    struct ShapeContextMethod {
 
         static constexpr uint32_t elementsPerShapeContextDescriptor
             = SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT;
@@ -21,64 +22,18 @@ namespace ShapeBench {
             pointDensityRadius = readDescriptorConfigValue<float>(config, "3DSC", "pointDensityRadius");
         }
 
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
+        __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const ShapeDescriptor::ShapeContextDescriptor& descriptor,
-                const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor) {
+                const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistanceGPU<ShapeDescriptor::ShapeContextDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
+        }
 
-#ifdef __CUDA_ARCH__
-            float lowestSquareSum;
-            for(int sliceOffset = 0; sliceOffset < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT; sliceOffset++) {
-                float threadSquaredDistance = 0;
-                for (short binIndex = threadIdx.x; binIndex < elementsPerShapeContextDescriptor; binIndex += blockDim.x) {
-                    float needleBinValue = descriptor.contents[binIndex];
-                    short haystackBinIndex = (binIndex + (sliceOffset * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT * SHAPE_CONTEXT_LAYER_COUNT));
-                    // Simple modulo that I think is less expensive
-                    if (haystackBinIndex >= elementsPerShapeContextDescriptor) {
-                        haystackBinIndex -= elementsPerShapeContextDescriptor;
-                    }
-                    float haystackBinValue = otherDescriptor.contents[haystackBinIndex];
-                    float binDelta = needleBinValue - haystackBinValue;
-                    threadSquaredDistance += binDelta * binDelta;
-                }
-
-                float combinedSquaredDistance = ShapeDescriptor::warpAllReduceSum(threadSquaredDistance);
-
-                if (threadIdx.x == 0 && (sliceOffset == 0 || combinedSquaredDistance < lowestSquareSum)) {
-                    lowestSquareSum = combinedSquaredDistance;
-                }
-            }
-
-            float lowestDistance = std::sqrt(lowestSquareSum);
-            return lowestDistance;
-#else
-            float squaredSum = 1;
-            for(int sliceOffset = 0; sliceOffset < SHAPE_CONTEXT_HORIZONTAL_SLICE_COUNT; sliceOffset++) {
-                float combinedSquaredDistance = 0;
-                for (short binIndex = 0; (binIndex < elementsPerShapeContextDescriptor) && (combinedSquaredDistance < squaredSum); binIndex++) {
-                    float needleBinValue = descriptor.contents[binIndex];
-                    uint32_t haystackBinIndex = (binIndex + (sliceOffset * SHAPE_CONTEXT_VERTICAL_SLICE_COUNT * SHAPE_CONTEXT_LAYER_COUNT));
-                    // Simple modulo that I think is less expensive
-                    if (haystackBinIndex >= elementsPerShapeContextDescriptor) {
-                        haystackBinIndex -= elementsPerShapeContextDescriptor;
-                    }
-                    float haystackBinValue = otherDescriptor.contents[haystackBinIndex];
-                    float binDelta = needleBinValue - haystackBinValue;
-                    combinedSquaredDistance += binDelta * binDelta;
-                }
-
-                if(sliceOffset == 0 || combinedSquaredDistance < squaredSum) {
-                    squaredSum = combinedSquaredDistance;
-                }
-            }
-
-            float lowestDistance = std::sqrt(squaredSum);
-            if(std::isnan(lowestDistance)) {
-                throw std::runtime_error("Found a NaN!");
-            }
-
-            return lowestDistance;
-
-#endif
+        static inline float computeDescriptorDistance(
+                const ShapeDescriptor::ShapeContextDescriptor& descriptor,
+                const ShapeDescriptor::ShapeContextDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
+            return ShapeBench::computeEuclideanDistance<ShapeDescriptor::ShapeContextDescriptor, float>(descriptor, otherDescriptor, earlyExitThreshold);
         }
 
         static bool usesMeshInput() {
@@ -93,17 +48,13 @@ namespace ShapeBench {
             return false;
         }
 
-        static bool shouldUseGPUKernel() {
-            return false;
-        }
-
         static ShapeDescriptor::gpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::Mesh& mesh,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& device_descriptorOrigins,
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
@@ -112,7 +63,7 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
 
@@ -122,10 +73,9 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
-
         static ShapeDescriptor::cpu::array<ShapeDescriptor::ShapeContextDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::PointCloud& cloud,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
@@ -145,6 +95,18 @@ namespace ShapeBench {
                 ShapeDescriptor::free(descriptor);
             }
             return descriptors;
+        }
+
+        static ShapeBench::IntersectingAreaEstimationStrategy getIntersectingAreaEstimationStrategy() {
+            return ShapeBench::IntersectingAreaEstimationStrategy::CUSTOM;
+        }
+
+        static double computeIntersectingAreaCustom(const ShapeBench::IntersectionAreaParameters& parameters) {
+            // ONLY needed when getIntersectingAreaEstimationStrategy() indicates a custom method will be used
+            // Refer to the documentation for useful utility functions that may help you
+            double outerArea = ShapeBench::computeAreaInSphericalSupportVolume(parameters.mesh, parameters.descriptorOrigin, parameters.supportRadius);
+            double innerArea = ShapeBench::computeAreaInSphericalSupportVolume(parameters.mesh, parameters.descriptorOrigin, minSupportRadiusFactor * parameters.supportRadius);
+            return outerArea - innerArea;
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {

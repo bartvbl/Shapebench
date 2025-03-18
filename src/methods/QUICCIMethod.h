@@ -6,12 +6,15 @@
 #include <bitset>
 
 namespace ShapeBench {
-    struct QUICCIMethod : public ShapeBench::Method<ShapeDescriptor::QUICCIDescriptor> {
-        __host__ __device__ static __inline__ float computeDescriptorDistance(
-                const ShapeDescriptor::QUICCIDescriptor& descriptor,
-                const ShapeDescriptor::QUICCIDescriptor& otherDescriptor) {
+    struct QUICCIMethod {
+        static void init(const nlohmann::json &config) {
 
-            #ifdef __CUDA_ARCH__
+        }
+
+        __device__ static __inline__ float computeDescriptorDistanceGPU(
+                const ShapeDescriptor::QUICCIDescriptor& descriptor,
+                const ShapeDescriptor::QUICCIDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
             const uint32_t totalBitsInDescriptor = spinImageWidthPixels * spinImageWidthPixels;
             const uint32_t chunkCount32Bit = totalBitsInDescriptor / 32;
 
@@ -47,7 +50,12 @@ namespace ShapeBench {
 
             return float(combinedMissingSetCount) * missingSetBitPenalty +
                    float(combinedMissingUnsetCount) * missingUnsetBitPenalty;
-            #else
+        }
+
+        static inline float computeDescriptorDistance(
+                const ShapeDescriptor::QUICCIDescriptor& descriptor,
+                const ShapeDescriptor::QUICCIDescriptor& otherDescriptor,
+                float earlyExitThreshold) {
 
             const uint32_t totalBitsInDescriptor = spinImageWidthPixels * spinImageWidthPixels;
             const uint32_t chunkCount32Bit = totalBitsInDescriptor / 32;
@@ -78,7 +86,6 @@ namespace ShapeBench {
 
             return float(combinedMissingSetCount) * missingSetBitPenalty +
                    float(combinedMissingUnsetCount) * missingUnsetBitPenalty;
-            #endif
         }
 
         static bool usesMeshInput() {
@@ -93,13 +100,17 @@ namespace ShapeBench {
         static bool shouldUseGPUKernel() {
             return false;
         }
+        static double computeIntersectingAreaCustom(const ShapeBench::IntersectionAreaParameters& parameters) {
+            Method::throwUnimplementedException();
+            return 0;
+        }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
                 const ShapeDescriptor::gpu::Mesh& mesh,
                 const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
         static ShapeDescriptor::gpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
@@ -108,9 +119,10 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
+
         static ShapeDescriptor::cpu::array<ShapeDescriptor::QUICCIDescriptor> computeDescriptors(
                 const ShapeDescriptor::cpu::Mesh& mesh,
                 const ShapeDescriptor::cpu::array<ShapeDescriptor::OrientedPoint>& descriptorOrigins,
@@ -125,11 +137,16 @@ namespace ShapeBench {
                 const nlohmann::json& config,
                 const std::vector<float>& supportRadii,
                 uint64_t randomSeed) {
-            throwIncompatibleException();
+            Method::throwIncompatibleException();
             return {};
         }
+
         static std::string getName() {
             return "QUICCI";
+        }
+
+        static ShapeBench::IntersectingAreaEstimationStrategy getIntersectingAreaEstimationStrategy() {
+            return ShapeBench::IntersectingAreaEstimationStrategy::FAST_CYLINDRICAL;
         }
 
         static bool isPointInSupportVolume(float supportRadius, ShapeDescriptor::OrientedPoint descriptorOrigin, ShapeDescriptor::cpu::float3 samplePoint) {

@@ -12,7 +12,7 @@ static void glfwErrorCallback(int error, const char *description)
     fprintf(stderr, "GLFW returned an error:\n\t%s (%i)\n", description, error);
 }
 
-GLFWwindow* ShapeBench::GLinitialise(uint32_t windowWidth, uint32_t windowHeight)
+GLFWwindow* ShapeBench::GLinitialise(uint32_t windowWidth, uint32_t windowHeight, std::string windowTitle)
 {
     // Initialise GLFW
     if (!glfwInit())
@@ -37,7 +37,7 @@ GLFWwindow* ShapeBench::GLinitialise(uint32_t windowWidth, uint32_t windowHeight
     const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
     // Create window using GLFW
-    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "ShapeBench", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, windowTitle.c_str(), nullptr, nullptr);
 
     // Ensure the window is set up correctly
     if (!window)

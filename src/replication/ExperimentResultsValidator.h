@@ -1,6 +1,6 @@
 #pragma once
 
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "results/ExperimentResult.h"
 #include <tabulate/table.hpp>
 
@@ -93,7 +93,7 @@ namespace ShapeBench {
             // Detecting properties that any filters might have added
             uint32_t propertyIndex = 0;
             auto originalResultFilterOutputIterator = originalResult["filterOutput"].begin();
-            for(const auto& [key, value] : replicatedResult.filterOutput.items()) {
+            for(const auto& [key, value] : replicatedResult.sceneObject.filterOutput.items()) {
                 if(!value.is_number()) {
                     continue;
                 }
@@ -109,10 +109,10 @@ namespace ShapeBench {
             validatedResultCount++;
 
             reportFile << vertexIndex << ", ";
-            clutterStats.registerValue(originalResult["fractionAddedNoise"], replicatedResult.fractionAddedNoise);
-            reportFile << originalResult["fractionAddedNoise"] << ", " << replicatedResult.fractionAddedNoise << ", " << (originalResult["fractionAddedNoise"] == replicatedResult.fractionAddedNoise ? "yes" : "no") << ", ";
-            occlusionStats.registerValue(originalResult["fractionSurfacePartiality"], replicatedResult.fractionSurfacePartiality);
-            reportFile << originalResult["fractionSurfacePartiality"] << ", " << replicatedResult.fractionSurfacePartiality << ", " << (originalResult["fractionSurfacePartiality"] == replicatedResult.fractionSurfacePartiality ? "yes" : "no") << ", ";
+            clutterStats.registerValue(originalResult["fractionAddedNoise"], replicatedResult.sceneObject.fractionAddedNoise);
+            reportFile << originalResult["fractionAddedNoise"] << ", " << replicatedResult.sceneObject.fractionAddedNoise << ", " << (originalResult["fractionAddedNoise"] == replicatedResult.sceneObject.fractionAddedNoise ? "yes" : "no") << ", ";
+            occlusionStats.registerValue(originalResult["fractionSurfacePartiality"], replicatedResult.sceneObject.fractionSurfacePartiality);
+            reportFile << originalResult["fractionSurfacePartiality"] << ", " << replicatedResult.sceneObject.fractionSurfacePartiality << ", " << (originalResult["fractionSurfacePartiality"] == replicatedResult.sceneObject.fractionSurfacePartiality ? "yes" : "no") << ", ";
             descriptorRankStats.registerValue(originalResult["filteredDescriptorRank"], replicatedResult.filteredDescriptorRank);
             reportFile << originalResult["filteredDescriptorRank"] << ", " << replicatedResult.filteredDescriptorRank << ", " << (originalResult["filteredDescriptorRank"] == replicatedResult.filteredDescriptorRank ? "yes" : "no") << ", ";
             meshIDCorrectStats.registerValue(originalResult["meshID"] == replicatedResult.sourceVertex.meshID ? 0 : 1);

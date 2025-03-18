@@ -5,7 +5,7 @@
 #include <random>
 #include <malloc.h>
 #include "dataset/Dataset.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "benchmarkCore/Batch.h"
 #include "methods/Method.h"
 #include "benchmarkCore/common-procedures/descriptorGenerator.h"
@@ -156,7 +156,7 @@ namespace ShapeBench {
             ShapeDescriptor::cpu::Mesh representativeSetMesh = loadMesh(config, dataset, fileCache, referenceVertex);
             ShapeDescriptor::cpu::PointCloud representativeSetPointCloud;
             if (DescriptorMethod::usesPointCloudInput()) {
-                representativeSetPointCloud = computePointCloud<DescriptorMethod>(representativeSetMesh, config, referencePointCloudSamplingSeed);
+                representativeSetPointCloud = computePointCloud<DescriptorMethod>(representativeSetMesh, config, 1.0f, referencePointCloudSamplingSeed);
             }
 
             ShapeDescriptor::OrientedPoint originPoint = {representativeSetMesh.vertices[referenceVertex.vertexIndex], representativeSetMesh.normals[referenceVertex.vertexIndex]};
@@ -233,8 +233,6 @@ namespace ShapeBench {
 
     template<typename DescriptorMethod, typename DescriptorType>
     float estimateSupportRadius(const nlohmann::json& config, const Dataset& dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
-        static_assert(std::is_base_of<ShapeBench::Method<DescriptorType>, DescriptorMethod>::value, "The DescriptorMethod template type parameter must be an object inheriting from Shapebench::Method");
-
         bool shouldReplicateSingleRadius = config.at("replicationOverrides").at("supportRadius").at("recomputeSingleRadius");
         uint32_t radiusToRecompute = config.at("replicationOverrides").at("supportRadius").at("radiusIndexToRecompute");
         ShapeBench::randomEngine randomEngine(randomSeed);
@@ -347,7 +345,7 @@ namespace ShapeBench {
 
         std::chrono::time_point end = std::chrono::steady_clock::now();
         std::cout << std::endl << "    Time taken: ";
-        ShapeBench::printDuration(end - start);
+        std::cout << ShapeBench::durationToString(end - start);
         std::cout << std::endl;
 
         float highestMean = 0;

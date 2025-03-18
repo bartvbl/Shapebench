@@ -34,7 +34,7 @@ namespace ShapeBench {
         float runningSumOfSquaredDifferences = 0;
 
         for(uint32_t referenceDescriptorIndex = threadIdx.y; referenceDescriptorIndex < referenceDescriptors.length; referenceDescriptorIndex += blockDim.y) {
-            float similarity = DescriptorMethod::computeDescriptorDistance(sampleDescriptor, referenceDescriptors[referenceDescriptorIndex]);
+            float similarity = DescriptorMethod::computeDescriptorDistanceGPU(sampleDescriptor, referenceDescriptors[referenceDescriptorIndex], __FLT_MAX__);
             // Using Welford's algorithm for computing the mean and variance
             // Updating the running mean and standard deviation values
             runningCount++;
@@ -83,7 +83,7 @@ namespace ShapeBench {
 
             for(uint32_t referenceDescriptorIndex = 0; referenceDescriptorIndex < referenceDescriptors.length; referenceDescriptorIndex++) {
                 float similarity = DescriptorMethod::computeDescriptorDistance(sampleDescriptors[sampleDescriptorIndex],
-                                                                               referenceDescriptors[referenceDescriptorIndex]);
+                                                                               referenceDescriptors[referenceDescriptorIndex], std::numeric_limits<float>::max());
                 // Using Welford's algorithm for computing the mean and variance
                 // Updating the running mean and standard deviation values
                 runningCount++;

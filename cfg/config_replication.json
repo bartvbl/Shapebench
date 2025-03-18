@@ -12,7 +12,8 @@
         "objaverseDownloadBaseURL": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/{}?download=true",
         "cacheSizeLimitGB": 20000,
         "enableDatasetCompression": true,
-        "verifyFileIntegrity": true
+        "verifyFileIntegrity": true,
+        "verifyMiniballComputation": true
     },
     "commonExperimentSettings": {
         "verticesToTestPerSampleObject": 100,

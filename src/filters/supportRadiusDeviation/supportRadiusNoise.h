@@ -2,7 +2,7 @@
 
 #include <shapeDescriptor/containerTypes.h>
 #include "filters/FilteredMeshPair.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "filters/Filter.h"
 
 

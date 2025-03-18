@@ -4,14 +4,16 @@
 #include <barrier>
 #include <random>
 #include "filters/FilteredMeshPair.h"
-#include "json.hpp"
 #include "pointCloudSampler.h"
+#include "utils/AreaCalculator.h"
+#include "nlohmann/json.hpp"
+#include "utils/methodUtils/commonSupportVolumeIntersectionTests.h"
+#include "types/AreaEstimate.h"
+#include <omp.h>
 
 namespace ShapeBench {
-    struct AreaEstimate {
-        float addedAdrea = 0;
-        float subtractiveArea = 0;
-    };
+    double computeAreaInCylindricalSupportVolume(const ShapeDescriptor::cpu::Mesh &mesh, ShapeDescriptor::OrientedPoint referencePoint, float supportRadius);
+    double computeAreaInSphericalSupportVolume(const ShapeDescriptor::cpu::Mesh &mesh, ShapeDescriptor::OrientedPoint referencePoint, float supportRadius);
 
     inline double computeSingleTriangleArea(ShapeDescriptor::cpu::float3 vertex0, ShapeDescriptor::cpu::float3 vertex1, ShapeDescriptor::cpu::float3 vertex2) {
         ShapeDescriptor::cpu::float3 AB = vertex1 - vertex0;
@@ -23,16 +25,11 @@ namespace ShapeBench {
     }
 
     template<typename DescriptorMethod>
-    uint32_t computeSampleCountInSupportVolume(ShapeDescriptor::cpu::Mesh &mesh, uint64_t sampleCount, ShapeDescriptor::OrientedPoint referencePoint, float supportRadius, uint64_t randomSeed) {
-        size_t triangleCount = mesh.vertexCount / 3;
-
-        double totalArea = 0;
-        for(uint32_t i = 0; i < mesh.vertexCount; i += 3) {
-            double area = ShapeBench::computeSingleTriangleArea(mesh.vertices[i], mesh.vertices[i + 1], mesh.vertices[i + 2]);
-            totalArea += area;
-        }
+    uint32_t computeSampleCountInSupportVolume(ShapeDescriptor::cpu::Mesh &mesh, double totalArea, uint64_t sampleCount, ShapeDescriptor::OrientedPoint referencePoint, float supportRadius, uint64_t randomSeed) {
+        std::chrono::time_point<std::chrono::steady_clock> start_old = std::chrono::steady_clock::now();
 
         uint64_t samplesInVolume = 0;
+        size_t triangleCount = mesh.vertexCount / 3;
 
         std::mt19937_64 randomEngine(randomSeed);
         if(totalArea == 0) {
@@ -81,15 +78,18 @@ namespace ShapeBench {
                         (sqrt(v1) * (1 - v2)) * vertex1 +
                         (sqrt(v1) * v2) * vertex2;
 
+
                 bool isInVolume = DescriptorMethod::isPointInSupportVolume(supportRadius, referencePoint, samplePoint);
                 if(isInVolume) {
                     samplesInVolume++;
                 }
             }
         }
+        std::chrono::time_point<std::chrono::steady_clock> end_old = std::chrono::steady_clock::now();
 
         return samplesInVolume;
     }
+
 
     template<typename DescriptorMethod>
     AreaEstimate estimateAreaInSupportVolume(ShapeBench::FilteredMeshPair& meshes,
@@ -98,25 +98,66 @@ namespace ShapeBench {
                                              float supportRadius,
                                              const nlohmann::json& config,
                                              uint64_t randomSeed) {
-        // We need to compute the sample count in such a way that all surfaces have a similar point density
-        // We do this by computing a sample count for the base mesh, and scaling it by the area of the subtractive and additive meshes
+        AreaEstimate estimate {0, 0};
 
-        double originalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.originalMesh);
-        double filteredOriginalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.filteredSampleMesh);
-        double filteredAdditiveMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.filteredAdditiveNoise);
+        ShapeBench::IntersectingAreaEstimationStrategy desiredStrategy = DescriptorMethod::getIntersectingAreaEstimationStrategy();
+        if(desiredStrategy == ShapeBench::IntersectingAreaEstimationStrategy::FAST_CYLINDRICAL) {
+            double referenceArea = computeAreaInCylindricalSupportVolume(meshes.originalMesh, pointInOriginalMesh, supportRadius);
+            double subtractiveMeshArea = computeAreaInCylindricalSupportVolume(meshes.filteredSampleMesh, pointInFilteredMesh, supportRadius);
+            double additiveMeshArea = computeAreaInCylindricalSupportVolume(meshes.filteredAdditiveNoise, pointInFilteredMesh, supportRadius);
 
-        ShapeBench::AreaEstimateSampleCounts sampleCounts = ShapeBench::computeAreaEstimateSampleCounts(config, originalMeshArea, filteredOriginalMeshArea, filteredAdditiveMeshArea);
+            estimate.addedArea = float(additiveMeshArea / referenceArea);
+            estimate.subtractiveArea = float(subtractiveMeshArea / referenceArea);
 
-        uint64_t referenceMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.originalMesh, sampleCounts.originalMesh, pointInOriginalMesh, supportRadius, randomSeed);
-        uint64_t subtractiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredSampleMesh, sampleCounts.filteredOriginalMesh, pointInFilteredMesh, supportRadius, randomSeed);
-        uint64_t additiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredAdditiveNoise, sampleCounts.filteredAdditiveMesh, pointInFilteredMesh, supportRadius, randomSeed);
-        
-        AreaEstimate estimate;
-        estimate.addedAdrea = double(additiveMeshSamples) / double(referenceMeshSamples);
-        estimate.subtractiveArea = double(subtractiveMeshSamples) / double(referenceMeshSamples);
-        //std::cout << "Area estimate: added " << estimate.addedAdrea << ", subtracted " << estimate.subtractiveArea << std::endl;
+            return estimate;
+        } else if(desiredStrategy == ShapeBench::IntersectingAreaEstimationStrategy::FAST_SPHERICAL) {
+            double referenceArea = computeAreaInSphericalSupportVolume(meshes.originalMesh, pointInOriginalMesh, supportRadius);
+            double subtractiveMeshArea = computeAreaInSphericalSupportVolume(meshes.filteredSampleMesh, pointInFilteredMesh, supportRadius);
+            double additiveMeshArea = computeAreaInSphericalSupportVolume(meshes.filteredAdditiveNoise, pointInFilteredMesh, supportRadius);
 
-        return estimate;
+            estimate.addedArea = float(additiveMeshArea / referenceArea);
+            estimate.subtractiveArea = float(subtractiveMeshArea / referenceArea);
+
+            return estimate;
+        } else if(desiredStrategy == ShapeBench::IntersectingAreaEstimationStrategy::CUSTOM) {
+            ShapeBench::IntersectionAreaParameters parameters;
+            parameters.mesh = meshes.originalMesh;
+            parameters.descriptorOrigin = pointInOriginalMesh;
+            parameters.supportRadius = 1;
+            parameters.config = &config;
+            parameters.randomSeed = randomSeed;
+            double referenceArea = DescriptorMethod::computeIntersectingAreaCustom(parameters);
+
+            parameters.mesh = meshes.filteredSampleMesh;
+            parameters.descriptorOrigin = pointInFilteredMesh;
+            double subtractiveMeshArea = DescriptorMethod::computeIntersectingAreaCustom(parameters);
+
+            parameters.mesh = meshes.filteredAdditiveNoise;
+            parameters.descriptorOrigin = pointInFilteredMesh;
+            double additiveMeshArea = DescriptorMethod::computeIntersectingAreaCustom(parameters);
+
+            estimate.addedArea = float(additiveMeshArea / referenceArea);
+            estimate.subtractiveArea = float(subtractiveMeshArea / referenceArea);
+
+            return estimate;
+        } else if(desiredStrategy == ShapeBench::IntersectingAreaEstimationStrategy::SLOW_MONTE_CARLO_ESTIMATION) {
+            double originalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.originalMesh);
+            double filteredOriginalMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.filteredSampleMesh);
+            double filteredAdditiveMeshArea = ShapeDescriptor::calculateMeshSurfaceArea(meshes.filteredAdditiveNoise);
+
+            ShapeBench::AreaEstimateSampleCounts sampleCounts = ShapeBench::computeAreaEstimateSampleCounts(config, originalMeshArea, filteredOriginalMeshArea, filteredAdditiveMeshArea);
+
+            uint64_t subtractiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredSampleMesh, filteredOriginalMeshArea, sampleCounts.filteredOriginalMesh, pointInFilteredMesh, supportRadius, randomSeed);
+            uint64_t referenceMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.originalMesh, originalMeshArea, sampleCounts.originalMesh, pointInOriginalMesh, supportRadius, randomSeed);
+            uint64_t additiveMeshSamples = computeSampleCountInSupportVolume<DescriptorMethod>(meshes.filteredAdditiveNoise, filteredAdditiveMeshArea, sampleCounts.filteredAdditiveMesh, pointInFilteredMesh, supportRadius, randomSeed);
+
+            estimate.addedArea = float(double(additiveMeshSamples) / double(referenceMeshSamples));
+            estimate.subtractiveArea = float(double(subtractiveMeshSamples) / double(referenceMeshSamples));
+
+            return estimate;
+        } else {
+            throw std::runtime_error("Method has unknown area estimation strategy. Is it missing from this handler?");
+        }
     }
 }
 

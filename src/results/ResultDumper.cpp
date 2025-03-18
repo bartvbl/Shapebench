@@ -34,7 +34,7 @@ nlohmann::json toJSON(ShapeDescriptor::cpu::float3 in) {
     return out;
 }
 
-void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputBaseDirectory, bool isFinalResult, bool isPRCEnabled, const ShapeBench::ReplicationSettings& replicationSettings, bool fixMissingEntries, const std::unordered_map<uint32_t, uint32_t>& entriesInReplicatedResults) {
+void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::filesystem::path outputBaseDirectory, bool isFinalResult, bool isPRCEnabled, const ShapeBench::ReplicationSettings& replicationSettings) {
 
     // 1: Initial version
     // 1.1: Added information about each filter
@@ -57,7 +57,7 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
     jsonOutput["method"]["name"] = results.methodName;
     jsonOutput["method"]["metadata"] = results.methodMetadata;
 
-    jsonOutput["replicatedResults"] = replicationSettings.enabled && !fixMissingEntries;
+    jsonOutput["replicatedResults"] = replicationSettings.enabled;
 
     jsonOutput["configuration"] = results.usedConfiguration;
     jsonOutput["computedConfiguration"] = results.usedComputedConfiguration.toJSON();
@@ -69,22 +69,27 @@ void writeExperimentResults(const ShapeBench::ExperimentResult &results, std::fi
         nlohmann::json entryJson;
         const ShapeBench::ExperimentResultsEntry& entry = results.vertexResults.at(i);
 
-        if(fixMissingEntries && entriesInReplicatedResults.contains(i)) {
-            uint32_t targetIndex = entriesInReplicatedResults.at(i);
-            entryJson = replicationSettings.experimentResults.at(targetIndex);
-            jsonOutput["results"].push_back(entryJson);
-        } else if(entry.included) {
+        if(entry.included) {
             entryJson["resultID"] = i;
-            entryJson["fractionAddedNoise"] = entry.fractionAddedNoise;
-            entryJson["fractionSurfacePartiality"] = entry.fractionSurfacePartiality;
+            entryJson["modelObject"]["fractionAddedNoise"] = entry.modelObject.fractionAddedNoise;
+            entryJson["modelObject"]["fractionSurfacePartiality"] = entry.modelObject.fractionSurfacePartiality;
+            entryJson["modelObject"]["originalVertex"] = toJSON(entry.modelObject.originalVertexLocation.vertex);
+            entryJson["modelObject"]["originalNormal"] = toJSON(entry.modelObject.originalVertexLocation.normal);
+            entryJson["modelObject"]["filteredVertex"] = toJSON(entry.modelObject.filteredVertexLocation.vertex);
+            entryJson["modelObject"]["filteredNormal"] = toJSON(entry.modelObject.filteredVertexLocation.normal);
+            entryJson["modelObject"]["filterOutput"] = entry.modelObject.filterOutput;
+
+            entryJson["sceneObject"]["fractionAddedNoise"] = entry.sceneObject.fractionAddedNoise;
+            entryJson["sceneObject"]["fractionSurfacePartiality"] = entry.sceneObject.fractionSurfacePartiality;
+            entryJson["sceneObject"]["originalVertex"] = toJSON(entry.sceneObject.originalVertexLocation.vertex);
+            entryJson["sceneObject"]["originalNormal"] = toJSON(entry.sceneObject.originalVertexLocation.normal);
+            entryJson["sceneObject"]["filteredVertex"] = toJSON(entry.sceneObject.filteredVertexLocation.vertex);
+            entryJson["sceneObject"]["filteredNormal"] = toJSON(entry.sceneObject.filteredVertexLocation.normal);
+            entryJson["sceneObject"]["filterOutput"] = entry.sceneObject.filterOutput;
+
             entryJson["filteredDescriptorRank"] = entry.filteredDescriptorRank;
-            entryJson["originalVertex"] = toJSON(entry.originalVertexLocation.vertex);
-            entryJson["originalNormal"] = toJSON(entry.originalVertexLocation.normal);
-            entryJson["filteredVertex"] = toJSON(entry.filteredVertexLocation.vertex);
-            entryJson["filteredNormal"] = toJSON(entry.filteredVertexLocation.normal);
             entryJson["meshID"] = entry.sourceVertex.meshID;
             entryJson["vertexIndex"] = entry.sourceVertex.vertexIndex;
-            entryJson["filterOutput"] = entry.filterOutput;
             if (isPRCEnabled) {
                 entryJson["PRC"]["distanceToNearestNeighbour"] = entry.prcMetadata.distanceToNearestNeighbour;
                 entryJson["PRC"]["distanceToSecondNearestNeighbour"] = entry.prcMetadata.distanceToSecondNearestNeighbour;

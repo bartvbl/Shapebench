@@ -44,8 +44,30 @@ ShapeBench::GeometryBuffer ShapeBench::generateVertexArray(
     glGenBuffers(1, &buffer.indexBufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.indexBufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indexBuffer.size(), indexBuffer.data(), GL_STATIC_DRAW);
+    buffer.indexCount = vertexCount;
 
     ShapeBench::printGLError(__FILE__, __LINE__);
 
     return buffer;
+}
+
+void ShapeBench::destroyVertexArray(ShapeBench::GeometryBuffer buffer) {
+    if(buffer.vaoID != 0xFFFFFFFF) {
+        glDeleteVertexArrays(1, &buffer.vaoID);
+    }
+    if(buffer.colourBufferID != 0xFFFFFFFF) {
+        glDeleteBuffers(1, &buffer.colourBufferID);
+    }
+    if(buffer.indexBufferID != 0xFFFFFFFF) {
+        glDeleteBuffers(1, &buffer.indexBufferID);
+    }
+    if(buffer.normalBufferID != 0xFFFFFFFF) {
+        glDeleteBuffers(1, &buffer.normalBufferID);
+    }
+    if(buffer.textureBufferID != 0xFFFFFFFF) {
+        glDeleteBuffers(1, &buffer.textureBufferID);
+    }
+    if(buffer.vertexBufferID != 0xFFFFFFFF) {
+        glDeleteBuffers(1, &buffer.vertexBufferID);
+    }
 }

@@ -3,8 +3,7 @@
 #include <cstdio>
 #include <stdarg.h>
 #include <iostream>
-
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "benchmarkCore/ComputedConfig.h"
 
 #include "Jolt/Jolt.h"
@@ -429,7 +428,8 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     for(int i = 0; i < meshes.size(); i++) {
         if(!meshIncluded.at(i)) {
             float invalidValue = std::nanf("");
-            orientations.at(i) = {{invalidValue, invalidValue, invalidValue}, {invalidValue, invalidValue, invalidValue, invalidValue}};
+            orientations.at(i) = {ShapeDescriptor::cpu::float3{invalidValue, invalidValue, invalidValue},
+                                  ShapeDescriptor::cpu::float4{invalidValue, invalidValue, invalidValue, invalidValue}};
             continue;
         }
 
@@ -438,7 +438,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
 
         orientations.at(i) = {
                 {outputPosition.GetX(), outputPosition.GetY(), outputPosition.GetZ()},
-                {rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW()}};
+                ShapeDescriptor::cpu::float4{rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW()}};
     }
 
     /*ShapeDescriptor::cpu::Mesh outputMesh(outputSampleMesh.vertexCount + outputAdditiveNoiseMesh.vertexCount);

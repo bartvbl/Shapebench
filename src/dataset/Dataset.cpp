@@ -12,6 +12,13 @@
 
 void ShapeBench::Dataset::loadCache(const nlohmann::json& cacheFileContents) {
     assert(cacheFileContents.contains("files"));
+
+    if(!cacheFileContents.contains("metadata")
+    || !cacheFileContents.at("metadata").contains("fileFormatVersion")
+    || cacheFileContents.at("metadata").at("fileFormatVersion") != "1.1") {
+        throw std::logic_error("This cache file was made for a different version of ShapeBench. You must either recompute it, or use it with the correct revision of the benchmark.");
+    }
+
     uint32_t fileCount = cacheFileContents.at("files").size();
     entries.reserve(fileCount);
 
@@ -28,7 +35,7 @@ void ShapeBench::Dataset::loadCache(const nlohmann::json& cacheFileContents) {
             entry.id = jsonEntry.at("id");
             entry.computedObjectRadius = jsonEntry.at("boundingSphereRadius");
             entry.computedObjectCentre = {jsonEntry.at("boundingSphereCentre")[0], jsonEntry.at("boundingSphereCentre")[1], jsonEntry.at("boundingSphereCentre")[2]};
-            entry.compressedMeshFileSHA1 = jsonEntry.at("compressedFileSha1");
+            entry.meshIntegrityDigest = jsonEntry.at("meshIntegrityDigest");
             entry.meshFile = std::string(jsonEntry.at("filePath"));
             entries.push_back(entry);
         } else {

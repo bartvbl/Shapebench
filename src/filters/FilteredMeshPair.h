@@ -30,6 +30,9 @@ namespace ShapeBench {
         std::vector<AdditiveNoiseObjectInfo> additiveNoiseInfo;
         glm::mat4 sampleMeshTransformation;
 
+        // Scale factor for number of points to sample when converting this mesh into a point cloud
+        float pointCloudConversionScaleFactor = 1.0;
+
         void free();
         ShapeDescriptor::cpu::Mesh combinedFilteredMesh();
     };

@@ -3,13 +3,13 @@
 #include <filesystem>
 #include <shapeDescriptor/shapeDescriptor.h>
 #include <malloc.h>
-#include "json.hpp"
 #include "nlohmann/json.hpp"
 #include "sha1.hpp"
 
 #include "utils/prettyprint.h"
 #include "replication/RandomSubset.h"
 #include "miniballGenerator.h"
+#include "utils/FileHasher.h"
 
 namespace ShapeBench {
     // Takes in a dataset of file formats supported by the libShapeDescriptor library and compresses it using the library's compact mesh format
@@ -40,7 +40,7 @@ namespace ShapeBench {
             uint32_t numberOfFilesToRecompute = replicationConfiguration.at("randomSubsetSize");
             if(numberOfFilesToRecompute > datasetFiles.size()) {
                 throw std::logic_error("Failed to recompute a random subset of dataset files (requested " + std::to_string(numberOfFilesToRecompute) +
-                ", while " + std::to_string(datasetFiles.size()) + " are available). They are either missing, or you have requested to replicate more files than the dataset has.");
+                                       ", while " + std::to_string(datasetFiles.size()) + " are available). They are either missing, or you have requested to replicate more files than the dataset has.");
             }
             std::cout << "Replication of compressed dataset and dataset metadata enabled, randomly replicating a subset of " << numberOfFilesToRecompute << " files." << std::endl;
             replicationSubset = ShapeBench::RandomSubset(0, datasetFiles.size(), numberOfFilesToRecompute, recomputeRandomSeed);
@@ -69,6 +69,7 @@ namespace ShapeBench {
             datasetCache["metadata"]["baseDatasetRootDir"] = std::filesystem::absolute(originalDatasetDirectory).string();
             datasetCache["metadata"]["compressedDatasetRootDir"] = std::filesystem::absolute(compressedDatasetDirectory).string();
             datasetCache["metadata"]["cacheDirectory"] = std::filesystem::absolute(metadataFile).string();
+            datasetCache["metadata"]["fileFormatVersion"] = "1.1";
 
             datasetCache["files"] = {};
             // Creating stubs
@@ -108,41 +109,38 @@ namespace ShapeBench {
                     isPointCloud = ShapeDescriptor::gltfContainsPointCloud(datasetFiles.at(i));
                 }
                 datasetEntry["filePath"] = filePath;
-                std::string originalFileSha1 = SHA1::from_file((originalDatasetDirectory / filePath).string());
+                std::string originalFileSha1 = ShapeBench::computeFileHash((originalDatasetDirectory / filePath).string());
                 if(!entryIsMissing) {
-                    if(datasetEntry.at("originalFileSha1") != originalFileSha1) {
-                        throw std::logic_error("FATAL: file digest of file " + filePath.string() + " did not match the one on record!");
+                    if (datasetEntry.at("originalFileSha1") != originalFileSha1) {
+                        throw std::logic_error("FATAL: file digest of file " + filePath.string() +
+                                               " did not match the one on record!");
                     }
                 }
-                datasetEntry["originalFileSha1"] = originalFileSha1;
 
+                datasetEntry["originalFileSha1"] = originalFileSha1;
                 datasetEntry["isPointCloud"] = isPointCloud;
                 std::filesystem::path compressedMeshPath = compressedDatasetDirectory / filePath;
                 compressedMeshPath.replace_extension(".cm");
 
                 try {
                     if (isPointCloud) {
-                        #pragma omp atomic
+#pragma omp atomic
                         pointCloudCount++;
                         ShapeDescriptor::cpu::PointCloud cloud = ShapeDescriptor::loadPointCloud(datasetFiles.at(i));
                         ShapeDescriptor::writeCompressedGeometryFile(cloud, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = cloud.pointCount;
-                        std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
+
+                        // Integrity assurance
+                        ShapeDescriptor::cpu::PointCloud readCloud = ShapeDescriptor::readPointCloudFromCompressedGeometryFile(compressedMeshPath);
+                        std::string readPointCloudDigest = ShapeBench::computePointCloudHash(readCloud);
+                        datasetEntry["pointCloudIntegrityDigest"] = readPointCloudDigest;
+                        ShapeDescriptor::free(readCloud);
+
                         if(!entryIsMissing) {
-                            if(datasetEntry.at("compressedFileSha1") != compressedFileSha1) {
+                            if(datasetEntry.at("pointCloudIntegrityDigest") != readPointCloudDigest) {
                                 throw std::logic_error("FATAL: file digest of compressed file " + filePath.string() + " did not match the one on record!");
                             }
                         }
-                        datasetEntry["compressedFileSha1"] = compressedFileSha1;
-
-
-                        // Integrity check
-                        ShapeDescriptor::cpu::PointCloud readCloud = ShapeDescriptor::readPointCloudFromCompressedGeometryFile(
-                                compressedMeshPath);
-                        if (ShapeDescriptor::comparePointCloud(cloud, readCloud)) {
-                            throw std::logic_error("!! POINT CLOUD HASH MISMATCH " + compressedMeshPath.string());
-                        }
-                        ShapeDescriptor::free(readCloud);
 
                         if(cloud.pointCount > 0) {
                             ShapeBench::Miniball ball = computeMiniball(cloud);
@@ -163,21 +161,18 @@ namespace ShapeBench {
                         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(datasetFiles.at(i));
                         ShapeDescriptor::writeCompressedGeometryFile(mesh, compressedMeshPath, true);
                         datasetEntry["vertexCount"] = mesh.vertexCount;
-                        std::string compressedFileSha1 = SHA1::from_file(compressedMeshPath.string());
+
+                        ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::loadMesh(compressedMeshPath);
+                        std::string readMeshDigest = ShapeBench::computeMeshHash(readMesh);
+                        datasetEntry["meshIntegrityDigest"] = readMeshDigest;
+                        ShapeDescriptor::free(readMesh);
+
+                        // Integrity check
                         if(!entryIsMissing) {
-                            if(datasetEntry.at("compressedFileSha1") != compressedFileSha1) {
+                            if(datasetEntry.at("meshIntegrityDigest") != readMeshDigest) {
                                 throw std::logic_error("FATAL: file digest of compressed file " + filePath.string() + " did not match the one on record!");
                             }
                         }
-                        datasetEntry["compressedFileSha1"] = compressedFileSha1;
-
-                        // Integrity check
-                        ShapeDescriptor::cpu::Mesh readMesh = ShapeDescriptor::loadMesh(compressedMeshPath);
-
-                        if (!ShapeDescriptor::compareMesh(mesh, readMesh)) {
-                            throw std::logic_error("!! MESH HASH MISMATCH " + compressedMeshPath.string());
-                        }
-                        ShapeDescriptor::free(readMesh);
 
                         if(mesh.vertexCount > 0) {
                             ShapeBench::Miniball ball = computeMiniball(mesh);
@@ -204,7 +199,7 @@ namespace ShapeBench {
                 }
 
 
-                #pragma omp critical
+#pragma omp critical
                 {
                     datasetCache["files"].at(i) = datasetEntry;
 
@@ -238,7 +233,7 @@ namespace ShapeBench {
         std::chrono::time_point<std::chrono::steady_clock> endTime = std::chrono::steady_clock::now();
         if(newMeshesLoaded) {
             std::cout << "    Compressed dataset was successfully computed. Total duration: ";
-            ShapeBench::printDuration(endTime - startTime);
+            std::cout << ShapeBench::durationToString(endTime - startTime);
             std::cout << std::endl;
 
             std::ofstream outCacheStream {metadataFile};
