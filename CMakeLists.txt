@@ -30,6 +30,8 @@ set (CMAKE_VERBOSE_MAKEFILE 0) # 1 should be used for debugging
 set (CMAKE_SUPPRESS_REGENERATION TRUE) # Suppresses ZERO_CHECK
 
 
+add_subdirectory(lib/Catch2-3.8.0)
+
 # Method specific settings
 add_definitions(-DspinImageWidthPixels=32)
 add_subdirectory(lib/libShapeDescriptor libShapeDescriptor)
@@ -57,6 +59,7 @@ add_subdirectory(lib/curl-8.7.1)
 
 add_subdirectory(lib/fmt-10.2.1)
 
+
 # sudo apt install libcgal-dev libceres-dev
 # For 5.6.1 I had to install through the debian channel, it's not available yet
 set(BUILD_EXAMPLES OFF)
@@ -74,7 +77,7 @@ ExternalProject_Add(
         GMP
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0"
         CONFIGURE_COMMAND "./configure"
-        BUILD_COMMAND make && make check
+        BUILD_COMMAND make
         TEST_COMMAND ""
         INSTALL_COMMAND ""
         BUILD_IN_SOURCE 1
@@ -84,6 +87,9 @@ ExternalProject_Add(
 add_library(GMP_Interface SHARED IMPORTED)
 add_dependencies(GMP_Interface GMP)
 set_target_properties(GMP_Interface PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0/.libs/libgmp.a)
+
+
+
 
 #find_package(SDL2 REQUIRED)
 
@@ -102,7 +108,7 @@ set_target_properties(GMP_Interface PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT
 include_directories (
         src/
         lib/arrrgh
-        lib/tinygltf
+        lib/tinygltf-2.9.5
         lib/json-3.11.3/include
         lib/miniball/cpp/main
         lib/JoltPhysics
@@ -112,7 +118,7 @@ include_directories (
         lib/tabulate-master-3a58301067bbc03da89ae5a51b3e05b7da719d38/include
         lib/cmake-git
         lib/sha1-1.4
-        lib/libShapeDescriptor/lib/glm
+        lib/libShapeDescriptor/lib/glm-1.0.1
         lib/libcurl-8.7.1/include
         lib/CGAL-5.6.1/include
         lib/PortableGL-0.98.0
@@ -135,19 +141,32 @@ file (GLOB_RECURSE PROJECT_SOURCES
         src/*.cxx
         src/*.cu
         lib/glad/src/gl.c)
+file (GLOB_RECURSE PROJECT_TESTS
+        tests/*.cpp
+        tests/*.cxx
+        tests/*.cu)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
 target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
-target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp>) #-Xcompiler=-fsanitize=leak
+target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp -diag-suppress 20012>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
 set_property(TARGET shapebench PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
 #target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand
-target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler> -std=c++20)
+target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler -diag-suppress 20012> -std=c++20)
 # Manually add options required by Jolt. Using the library's original cmake file causes trouble with the cuda compiler.
 #target_compile_options(shapebench PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mbmi,-mpopcnt,-mlzcnt,-mf16c,-DJPH_ENABLE_ASSERTS>) # -fsanitize=leak
 
 add_executable(armadillo tools/similarityrenderer/main.cpp)
 target_link_libraries(armadillo PUBLIC ShapeDescriptor)
 set_property(TARGET armadillo PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
+
+add_library(shapebenchstatic ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
+target_link_libraries(shapebenchstatic PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
+target_compile_options(shapebenchstatic PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp -diag-suppress 20012>) #-Xcompiler=-fsanitize=leak
+target_compile_options(shapebenchstatic PRIVATE -frounding-math)
+set_property(TARGET shapebenchstatic PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
+target_compile_options(shapebenchstatic PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler -diag-suppress 20012> -std=c++20)
+add_executable(shapebenchtests ${PROJECT_TESTS})
+target_link_libraries(shapebenchtests PRIVATE Catch2::Catch2WithMain shapebenchstatic)

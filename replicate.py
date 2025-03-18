@@ -89,7 +89,6 @@ def compileProject():
         return
     run_command_line_command('./configure', 'lib/gmp-6.3.0/')
     run_command_line_command('make -j', 'lib/gmp-6.3.0/')
-    run_command_line_command('make check', 'lib/gmp-6.3.0/')
     run_command_line_command('ninja ', 'bin')
 
     print()
