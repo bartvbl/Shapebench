@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import json
 import os
 import shutil
@@ -55,7 +57,7 @@ def downloadDatasetsMenu():
             downloadFile('https://ntnu.box.com/shared/static/rily0qg6tpzb9prym8ois0korr3x4vxa.7z',
                          'precomputed_results.7z', 'precomputed_results/', 'Results computed by the author')
         if choice == 1 or choice == 3:
-            downloadFile('https://ntnu.box.com/shared/static/iqerttzman0eua0mrjxslxea8gt30ayu.7z', 'cache.7z',
+            downloadFile('https://ntnu.box.com/shared/static/1oo864m02zj9itdptzbwvvj04epigyio.7z', 'cache.7z',
                          'cache', 'Precomputed cache files')
         if choice == 4:
             return
@@ -89,6 +91,7 @@ def compileProject():
         return
     run_command_line_command('./configure', 'lib/gmp-6.3.0/')
     run_command_line_command('make -j', 'lib/gmp-6.3.0/')
+    run_command_line_command('make check', 'lib/gmp-6.3.0/')
     run_command_line_command('ninja ', 'bin')
 
     print()
@@ -152,17 +155,15 @@ def readConfigFile(path = 'cfg/config_replication.json'):
         config = json.load(cfgFile)
         return config
 
-def writeConfigFile(config):
-    with open('cfg/config_replication.json', 'w') as cfgFile:
+def writeConfigFile(config, path = 'cfg/config_replication.json'):
+    with open(path, 'w') as cfgFile:
         json.dump(config, cfgFile, indent=4)
-
 
 def generateThreadLimiterString(configEntry):
     if not 'threadLimit' in configEntry:
         return 'No thread limit'
     else:
         return 'limited to ' + str(configEntry['threadLimit']) + ' threads'
-
 
 def applyThreadLimiter(config):
     print()
@@ -197,14 +198,15 @@ def applyThreadLimiter(config):
                 config['experimentsToRun'][choice]['threadLimit'] = limit
         else:
             return config
+
 def changeReplicationSettings():
     config = readConfigFile()
 
     while True:
         download_menu = TerminalMenu([
-            'Replication of experimental results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
-            'Replication of reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
-            'Replication of sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
+            'Compute or replicate experimental results: ' + generateReplicationSettingsString(config['replicationOverrides']['experiment']),
+            'Compute or replicate reference descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['referenceDescriptorSet']),
+            'Compute or replicate sample object unfiltered descriptor set: ' + generateReplicationSettingsString(config['replicationOverrides']['sampleDescriptorSet']),
             'Random seed used when selecting random subsets to replicate: ' + str(config['replicationOverrides']['replicationRandomSeed']),
             'Verify computed minimum bounding sphere of input objects: ' + ('enabled' if config['datasetSettings']['verifyFileIntegrity'] else 'disabled'),
             'Size of dataset file cache in GB: ' + str(config['datasetSettings']['cacheSizeLimitGB']),
@@ -282,7 +284,7 @@ def generateRadiusReplicationSettingsString(config):
         return 'nothing is replicated'
 
 allMethods = ['QUICCI', 'RICI', 'SI', 'RoPS', 'SHOT', 'USC']
-allExperiments = [
+originalExperiments = [
     ('additive-noise-only', 'Clutter'),
     ('subtractive-noise-only', 'Occlusion'),
     ('repeated-capture-only', 'Alternate triangulation'),
@@ -350,7 +352,7 @@ def replicateSupportRadiusFigures():
                 config = json.load(infile)
             for method in allMethods:
                 config['methodSettings'][method]['enabled'] = method == methodName
-            for index, experiment in enumerate(allExperiments):
+            for index, experiment in enumerate(originalExperiments):
                 config['experimentsToRun'][index]['enabled'] = False
             with open(radiusConfigFile, 'w') as outfile:
                 json.dump(config, outfile, indent=4)
@@ -405,7 +407,7 @@ def replicateExperimentResults(figureIndex):
             'Edit replication settings (shortcut to same option in main menu)']
             + ['Subfigure ({}): {}'.format(list('abcdef')[index], method) for index, method in enumerate(allMethods)] + [
             "back"],
-            title='------------------ Replicate Figure {}: {} ------------------'.format(7 + figureIndex, allExperiments[figureIndex][1]))
+            title='------------------ Replicate Figure {}: {} ------------------'.format(7 + figureIndex, originalExperiments[figureIndex][1]))
 
         choice = replication_menu.show() + 1
 
@@ -415,7 +417,7 @@ def replicateExperimentResults(figureIndex):
         if choice > 1 and choice < len(allMethods) + 2:
             methodIndex = choice - 2
             methodName = allMethods[methodIndex]
-            precomputedResultsDir = os.path.join('precomputed_results', allExperiments[figureIndex][0])
+            precomputedResultsDir = os.path.join('precomputed_results', originalExperiments[figureIndex][0])
             resultFiles = [x for x in os.listdir(precomputedResultsDir) if methodName in x]
             if len(resultFiles) != 1:
                 raise Exception('There should be exactly one result file for each method in the precomputed results directory. Found {}.'.format(len(resultFiles)))
@@ -425,6 +427,7 @@ def replicateExperimentResults(figureIndex):
             enableVisualisations = config['filterSettings']['additiveNoise']['enableDebugCamera']
             commandPreamble = 'xvfb-run ' if not enableVisualisations else ''
             run_command_line_command(commandPreamble + './shapebench --replicate-results-file=../{} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate), 'bin')
+            print('./shapebench --replicate-results-file=../{} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate))
             print()
             print('Complete.')
             print('If you enabled any replication options in the settings, these have been successfully replicated if you did not receive a message about it, or the program has exited with an exception.')
@@ -436,76 +439,373 @@ def replicateExperimentResults(figureIndex):
 def replicateExperimentsFigures():
     experiments_menu = TerminalMenu([
         "Edit replication settings (shortcut to same option in main menu)"] +
-        ['Replicate Figure {}: {}'.format(index + 7, x[1]) for index, x in enumerate(allExperiments)]
+        ['Replicate Figure {}: {}'.format(index + 7, x[1]) for index, x in enumerate(originalExperiments)]
         + ['Generate charts from precomputed results',
            'back'],
         title='------------------ Replicate Benchmark Results ------------------')
     while True:
 
-
         choice = experiments_menu.show() + 1
         if choice == 1:  #
             changeReplicationSettings()
-        if choice > 1 and choice <= len(allExperiments) + 1:
+        if choice > 1 and choice <= len(originalExperiments) + 1:
             replicateExperimentResults(choice - 2)
-        if choice == len(allExperiments) + 2:  #
+        if choice == len(originalExperiments) + 2:  #
             runCharter()
-        if choice == len(allExperiments) + 3:  #
+        if choice == len(originalExperiments) + 3:  #
             return
 
+def runReplication():
+    while True:
+        menu = TerminalMenu([
+            "1. Change replication settings",
+            "2. Replicate Figure 1 - Similarity visualisation",
+            "3. Replicate Figure 4 - Support radius estimation",
+            "4. Replicate Figure 7 to 16 - Benchmark results for various filter configurations",
+            "5. back"
+        ], title='---------------------- Replication Menu ----------------------')
 
-def runMainMenu():
+        choice = menu.show() + 1
+        
+        match choice:
+            case 1:
+                changeReplicationSettings()
+            case 2:
+                replicateSimilarityVisualisationFigure()
+            case 3:
+                replicateSupportRadiusFigures()
+            case 4:
+                replicateExperimentsFigures()
+            case 5:
+                return
+
+trackExperiments = [
+    ('', 'Occlusion'),
+    ('', 'Clutter'),
+    ('', 'Gaussian noise'),
+    ('', 'Occlusion+Gaussian noise'),
+    ('', 'Occlusion and Occlusion'),
+    ('', 'Occlusion+fixed Gaussian noise and Occlusion+fixed Gaussian noise'),
+    ('', 'Occlusion and Occlusion+Clutter'),
+    ('', 'Occlusion+fixed Gaussian noise and Occlusion+Clutter+fixed Gaussian noise'),
+    ('', 'Occlusion+less Clutter+fixed Gaussian+Alternate triangulation'),
+]
+
+# Run the experiment
+
+def selectMethodsToRun():
+    config = readConfigFile() # As a default it reads the config_replication.json
+    methodList = list(config['methodSettings'].keys())
+    
+    while True:
+        method_menu = TerminalMenu([f'{index}. {method}: {"enabled" if config["methodSettings"][method]["enabled"] else "disabled"}' for index, method in zip(list('12345678'), methodList)] + 
+                                   ['back'],
+                                   title='-' * 7 + f' Chose the method ' + '-' * 7)
+        
+        choice = method_menu.show() + 1
+        
+        match choice:
+            case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8:
+                config['methodSettings'][methodList[choice - 1]]['enabled'] = False if config['methodSettings'][methodList[choice - 1]]['enabled'] else True
+            case 9:
+                with open('cfg/config_replication.json', 'w') as cfgFile:
+                    json.dump(config, cfgFile, indent=4)
+                return
+
+def selectFilters(exp, fKey):
+    filters = [
+        ('additive-noise', 'Additive Noise'),
+        ('subtractive-noise', 'Subtractive Noise'),
+        ('normal-noise', 'Alternate Triangulation'),
+        ('repeated-capture', 'Normal Vector Noise'),
+        ('support-radius-deviation', 'Support Radius Deviation'),
+        ('depth-camera-capture', 'Depth Camera Capture'),
+        ('gaussian-noise', 'Gaussian Noise')
+    ]
+    addedFilters = []
+    
+    while True:
+        filter_menu = TerminalMenu([f'{index + 1}. {fName[1]}' for index, fName in enumerate(filters)] + 
+                                   ['continue'], title='-' * 7 + ' Select one or more filters ' + '-' * 7)
+        
+        choice = filter_menu.show() + 1
+        
+        if choice > 0 and choice <= len(filters):
+            if fKey not in exp.keys():
+                exp[fKey] = [{'type': filters[choice - 1][0]}]
+                addedFilters = [filters[choice - 1][1]]
+            else:
+                if filters[choice - 1][1] not in addedFilters:
+                    exp[fKey].append({'type': filters[choice - 1][0]})
+                    addedFilters.append(filters[choice - 1][1])
+                else:
+                    continue            
+        else:
+            return exp
+
+def createNewExperiment(config_file_to_edit):
+    newExperiment = {
+                    "enabled": True,
+                }
+    
+    while True:
+        create_menu = TerminalMenu([
+            'Step 1: Enter a name for the experiment (without spaces)',
+            'Step 2: Chose the filters for the scene',
+            'Step 3: Chose the filters for the model',
+            'save experiment',
+            'cancel'
+        ], title='-' * 5 + ' Create a custom experiment ' + '-' * 5)
+        
+        choice = create_menu.show() + 1
+        
+        match choice:
+            case 1:
+                experimentName = ''
+                checkName = False
+                while not checkName:
+                    experimentName = input('Name: ')
+                    checkName = True if ' ' not in experimentName else print('/' * 10 + ' INVALID NAME ' + '\\' * 10)
+
+                newExperiment['name'] = experimentName
+            case 2:
+                newExperiment = selectFilters(newExperiment, 'filters')
+            case 3:
+                newExperiment = selectFilters(newExperiment, 'modelFilters')
+            case 4:
+                if 'name' not in newExperiment.keys():
+                    print('Please insert a valid name fot the experiment')
+                elif 'filters' not in newExperiment.keys() and 'modelFilters' not in newExperiment.keys():
+                    print('Specify at least one filter')
+                else:
+                    config = readConfigFile(config_file_to_edit)
+                    config['experimentsToRun'].append(newExperiment)
+                    
+                    writeConfigFile(config, config_file_to_edit)
+
+                    #TODO pass this down as parameter
+                    base_config_file = config_file_to_edit.replace('_run', '_base')
+                    
+                    configBase = readConfigFile(base_config_file)
+                    newExperiment['enabled'] = False
+                    configBase['experimentsToRun'].append(newExperiment)
+                    writeConfigFile(configBase, base_config_file)
+                    
+                    return
+            case 5:
+                return
+
+def listExperimets(config_file_to_edit, expList):
+    config = readConfigFile(config_file_to_edit)
+    allExperimentsName = [experiment['name'] for experiment in config['experimentsToRun']]
+    
+    while True:
+        subMenu = []
+        for index, exp in enumerate(expList):
+            posExp = allExperimentsName.index(exp)
+            subMenu.append(f"{index + 1}. {exp}: {'enabled' if config['experimentsToRun'][posExp]['enabled'] else 'disabled'}")
+        
+        menu = TerminalMenu(subMenu + 
+                            ['back'], title='-' * 10 + ' Enable experiments ' + '-' * 10)
+        
+        choice = menu.show() + 1
+        
+        if choice > 0 and choice <= len(expList):
+            expIndex = allExperimentsName.index(expList[choice - 1])
+            config['experimentsToRun'][expIndex]['enabled'] = False if config['experimentsToRun'][expIndex]['enabled'] else True
+        else:
+            writeConfigFile(config, config_file_to_edit)
+            return
+
+def enableExperimentsToRun(config_file_to_edit):
+    # check if there are custom experiments
+    
+    #originalExperimentsName = [experiment[0] for experiment in originalExperiments]
+    #trackExperimentsName = [experiment[0] for experiment in trackExperiments]
+    #defaultsExperiments = originalExperimentsName + trackExperimentsName
+
+    while True:
+        config = readConfigFile(config_file_to_edit)
+        customExperiments = [experiment['name'] for experiment in config['experimentsToRun']]
+        
+        experiment_menu = TerminalMenu([
+            'Experiments List',
+            'Define a new experiment',
+            'back'
+        ], title='-' * 10 + ' Experiment selection ' + '-' * 10)
+    
+        choice = experiment_menu.show() + 1
+
+        match choice:
+            case 1:
+                listExperimets(config_file_to_edit, customExperiments)
+            case 2:
+                createNewExperiment(config_file_to_edit) #DONE
+            case 3:
+                return
+
+def saveToFile(config):
+    saveFiles = [fileName for fileName in os.listdir('cfg') if 'run' in fileName]
+    root = 'cfg'
+    
+    while True:
+        menu = TerminalMenu([f"{index + 1}. {fileName}" for index, fileName in enumerate(saveFiles)] + ['Create new file'] + ['back'],
+                            title='-' * 5 + ' Select a file to save the configuration' +  '-' * 5)
+        
+        choice = menu.show() + 1
+        
+        if choice > 0 and choice <= len(saveFiles):
+            savePath = os.path.join(root, saveFiles[choice - 1])
+            
+            with open(savePath, 'w') as f:
+                json.dump(config, f, indent=4)
+            
+            return
+        elif choice == len(saveFiles) + 1:
+            fileName = input('Insert the file name:\n')
+            
+            if '.json' not in fileName:
+                fileName += '.json'
+            
+            if 'run' not in fileName:
+                tmpFileName = fileName.split('.')
+                fileName = tmpFileName[0] + '_run.' + tmpFileName[1]
+            
+            savePath = os.path.join(root, fileName)
+            
+            with open(savePath, 'w') as f:
+                json.dump(config, f, indent=4)
+            
+            return
+        
+        else:
+            return
+            
+def runExperiments(config_file_to_edit):
+
+    while True:
+        menu = TerminalMenu([
+            'Run configuration',
+            'Edit benchmark settings',
+            'Enable or disable experiments',
+            'Enable or disable methods to test',
+            'Back'
+        ], title='-' * 10 + ' Run the benchmark ' + '-' * 10)
+
+        choice = menu.show() + 1
+
+        match choice:
+            case 1:
+                config = readConfigFile(config_file_to_edit)
+                enableVisualisations = config['filterSettings']['additiveNoise']['enableDebugCamera']
+                commandPreamble = 'xvfb-run ' if not enableVisualisations else ''
+
+                # I think this should be a separate feature, maybe have it be its own option in the menu
+                # The configuration file needs to be saved anyway because otherwise the benchmark cannot run it
+                #saveToFile(config)
+
+                print('Now running...')
+                run_command_line_command(
+                    commandPreamble + './shapebench --configuration-file=../{}'.format(config_file_to_edit), 'bin')
+
+            case 2:
+                changeReplicationSettings()  # DONE
+            case 3:
+                enableExperimentsToRun(config_file_to_edit)
+            case 4:
+                selectMethodsToRun(config_file_to_edit)  # DONE
+            case 5:
+                return
+    
+def runMainMenu(config_file_to_edit):
+    config = readConfigFile(config_file_to_edit)
+    intendedForReplication = config['intendedForReplication'] if 'intendedForReplication' in config else False
+    runOption = '4. Replicate results and experiments' if intendedForReplication else '4. Run experiments'
+
     while True:
         main_menu = TerminalMenu([
             "1. Install dependencies",
             "2. Download Author computed results and cache files",
             "3. Compile project",
-            "4. Change replication settings",
-            "5. Replicate Figure 1 - Similarity visualisation",
-            "6. Replicate Figure 4 - Support radius estimation",
-            "7. Replicate Figure 7 to 16 - Benchmark results for various filter configurations",
-            "8. exit"], title='---------------------- Main Menu ----------------------')
+            runOption,
+            "5. Exit"], title='---------------------- Main Menu ----------------------')
 
         choice = main_menu.show() + 1
+        
+        match choice:
+            case 1:
+                installDependencies()
+            case 2:
+                downloadDatasetsMenu()
+            case 3:
+                compileProject()
+            case 4:
+                if intendedForReplication:
+                    runReplication()
+                else:
+                    runExperiments(config_file_to_edit)
+            case 5:
+                return
 
-        if choice == 1:  # Done
-            installDependencies()
-        if choice == 2:  # Done
-            downloadDatasetsMenu()
-        if choice == 3:  # Done
-            compileProject()
-        if choice == 4:  # Done
-            changeReplicationSettings()
-        if choice == 5:  # Done
-            replicateSimilarityVisualisationFigure()
-        if choice == 6:  # Done
-            replicateSupportRadiusFigures()
-        if choice == 7:  #
-            replicateExperimentsFigures()
-        if choice == 8:  #
-            return
+
+def computeConfigFileDisplayName(config_directory, config_file_name):
+    with open(os.path.join(config_directory, config_file_name), 'r') as f:
+        fileContents = json.loads(f.read())
+    return tuple((os.path.join(config_directory, config_file_name), config_file_name + (": " + fileContents['description'] if 'description' in fileContents else "")))
 
 def runIntroSequence():
     print()
     print('Greetings!')
     print()
-    print('This script is intended to reproduce various figures in an interactive')
-    print('(and hopefully convenient) manner.')
+    print('This script is intended to assist with replicating figures from previous papers,')
+    print('as well as running the benchmark to produce new ones.')
     print()
     print('If you have not run this script before, you should run step 1 to 3 in order.')
     print('More details can be found in the replication manual PDF file that accompanies this script.')
     print()
+    print('The script automatically edits benchmark configuration files.')
+    print('These are configuration files in the \'cfg\' directory whose name ends with _base.json')
+    print('Please select the configuration file which you would like to use for benchmark runs.')
+    print()
 
     # Patching in absolute paths
-    config = readConfigFile('cfg/config_replication_base.json')
+    config = None
+    
+    loadConfig = True
+    while loadConfig:
+        configDirectory = 'cfg'
+        allConfigs = [computeConfigFileDisplayName(configDirectory, fileName) for fileName in os.listdir(configDirectory) if '_base' in fileName]
+        loadingMenu = TerminalMenu([f"{index + 1}. {fileName[1]}" for index, fileName in enumerate(allConfigs)],
+                                   title='-' * 7 + ' Select the config file to use for this session ' +  '-' * 7)
+        choice = loadingMenu.show() + 1
+
+        config_file_to_edit = allConfigs[choice - 1][0]
+        print('Selected config file:', config_file_to_edit)
+        config = readConfigFile(config_file_to_edit)
+        run_configuration_file = config_file_to_edit.replace('_base', '_run')
+        print('Saving configuration to', run_configuration_file)
+        print()
+        if (os.path.isfile(run_configuration_file)):
+            print('A configuration file for a previous run with this base configuration was found:')
+            print('   ', run_configuration_file)
+            print('Would you like to continue where you left off with this file?')
+            print('It will otherwise be overwritten with the base configuration.')
+            print()
+            choice = ask_for_confirmation('Continue from previous run?')
+            if choice == True:
+                config = readConfigFile(run_configuration_file)
+            
+        writeConfigFile(config, run_configuration_file)
+
+        loadConfig = False
+    
     config['cacheDirectory'] = os.path.abspath(config['cacheDirectory'])
     config['resultsDirectory'] = os.path.abspath(config['resultsDirectory'])
     config['datasetSettings']['compressedRootDir'] = os.path.abspath(config['datasetSettings']['compressedRootDir'])
     config['datasetSettings']['objaverseRootDir'] = os.path.abspath(config['datasetSettings']['objaverseRootDir'])
     writeConfigFile(config)
 
-    runMainMenu()
-
+    runMainMenu(run_configuration_file)
 
 if __name__ == "__main__":
     runIntroSequence()
