@@ -57,7 +57,7 @@ def downloadDatasetsMenu():
             downloadFile('https://ntnu.box.com/shared/static/rily0qg6tpzb9prym8ois0korr3x4vxa.7z',
                          'precomputed_results.7z', 'precomputed_results/', 'Results computed by the author')
         if choice == 1 or choice == 3:
-            downloadFile('https://ntnu.box.com/shared/static/1oo864m02zj9itdptzbwvvj04epigyio.7z', 'cache.7z',
+            downloadFile('https://ntnu.box.com/shared/static/iqerttzman0eua0mrjxslxea8gt30ayu.7z', 'cache.7z',
                          'cache', 'Precomputed cache files')
         if choice == 4:
             return
