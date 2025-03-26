@@ -1,5 +1,7 @@
 {
     "version": 1.0,
+    "description": "Replicate results from the original ShapeBench paper",
+    "intendedForReplication": true,
     "randomSeed": 523948794,
     "enableComparisonToPRC": true,
     "cacheDirectory": "cache",
