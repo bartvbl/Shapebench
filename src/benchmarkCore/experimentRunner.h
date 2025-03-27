@@ -193,6 +193,10 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
     std::cout << "Sampling vertices.. (" << verticesPerSampleObject << " vertices per object)" << std::endl;
     sampleVerticesSet = dataset.sampleVertices(engine(), sampleSetSize, verticesPerSampleObject);
 
+    // This replaces a call to engine() that was done here in a previous version of the benchmark
+    // Leaving it in here maintains compatibility with the results produced by that version.
+    engine();
+
     // Running experiments
     const uint32_t experimentCount = configuration.at("experimentsToRun").size();
     std::cout << "Running experiments.." << std::endl;
