@@ -25,7 +25,8 @@ namespace ShapeBench {
         uint32_t vertexCount = 0;
         uint32_t id = 0xFFFFFFFF;
         double computedObjectRadius = 0;
-        std::string meshIntegrityDigest = "";
+        std::string meshIntegrityDigest = "NOT_SPECIFIED";
+        std::string uncompressedMeshFileIntegrityDigest = "NOT_SPECIFIED";
         std::array<double, 3> computedObjectCentre = {0, 0, 0};
 
         bool operator<(DatasetEntry& other);

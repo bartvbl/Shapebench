@@ -9,12 +9,13 @@ namespace ShapeBench {
         std::string datasetBaseURL;
         std::filesystem::path temporaryDownloadFile;
 
-        virtual void load(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL) override;
+        virtual void load(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL, const std::string& expectedFileHash) override;
 
     public:
         LocalDatasetCache(const std::filesystem::path& localCacheDirectory,
                           std::string  datasetBaseURL,
-                          size_t cacheDirectorySizeLimitBytes);
+                          size_t cacheDirectorySizeLimitBytes,
+                          bool enableFileIntegrityVerification);
         ~LocalDatasetCache() override;
     };
 }

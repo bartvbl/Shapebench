@@ -3,8 +3,11 @@
 #include <utility>
 #include "curl/curl.h"
 #include "fmt/format.h"
+#include "utils/FileHasher.h"
 
-void ShapeBench::LocalDatasetCache::load(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadPath) {
+void ShapeBench::LocalDatasetCache::load(const std::filesystem::path& filePathInDataset,
+                                         const std::filesystem::path& downloadPath,
+                                         const std::string& expectedFileHash) {
     double directorySizeGB = double(totalDirectorySize) / double(1024 * 1024 * 1024);
     double directorySizeLimitGB = double(totalDirectorySizeLimit) / double(1024 * 1024 * 1024);
     std::cout << "Downloading: " + downloadPath.string() + " -> " + filePathInDataset.string() << " (cache capacity used: " << directorySizeGB << "GB / " << directorySizeLimitGB << "GB)" << std::endl;
@@ -22,6 +25,13 @@ void ShapeBench::LocalDatasetCache::load(const std::filesystem::path& filePathIn
     }
     fclose(temporaryFile);
 
+    if(verifyFileIntegrity) {
+        std::string fileHash = ShapeBench::computeFileHash(temporaryDownloadFile);
+        if(fileHash != expectedFileHash) {
+            throw std::runtime_error("Error: hash of downloaded file did not match the one on record. File: " + filePathInDataset.string());
+        }
+    }
+
     std::filesystem::path filePathOnDisk = cacheRootDirectory / filePathInDataset;
     std::filesystem::create_directories(filePathOnDisk.parent_path());
 
@@ -34,8 +44,10 @@ void ShapeBench::LocalDatasetCache::load(const std::filesystem::path& filePathIn
 
 ShapeBench::LocalDatasetCache::LocalDatasetCache(const std::filesystem::path &localCacheDirectory,
                                                  std::string datasetBaseURL_,
-                                                 size_t cacheDirectorySizeLimitBytes)
-                                                 : FileCache(localCacheDirectory, cacheDirectorySizeLimitBytes),
+                                                 size_t cacheDirectorySizeLimitBytes,
+                                                 bool enableFileIntegrityVerification)
+                                                 : FileCache(localCacheDirectory, cacheDirectorySizeLimitBytes,
+                                                             enableFileIntegrityVerification),
                                                  datasetBaseURL(datasetBaseURL_){
     temporaryDownloadFile = localCacheDirectory / "download.glb";
     if(std::filesystem::exists(temporaryDownloadFile)) {

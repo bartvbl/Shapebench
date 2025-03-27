@@ -34,7 +34,7 @@ namespace ShapeBench {
         std::filesystem::path compressedMeshPath = compressedDatasetBasePath / pathInDataset;
         compressedMeshPath = compressedMeshPath.replace_extension(".cm");
 
-        cache->acquireFile(compressedMeshPath, pathInDataset);
+        cache->acquireFile(compressedMeshPath, pathInDataset, datasetEntry.uncompressedMeshFileIntegrityDigest);
 
         ShapeDescriptor::cpu::Mesh mesh = ShapeDescriptor::loadMesh(compressedMeshPath);
 

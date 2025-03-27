@@ -1,7 +1,8 @@
 #include "FileCache.h"
 
 
-ShapeBench::FileCache::FileCache(const std::filesystem::path& cacheDirectory, size_t totalDirectorySizeLimit) : cacheRootDirectory(cacheDirectory), totalDirectorySizeLimit(totalDirectorySizeLimit) {
+ShapeBench::FileCache::FileCache(const std::filesystem::path& cacheDirectory, size_t totalDirectorySizeLimit, bool enableFileIntegrityVerification)
+    : cacheRootDirectory(cacheDirectory), totalDirectorySizeLimit(totalDirectorySizeLimit) {
     randomAccessMap.reserve(1000);
     std::vector<std::filesystem::path> filesInDirectory = ShapeDescriptor::listDirectoryAndSubdirectories(cacheDirectory);
     for(const std::filesystem::path& filePath : filesInDirectory) {
@@ -9,7 +10,9 @@ ShapeBench::FileCache::FileCache(const std::filesystem::path& cacheDirectory, si
         if(std::filesystem::is_directory(filePath)) {
             continue;
         }
-        insertFile(std::filesystem::absolute(filePath), "");
+        verifyFileIntegrity = false;
+        insertFile(std::filesystem::absolute(filePath), "", "NOT_SPECIFIED_ON_PURPOSE");
+        verifyFileIntegrity = enableFileIntegrityVerification;
     }
 }
 
@@ -46,7 +49,8 @@ void ShapeBench::FileCache::deleteLeastRecentlyUsedFile() {
     assert(randomAccessMap.find(std::filesystem::absolute(evictedItem.filePath).string()) == randomAccessMap.end());
 }
 
-void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL) {
+void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDataset,
+                                       const std::filesystem::path& downloadURL, const std::string& expectedFileHash) {
     CachedFile cachedItem;
     cachedItem.usedByThreadCount = 0;
     cachedItem.filePath = filePathInDataset;
@@ -68,7 +72,7 @@ void ShapeBench::FileCache::insertFile(const std::filesystem::path& filePathInDa
 
     // We now get hold of the file we want to add into the cache
     if(!std::filesystem::exists(cachedItem.filePath)) {
-        load(filePathInDataset, downloadURL);
+        load(filePathInDataset, downloadURL, expectedFileHash);
     }
 
     totalDirectorySize += std::filesystem::file_size(cachedItem.filePath);
@@ -91,7 +95,10 @@ void ShapeBench::FileCache::touchFileEntry(const std::filesystem::path& filePath
     lruItemQueue.splice(lruItemQueue.begin(), lruItemQueue, it->second);
 }
 
-void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL) {
+void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInDataset, const std::filesystem::path& downloadURL, const std::string& expectedFileHash) {
+    if(verifyFileIntegrity && expectedFileHash == "NO HASH SPECIFIED") {
+        throw std::runtime_error("File cache has enabled verification of file integrity, but no hash was specified.");
+    }
     std::filesystem::path filePathOnDisk = std::filesystem::absolute(cacheRootDirectory / filePathInDataset);
     std::unique_lock<std::mutex> mainLock(queueLock);
     typename std::unordered_map<std::string, typename std::list<CachedFile>::iterator>::iterator
@@ -105,7 +112,7 @@ void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInD
     } else {
         // FileCache miss. Load the item into the cache instead
         statistics.misses++;
-        insertFile(filePathOnDisk, downloadURL);
+        insertFile(filePathOnDisk, downloadURL, expectedFileHash);
         it = randomAccessMap.find(std::filesystem::absolute(filePathOnDisk).string());
     }
     it->second->usedByThreadCount++;

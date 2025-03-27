@@ -111,7 +111,8 @@ int main(int argc, const char** argv) {
     uint64_t datasetSizeLimitBytes = uint64_t(datasetSizeLimitGB * 1024.0 * 1024.0 * 1024.0);
     std::filesystem::path datasetCacheDirectory = setup.configuration.at("datasetSettings").at("compressedRootDir");
     std::string datasetDownloadBaseURL = setup.configuration.at("datasetSettings").at("objaverseDownloadBaseURL");
-    ShapeBench::LocalDatasetCache* fileCache = new ShapeBench::LocalDatasetCache(datasetCacheDirectory, datasetDownloadBaseURL,  datasetSizeLimitBytes);
+    bool verifyIntegrityOfDownloadedFiles = setup.configuration.at("datasetSettings").at("verifyFileIntegrity");
+    ShapeBench::LocalDatasetCache* fileCache = new ShapeBench::LocalDatasetCache(datasetCacheDirectory, datasetDownloadBaseURL,  datasetSizeLimitBytes, verifyIntegrityOfDownloadedFiles);
 
 
 
