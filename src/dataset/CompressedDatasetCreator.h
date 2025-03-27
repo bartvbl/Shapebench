@@ -86,7 +86,7 @@ namespace ShapeBench {
 
         std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
 
-#pragma omp parallel for schedule(dynamic) default(none) shared(replicationSubset, processedMeshCount, newMeshesLoaded, std::cout, datasetFiles, originalDatasetDirectory, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
+#pragma omp parallel for schedule(dynamic) default(none) shared(replicationSubset, processedMeshCount, newMeshesLoaded, std::cout, datasetFiles, originalDatasetDirectory, startTime, datasetCache, compressedDatasetDirectory, pointCloudCount, metadataFile)
         for(size_t i = 0; i < datasetFiles.size(); i++) {
             bool entryIsMissing = !datasetCache["files"].at(i).contains("isPointCloud");
             bool shouldBeReplicated = replicationSubset.contains(i);
@@ -220,10 +220,22 @@ namespace ShapeBench {
                 if(processedMeshCount % 100 == 99 || processedMeshCount + 1 == datasetFiles.size()) {
                     std::cout << "\r     ";
                     ShapeBench::drawProgressBar(processedMeshCount + 1, datasetFiles.size());
-                    std::cout << " " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%)      ";
+                    std::cout << " " << (processedMeshCount+1) << "/" << datasetFiles.size() << " (" << std::round(10000.0*(double(processedMeshCount+1)/double(datasetFiles.size())))/100.0 << "%)";
                     if(newMeshesLoaded) {
                         std::cout << ", found " << pointCloudCount << " point clouds";
                     }
+
+                    std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+                    std::chrono::duration<uint64_t, std::nano> elapsedTimeThusFar = currentTime - startTime;
+                    uint64_t elapsedTimeNanoseconds = elapsedTimeThusFar.count();
+                    double elapsedTimeSeconds = double(elapsedTimeNanoseconds) / 1000000000.0;
+                    double expectedTotalTimeSeconds = elapsedTimeSeconds * (double(datasetFiles.size()) / double(processedMeshCount+1));
+                    std::chrono::duration<uint64_t, std::nano> expectedTotalTime
+                            = std::chrono::nanoseconds(uint64_t(expectedTotalTimeSeconds * 1000000000.0));
+                    std::cout << " - Time taken: " << ShapeBench::durationToString(elapsedTimeThusFar);
+                    std::cout << "/" << ShapeBench::durationToString(expectedTotalTime);
+                    std::cout << ", remaining: " << ShapeBench::durationToString(expectedTotalTime - elapsedTimeThusFar) << "      ";
+
                     std::cout << std::flush;
                 }
             }
