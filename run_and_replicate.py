@@ -493,8 +493,8 @@ trackExperiments = [
 
 # Run the experiment
 
-def selectMethodsToRun():
-    config = readConfigFile() # As a default it reads the config_replication.json
+def selectMethodsToRun(config_file_to_edit):
+    config = readConfigFile(config_file_to_edit) # As a default it reads the config_replication.json
     methodList = list(config['methodSettings'].keys())
     
     while True:
@@ -508,8 +508,7 @@ def selectMethodsToRun():
             case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8:
                 config['methodSettings'][methodList[choice - 1]]['enabled'] = False if config['methodSettings'][methodList[choice - 1]]['enabled'] else True
             case 9:
-                with open('cfg/config_replication.json', 'w') as cfgFile:
-                    json.dump(config, cfgFile, indent=4)
+                writeConfigFile(config, config_file_to_edit)
                 return
 
 def selectFilters(exp, fKey):
