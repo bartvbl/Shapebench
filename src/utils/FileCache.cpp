@@ -99,7 +99,7 @@ void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInD
     if(verifyFileIntegrity && expectedFileHash == "NO HASH SPECIFIED") {
         throw std::runtime_error("File cache has enabled verification of file integrity, but no hash was specified.");
     }
-    std::filesystem::path filePathOnDisk = std::filesystem::absolute(cacheRootDirectory / filePathInDataset);
+    std::filesystem::path filePathOnDisk = std::filesystem::absolute(filePathInDataset);
     std::unique_lock<std::mutex> mainLock(queueLock);
     typename std::unordered_map<std::string, typename std::list<CachedFile>::iterator>::iterator
             it = randomAccessMap.find(filePathOnDisk.string());
