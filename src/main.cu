@@ -88,6 +88,11 @@ int main(int argc, const char** argv) {
     nlohmann::json mainConfigFileContents;
     if(configurationFileExists) {
         mainConfigFileContents = readConfiguration(configurationFile.value());
+    } else {
+        std::cout << "    WARNING: the configuration file located at " << configurationFile.value() << " was not found." << std::endl;
+        std::cout << "    Since replication mode is enabled, the configuration from the results file will be used instead." << std::endl;
+        std::cout << "    This may cause the benchmark to crash if things like the dataset files are located in a different location." << std::endl;
+        std::cout << "    If so, you should try specifying a configuration file to use using the --configuration-file parameter." << std::endl << std::endl;
     }
 
     if(!setup.replicationSettings.enabled) {
@@ -95,7 +100,7 @@ int main(int argc, const char** argv) {
         if(!setup.configuration.contains("cacheDirectory")) {
             throw ShapeBench::MissingBenchmarkConfigurationException("cacheDirectory");
         }
-    } else {
+    } else if(configurationFileExists) {
         // For the purposes of replication, some configuration entries need to be adjusted to the
         // environment where the results are replicated. This is done by copying all relevant configuration
         // entries, and overwriting them where relevant.

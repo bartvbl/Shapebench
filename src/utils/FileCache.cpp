@@ -121,7 +121,7 @@ void ShapeBench::FileCache::acquireFile(const std::filesystem::path& filePathInD
 void ShapeBench::FileCache::returnFile(const std::filesystem::path& filePathInDataset) {
     std::unique_lock<std::mutex> mainLock(queueLock);
     typename std::unordered_map<std::string, typename std::list<CachedFile>::iterator>::iterator
-            it = randomAccessMap.find(std::filesystem::absolute(cacheRootDirectory / filePathInDataset).string());
+            it = randomAccessMap.find(std::filesystem::absolute(filePathInDataset).string());
     assert(it != randomAccessMap.end());
     assert(it->second->usedByThreadCount > 0);
     it->second->usedByThreadCount--;
