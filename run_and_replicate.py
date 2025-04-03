@@ -199,8 +199,8 @@ def applyThreadLimiter(config):
         else:
             return config
 
-def changeReplicationSettings():
-    config = readConfigFile()
+def changeReplicationSettings(config_file_to_edit):
+    config = readConfigFile(config_file_to_edit)
 
     while True:
         download_menu = TerminalMenu([
@@ -256,8 +256,7 @@ def changeReplicationSettings():
                 warningBox.show()
 
         if choice == 11:
-            with open('cfg/config_replication.json', 'w') as cfgFile:
-                json.dump(config, cfgFile, indent=4)
+            writeConfigFile(config, config_file_to_edit)
             return
 
 def replicateSimilarityVisualisationFigure():
@@ -322,8 +321,8 @@ def editSupportRadiusExtent(config):
     print()
     return config
 
-def replicateSupportRadiusFigures():
-    config = readConfigFile()
+def replicateSupportRadiusFigures(config_file_to_edit):
+    config = readConfigFile(config_file_to_edit)
     radiusConfigFile = 'cfg/config_support_radius_replication.json'
     if not os.path.isfile(radiusConfigFile):
         with open(radiusConfigFile, 'w') as outfile:
@@ -394,8 +393,8 @@ def runCharter():
     print('Charts created. You can find them in the output/charts directory.')
     print()
 
-def replicateExperimentResults(figureIndex):
-    config = readConfigFile()
+def replicateExperimentResults(figureIndex, config_file_to_edit):
+    config = readConfigFile(config_file_to_edit)
     while True:
         print()
         print('Current replication settings:')
@@ -412,7 +411,7 @@ def replicateExperimentResults(figureIndex):
         choice = replication_menu.show() + 1
 
         if choice == 1:
-            changeReplicationSettings()
+            changeReplicationSettings(config_file_to_edit)
 
         if choice > 1 and choice < len(allMethods) + 2:
             methodIndex = choice - 2
@@ -426,8 +425,8 @@ def replicateExperimentResults(figureIndex):
             print()
             enableVisualisations = config['filterSettings']['additiveNoise']['enableDebugCamera']
             commandPreamble = 'xvfb-run ' if not enableVisualisations else ''
-            run_command_line_command(commandPreamble + './shapebench --replicate-results-file=../{} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate), 'bin')
-            print('./shapebench --replicate-results-file=../{} --configuration-file=../cfg/config_replication.json'.format(fileToReplicate))
+            run_command_line_command(commandPreamble + './shapebench --replicate-results-file=../{} --configuration-file=../{}'.format(fileToReplicate, config_file_to_edit), 'bin')
+            print('./shapebench --replicate-results-file=../{} --configuration-file=../{}'.format(fileToReplicate, config_file_to_edit))
             print()
             print('Complete.')
             print('If you enabled any replication options in the settings, these have been successfully replicated if you did not receive a message about it, or the program has exited with an exception.')
@@ -436,7 +435,7 @@ def replicateExperimentResults(figureIndex):
         if choice == 1 + len(allMethods) + 1:
             return
 
-def replicateExperimentsFigures():
+def replicateExperimentsFigures(config_file_to_edit):
     experiments_menu = TerminalMenu([
         "Edit replication settings (shortcut to same option in main menu)"] +
         ['Replicate Figure {}: {}'.format(index + 7, x[1]) for index, x in enumerate(originalExperiments)]
@@ -447,15 +446,15 @@ def replicateExperimentsFigures():
 
         choice = experiments_menu.show() + 1
         if choice == 1:  #
-            changeReplicationSettings()
+            changeReplicationSettings(config_file_to_edit)
         if choice > 1 and choice <= len(originalExperiments) + 1:
-            replicateExperimentResults(choice - 2)
+            replicateExperimentResults(choice - 2, config_file_to_edit)
         if choice == len(originalExperiments) + 2:  #
             runCharter()
         if choice == len(originalExperiments) + 3:  #
             return
 
-def runReplication():
+def runReplication(config_file_to_edit):
     while True:
         menu = TerminalMenu([
             "1. Change replication settings",
@@ -469,13 +468,13 @@ def runReplication():
         
         match choice:
             case 1:
-                changeReplicationSettings()
+                changeReplicationSettings(config_file_to_edit)
             case 2:
                 replicateSimilarityVisualisationFigure()
             case 3:
-                replicateSupportRadiusFigures()
+                replicateSupportRadiusFigures(config_file_to_edit)
             case 4:
-                replicateExperimentsFigures()
+                replicateExperimentsFigures(config_file_to_edit)
             case 5:
                 return
 
@@ -740,7 +739,7 @@ def runMainMenu(config_file_to_edit):
                 compileProject()
             case 4:
                 if intendedForReplication:
-                    runReplication()
+                    runReplication(config_file_to_edit)
                 else:
                     runExperiments(config_file_to_edit)
             case 5:
