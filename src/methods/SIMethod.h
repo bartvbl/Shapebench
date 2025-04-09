@@ -16,6 +16,10 @@ namespace ShapeBench {
             supportAngleDegrees = readDescriptorConfigValue<float>(config, "SI", "supportAngle");
         }
 
+        static void destroy() {
+
+        }
+
 
 
         static inline float computeDescriptorDistance(

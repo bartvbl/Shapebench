@@ -21,6 +21,10 @@ namespace ShapeBench {
             pointDensityRadius = readDescriptorConfigValue<float>(config, "USC", "pointDensityRadius");
         }
 
+        static void destroy() {
+
+        }
+
         __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const ShapeDescriptor::UniqueShapeContextDescriptor& descriptor,
                 const ShapeDescriptor::UniqueShapeContextDescriptor& otherDescriptor,

@@ -33,7 +33,10 @@ ShapeDescriptor::cpu::float3 computeDeviatedNormal(ShapeDescriptor::cpu::float3 
     return normalize(ShapeDescriptor::cpu::float3(deviatedNormal.x, deviatedNormal.y, deviatedNormal.z));
 }
 
-ShapeBench::FilterOutput ShapeBench::NormalNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::NormalNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
+                                                  const Dataset &dataset,
+                                                  ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
+                                                  const nlohmann::json &filterOutputPreviousSequence) {
     ShapeBench::FilterOutput meta;
 
     float maxDeviation = config.at("filterSettings").at("normalVectorNoise").at("maxAngleDeviationDegrees");

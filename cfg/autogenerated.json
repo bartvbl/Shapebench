@@ -17,5 +17,8 @@
     "SHOT": {
         "supportRadius": 0.14999999105930328
     },
+    "GEDI": {
+        "supportRadius": 0.5
+    },
     "version": 1.0
 }

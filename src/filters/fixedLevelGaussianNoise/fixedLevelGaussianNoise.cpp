@@ -1,30 +1,27 @@
-#include "gaussianNoiseFilter.h"
+#include "fixedLevelGaussianNoiseFilter.h"
 #include "benchmarkCore/randomEngine.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "utils/filterUtils/gaussianNoise.h"
 
-ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
+
+ShapeBench::FilterOutput ShapeBench::FixedLevelGaussianNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
                                                     const Dataset &dataset,
                                                     ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
                                                     const nlohmann::json &filterOutputPreviousSequence) {
     ShapeBench::FilterOutput meta;
 
-    float minStandardDeviation = config.at("filterSettings").at("gaussianNoise").at("minStandardDeviation");
-    float maxStandardDeviation = config.at("filterSettings").at("gaussianNoise").at("maxStandardDeviation");
+    float fixedStandardDeviation = config.at("filterSettings").at("fixedLevelGaussianNoise").at("standardDeviation");
 
     ShapeBench::randomEngine engine(randomSeed);
 
-    std::uniform_real_distribution<float> intensityDistribution(minStandardDeviation, maxStandardDeviation);
-    float deviation = intensityDistribution(engine);
-
-    ShapeBench::applyGaussianNoise(scene.filteredSampleMesh, engine(), deviation);
-    ShapeBench::applyGaussianNoise(scene.filteredAdditiveNoise, engine(), deviation);
+    ShapeBench::applyGaussianNoise(scene.filteredSampleMesh, engine(), fixedStandardDeviation);
+    ShapeBench::applyGaussianNoise(scene.filteredAdditiveNoise, engine(), fixedStandardDeviation);
 
     for(uint32_t i = 0; i < scene.mappedReferenceVertices.size(); i++) {
         if(!scene.mappedVertexIncluded.at(i)) {
             nlohmann::json metadataEntry;
-            metadataEntry["gaussian-noise-max-deviation"] = deviation;
+            metadataEntry["fixed-level-gaussian-noise-deviation"] = fixedStandardDeviation;
             meta.metadata.push_back(metadataEntry);
             continue;
         }
@@ -34,7 +31,7 @@ ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::
         scene.mappedReferenceVertices.at(i).vertex = scene.filteredSampleMesh.vertices[scene.mappedReferenceVertexIndices.at(i)];
 
         nlohmann::json metadataEntry;
-        metadataEntry["gaussian-noise-max-deviation"] = deviation;
+        metadataEntry["fixed-level-gaussian-noise-deviation"] = fixedStandardDeviation;
         metadataEntry["gaussian-noise-vertex-deviation"] = length(originalVertex - scene.mappedReferenceVertices.at(i).vertex);
         meta.metadata.push_back(metadataEntry);
     }
@@ -52,14 +49,14 @@ ShapeBench::FilterOutput ShapeBench::GaussianNoiseFilter::apply(const nlohmann::
     return meta;
 }
 
-void ShapeBench::GaussianNoiseFilter::init(const nlohmann::json &config, bool invalidateCaches) {
+void ShapeBench::FixedLevelGaussianNoiseFilter::init(const nlohmann::json &config, bool invalidateCaches) {
 
 }
 
-void ShapeBench::GaussianNoiseFilter::destroy() {
+void ShapeBench::FixedLevelGaussianNoiseFilter::destroy() {
 
 }
 
-void ShapeBench::GaussianNoiseFilter::saveCaches(const nlohmann::json& config) {
+void ShapeBench::FixedLevelGaussianNoiseFilter::saveCaches(const nlohmann::json& config) {
 
 }

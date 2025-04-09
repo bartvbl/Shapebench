@@ -59,6 +59,10 @@ add_subdirectory(lib/curl-8.7.1)
 
 add_subdirectory(lib/fmt-10.2.1)
 
+set(PYBIND11_TEST OFF)
+set(PYBIND11_INSTALL ON)
+add_subdirectory(lib/pybind11-2.13.6)
+
 
 # sudo apt install libcgal-dev libceres-dev
 # For 5.6.1 I had to install through the debian channel, it's not available yet
@@ -77,7 +81,7 @@ ExternalProject_Add(
         GMP
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0"
         CONFIGURE_COMMAND "./configure"
-        BUILD_COMMAND make
+        BUILD_COMMAND make && make check
         TEST_COMMAND ""
         INSTALL_COMMAND ""
         BUILD_IN_SOURCE 1
@@ -89,19 +93,6 @@ add_dependencies(GMP_Interface GMP)
 set_target_properties(GMP_Interface PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/lib/gmp-6.3.0/.libs/libgmp.a)
 
 
-
-
-#find_package(SDL2 REQUIRED)
-
-#find_package(CGAL REQUIRED)
-#set(CGAL_BINARY_DIR ${CMAKE_BINARY_DIR}/lib/CGAL)
-#set(CGAL_MODULES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/CGAL-5.6.1/cmake/modules)
-#set(CGAL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/CGAL-5.6.1)
-#add_subdirectory(lib/CGAL-5.6.1)
-
-# sudo apt install freeglut3-dev
-#add_subdirectory(lib/pcl)
-#find_package(PCL 1.12 REQUIRED)
 #
 # Set include paths
 #
@@ -113,6 +104,7 @@ include_directories (
         lib/miniball/cpp/main
         lib/JoltPhysics
         lib/v-hacd/include
+        lib/pybind11-2.13.6/include
         lib/glad/include
         lib/fmt-10.2.1/include
         lib/tabulate-master-3a58301067bbc03da89ae5a51b3e05b7da719d38/include
@@ -121,11 +113,9 @@ include_directories (
         lib/libShapeDescriptor/lib/glm-1.0.1
         lib/libcurl-8.7.1/include
         lib/CGAL-5.6.1/include
-        lib/PortableGL-0.98.0
+        lib/pybind11_json-0.2.15/include/pybind11_json
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
-        #${SDL2_INCLUDE_DIRS}
-        #${PCL_INCLUDE_DIRS}
 )
 
 #
@@ -147,7 +137,7 @@ file (GLOB_RECURSE PROJECT_TESTS
         tests/*.cu)
 
 add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
+target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt pybind11::embed) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp -diag-suppress 20012>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
 set_property(TARGET shapebench PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
@@ -163,7 +153,7 @@ target_link_libraries(armadillo PUBLIC ShapeDescriptor)
 set_property(TARGET armadillo PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
 
 add_library(shapebenchstatic ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
-target_link_libraries(shapebenchstatic PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
+target_link_libraries(shapebenchstatic PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt pybind11::embed) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
 target_compile_options(shapebenchstatic PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp -diag-suppress 20012>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebenchstatic PRIVATE -frounding-math)
 set_property(TARGET shapebenchstatic PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)

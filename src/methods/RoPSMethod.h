@@ -19,6 +19,10 @@ namespace ShapeBench {
             RoPSPointCloudSampleLimit = readDescriptorConfigValue<uint32_t>(config, "RoPS", "pointSampleLimit");
         }
 
+        static void destroy() {
+
+        }
+
         __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const ShapeDescriptor::RoPSDescriptor& descriptor,
                 const ShapeDescriptor::RoPSDescriptor& otherDescriptor,

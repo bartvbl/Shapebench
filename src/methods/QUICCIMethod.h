@@ -11,6 +11,10 @@ namespace ShapeBench {
 
         }
 
+        static void destroy() {
+
+        }
+
         __device__ static __inline__ float computeDescriptorDistanceGPU(
                 const ShapeDescriptor::QUICCIDescriptor& descriptor,
                 const ShapeDescriptor::QUICCIDescriptor& otherDescriptor,

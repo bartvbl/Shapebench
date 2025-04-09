@@ -1,13 +1,11 @@
 #pragma once
 
-#include <shapeDescriptor/containerTypes.h>
 #include "filters/FilteredMeshPair.h"
 #include "nlohmann/json.hpp"
 #include "filters/Filter.h"
 
-
 namespace ShapeBench {
-    struct SupportRadiusNoiseFilter : public ShapeBench::Filter {
+    class FixedLevelGaussianNoiseFilter : public ShapeBench::Filter {
 
     public:
         void init(const nlohmann::json& config, bool invalidateCaches) override;
@@ -18,5 +16,4 @@ namespace ShapeBench {
                            ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
                            const nlohmann::json &filterOutputPreviousSequence) override;
     };
-
 }

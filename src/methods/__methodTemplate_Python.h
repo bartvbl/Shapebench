@@ -5,6 +5,8 @@
 #include "Method.h"
 #include "types/IntersectingAreaParameters.h"
 #include "types/IntersectingAreaEstimationStrategy.h"
+#include "methods/pythonadapter/PythonAdapter.h"
+#include "methods/pythonadapter/PythonDescriptor.h"
 
 namespace ShapeBench {
     // This template allows you to add a new method that the benchmark can test.
@@ -22,16 +24,19 @@ namespace ShapeBench {
 
 
     struct MethodName {
+
+        using DescriptorType = ShapeBench::PythonDescriptor<0>;
+
         // Called once when the benchmark starts up
         // Can be used to initialise some static variables
         // Does not need to do anything
         static void init(const nlohmann::json &config) {
-
+            ShapeBench::PythonAdapter<DescriptorType>::init(getName(), config);
         }
 
         // Called when the benchmark is finished
         static void destroy() {
-
+            ShapeBench::PythonAdapter<DescriptorType>::destroy();
         }
 
         // Used to tell the benchmark what input the benchmark should provide the method
@@ -45,36 +50,12 @@ namespace ShapeBench {
             return false;
         }
 
-        // Optional. Benchmark will use GPU kernels for generating and comparing descriptors if they are available
-        static bool hasGPUKernels() {
-            return false;
-        }
+
 
         // Depending on the settings above, implement the method that corresponds with the 3D surface input type
         // you selected above (triangle mesh or point cloud), and whether your method runs on the CPU or GPU
         // Do not delete the other ones
 
-        // Triangle mesh, runs on the GPU
-        static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
-                const ShapeDescriptor::gpu::Mesh &mesh,
-                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> &device_descriptorOrigins,
-                const nlohmann::json &config,
-                const std::vector<float> &supportRadii,
-                uint64_t randomSeed) {
-            Method::throwIncompatibleException();
-            return {};
-        }
-
-        // Point cloud, runs on the GPU
-        static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
-                const ShapeDescriptor::gpu::PointCloud &cloud,
-                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> &device_descriptorOrigins,
-                const nlohmann::json &config,
-                const std::vector<float> &supportRadii,
-                uint64_t randomSeed) {
-            Method::throwIncompatibleException();
-            return {};
-        }
 
         // Triangle mesh, runs on the CPU
         static ShapeDescriptor::cpu::array<DescriptorType> computeDescriptors(
@@ -83,8 +64,8 @@ namespace ShapeBench {
                 const nlohmann::json &config,
                 const std::vector<float> &supportRadii,
                 uint64_t randomSeed) {
-            Method::throwIncompatibleException();
-            return {};
+            ShapeDescriptor::cpu::array<DescriptorType> descriptors = ShapeBench::PythonAdapter<DescriptorType>::computeDescriptors(mesh, descriptorOrigins, config, supportRadii, randomSeed);
+            return descriptors;
         }
 
         // Point cloud, runs on the CPU
@@ -94,8 +75,8 @@ namespace ShapeBench {
                 const nlohmann::json &config,
                 const std::vector<float> &supportRadii,
                 uint64_t randomSeed) {
-            Method::throwIncompatibleException();
-            return {};
+            ShapeDescriptor::cpu::array<DescriptorType> descriptors = ShapeBench::PythonAdapter<DescriptorType>::computeDescriptors(cloud, descriptorOrigins, config, supportRadii, randomSeed);
+            return descriptors;
         }
 
         // The distance function that allows two descriptors to be compared
@@ -119,14 +100,7 @@ namespace ShapeBench {
             return 0;
         }
 
-        // A distance function like the one above, but this one must be used if your method uses GPU kernels
-        // You can otherwise leave it as-is
-        __device__ static __inline__ float computeDescriptorDistanceGPU(
-                const DescriptorType& descriptor,
-                const DescriptorType& otherDescriptor,
-                float earlyExitThreshold) {
-            return 0;
-        }
+
 
         // The benchmark needs to be able to estimate the amount of area of a mesh that is contained within the
         // support volume of your descriptor. That depends on the shape the support volume has.
@@ -189,9 +163,46 @@ namespace ShapeBench {
         // This is useful from both a debugging perspective (ability to retrace steps when trying different parameter values),
         // and a replicability perspective (ability to validate results of different runs against each other)
         static nlohmann::json getMetadata() {
-            nlohmann::json metadata;
+            nlohmann::json metadata = PythonAdapter<DescriptorType>::getMetadata();
             metadata["METHODConfigurationValue"] = 10;
             return metadata;
+        }
+
+
+
+
+        // ----- GPU functions, not supported by Python -----
+        // They are mandatory for the benchmark, so we just put them here
+
+        static bool hasGPUKernels() {
+            return false;
+        }
+
+        __device__ static __inline__ float computeDescriptorDistanceGPU(
+                const DescriptorType& descriptor,
+                const DescriptorType& otherDescriptor,
+                float earlyExitThreshold) {
+            return 0;
+        }
+
+        static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
+                const ShapeDescriptor::gpu::Mesh &mesh,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> &device_descriptorOrigins,
+                const nlohmann::json &config,
+                const std::vector<float> &supportRadii,
+                uint64_t randomSeed) {
+            Method::throwIncompatibleException();
+            return {};
+        }
+
+        static ShapeDescriptor::gpu::array<DescriptorType> computeDescriptors(
+                const ShapeDescriptor::gpu::PointCloud &cloud,
+                const ShapeDescriptor::gpu::array<ShapeDescriptor::OrientedPoint> &device_descriptorOrigins,
+                const nlohmann::json &config,
+                const std::vector<float> &supportRadii,
+                uint64_t randomSeed) {
+            Method::throwIncompatibleException();
+            return {};
         }
     };
 }

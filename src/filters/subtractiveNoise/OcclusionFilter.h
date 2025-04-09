@@ -20,7 +20,10 @@ namespace ShapeBench {
         virtual void destroy();
         virtual void saveCaches(const nlohmann::json& config);
 
-        virtual FilterOutput apply(const nlohmann::json& config, ShapeBench::FilteredMeshPair& scene, const Dataset& dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed);
+        FilterOutput
+        apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const Dataset &dataset,
+              ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
+              const nlohmann::json &filterOutputPreviousSequence) override;
 
     };
 }

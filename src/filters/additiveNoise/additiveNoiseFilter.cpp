@@ -474,7 +474,10 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
     return orientations;
 }
 
-ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset, ShapeBench::LocalDatasetCache* fileCache, uint64_t randomSeed) {
+ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
+                                                    const Dataset &dataset,
+                                                    ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
+                                                    const nlohmann::json &filterOutputPreviousSequence) {
     const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
     ShapeBench::FilterOutput output;
     AdditiveNoiseFilterSettings settings = readAdditiveNoiseFilterSettings(config, filterSettings);

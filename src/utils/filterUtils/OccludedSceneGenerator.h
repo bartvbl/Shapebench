@@ -15,6 +15,7 @@ namespace ShapeBench {
         float roll = 0;
         float yaw = 0;
         float pitch = 0;
+        float yawDeviation = 0;
         float rgbdDepthCutoffFactor = 0.2;
     };
 
@@ -40,7 +41,7 @@ namespace ShapeBench {
         ~OccludedSceneGenerator();
         void computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene);
         ShapeDescriptor::cpu::Mesh computeRGBDMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair& scene, float& out_distanceBetweenPixels);
-        static glm::mat4 computeTransformationMatrix(float pitch, float roll, float yaw, float objectDistanceFromCamera);
+        static glm::mat4 computeTransformationMatrix(float pitch, float roll, float yaw, float objectDistanceFromCamera, float yawDeviation);
         void init(uint32_t visibilityImageWidth, uint32_t visibilityImageHeight);
         void destroy();
     };

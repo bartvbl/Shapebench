@@ -24,7 +24,7 @@ ShapeBench::OccludedSceneGenerator::~OccludedSceneGenerator() {
 
 void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench::FilteredMeshPair& scene, OcclusionRendererSettings settings, ShapeDescriptor::cpu::float3* vertexColours, uint8_t* outFrameBuffer, float* outDepthBuffer) {
     glm::mat4 objectProjection = glm::perspective(settings.fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, settings.nearPlaneDistance, settings.farPlaneDistance);
-    glm::mat4 positionTransformation = computeTransformationMatrix(settings.pitch, settings.roll, settings.yaw, settings.objectDistanceFromCamera);
+    glm::mat4 positionTransformation = computeTransformationMatrix(settings.pitch, settings.roll, settings.yaw, settings.objectDistanceFromCamera, settings.yawDeviation);
     glm::mat4 objectTransformation = objectProjection * positionTransformation;
 
     std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
@@ -238,7 +238,7 @@ ShapeDescriptor::cpu::Mesh ShapeBench::OccludedSceneGenerator::computeRGBDMesh(S
     std::unique_lock<std::mutex> filterLock{occlusionFilterLock};
 
     glm::mat4 objectProjection = glm::perspective(settings.fovy, (float) offscreenTextureWidth / (float) offscreenTextureHeight, settings.nearPlaneDistance, settings.farPlaneDistance);
-    glm::mat4 positionTransformation = computeTransformationMatrix(settings.pitch, settings.roll, settings.yaw, settings.objectDistanceFromCamera);
+    glm::mat4 positionTransformation = computeTransformationMatrix(settings.pitch, settings.roll, settings.yaw, settings.objectDistanceFromCamera, settings.yawDeviation);
     glm::mat4 objectTransformation = objectProjection * positionTransformation;
 
     ShapeDescriptor::cpu::PointCloud cloud(offscreenTextureWidth * offscreenTextureHeight);
@@ -423,8 +423,9 @@ void ShapeBench::OccludedSceneGenerator::init(uint32_t visibilityImageWidth, uin
     isCreated = true;
 }
 
-glm::mat4 ShapeBench::OccludedSceneGenerator::computeTransformationMatrix(float pitch, float roll, float yaw, float objectDistanceFromCamera) {
+glm::mat4 ShapeBench::OccludedSceneGenerator::computeTransformationMatrix(float pitch, float roll, float yaw, float objectDistanceFromCamera, float yawDeviation) {
     glm::mat4 positionTransformation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -objectDistanceFromCamera));
+    positionTransformation *= glm::rotate(glm::mat4(1.0), yawDeviation, glm::vec3(0, 1, 0));
     positionTransformation *= glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1));
     positionTransformation *= glm::rotate(glm::mat4(1.0), yaw, glm::vec3(1, 0, 0));
     positionTransformation *= glm::rotate(glm::mat4(1.0), pitch, glm::vec3(0, 1, 0));

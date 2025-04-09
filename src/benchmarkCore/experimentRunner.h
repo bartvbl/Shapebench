@@ -22,13 +22,15 @@
 #include "filters/normalVectorDeviation/normalNoiseFilter.h"
 #include "filters/supportRadiusDeviation/supportRadiusNoise.h"
 #include "filters/noisyCapture/NoisyCaptureFilter.h"
-#include "filters/gaussianNoise/gaussianNoiseFilter.h"
+#include "filters/fixedLevelGaussianNoise/fixedLevelGaussianNoiseFilter.h"
 #include "fmt/format.h"
 #include "BenchmarkConfiguration.h"
 #include "replication/RandomSubset.h"
 #include "replication/ExperimentResultsValidator.h"
 #include "cachedDescriptorLoader.h"
 #include "filters/pointCloudResolution/pointCloudResolutionFilter.h"
+#include "filters/multiViewOcclusion/MultiViewOcclusion.h"
+#include "filters/gaussianNoise/gaussianNoiseFilter.h"
 
 template <typename T>
 class lockGuard
@@ -79,18 +81,34 @@ inline nlohmann::json applyFilterSequence(
                     const nlohmann::json &experimentConfig,
                     ShapeBench::randomEngine &experimentInstanceRandomEngine,
                     std::vector<ShapeBench::ExperimentResultsEntry> &resultsEntries,
-                    ShapeBench::FilteredMeshPair &filteredSceneObject) {
+                    ShapeBench::FilteredMeshPair &filteredSceneObject,
+                    const nlohmann::json& filterMetadataPreviousSequence) {
     nlohmann::json filterMetadata {};
     if(!experimentConfig.contains(filterSequenceJSONEntryLabel)) {
         // No filters specified. Leave object unmodified
         return filterMetadata;
     }
+
+
+
     for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at(filterSequenceJSONEntryLabel).size(); filterStepIndex++) {
         uint64_t filterRandomSeed = experimentInstanceRandomEngine();
         const nlohmann::json &filterConfig = experimentConfig.at(filterSequenceJSONEntryLabel).at(filterStepIndex);
         const std::string &filterType = filterConfig.at("type");
 
-        ShapeBench::FilterOutput output = filterInstanceMap.at(filterType)->apply(configuration, filteredSceneObject, dataset, fileCache, filterRandomSeed);
+        nlohmann::json copyOfConfiguration;
+        bool hasOverrideSettings = filterConfig.contains("overrideFilterSettings");
+        if(hasOverrideSettings) {
+            // Only create a copy when we absolutely have to
+            copyOfConfiguration = configuration;
+            copyOfConfiguration.at("filterSettings").merge_patch(filterConfig.at("overrideFilterSettings"));
+        }
+
+        const nlohmann::json& configToUse = hasOverrideSettings ? copyOfConfiguration : configuration;
+
+        ShapeBench::FilterOutput output = filterInstanceMap.at(filterType)->apply(configToUse, filteredSceneObject,
+                                                                                  dataset, fileCache, filterRandomSeed,
+                                                                                  filterMetadataPreviousSequence);
 
         if(!output.metadata.empty()) {
             for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
@@ -140,6 +158,8 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
     filterInstanceMap.insert(std::make_pair("depth-camera-capture", new ShapeBench::NoisyCaptureFilter()));
     filterInstanceMap.insert(std::make_pair("gaussian-noise", new ShapeBench::GaussianNoiseFilter()));
     filterInstanceMap.insert(std::make_pair("point-cloud-resolution", new ShapeBench::PointCloudResolutionFilter()));
+    filterInstanceMap.insert(std::make_pair("multi-view-occlusion", new ShapeBench::MultiViewOcclusionFilter()));
+    filterInstanceMap.insert(std::make_pair("fixed-level-gaussian-noise", new ShapeBench::FixedLevelGaussianNoiseFilter()));
 
     // Getting a support radius
     std::cout << "Determining support radius.." << std::endl;
@@ -321,15 +341,17 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             try {
                 // Run each of the filters in this experiment in the sequence defined in the JSON file
                 // This is done both on the scene and model object (depending on whether any filters are defined for these)
+                const nlohmann::json emptyJsonObject;
+
                 nlohmann::json sceneFilterMetadata = applyFilterSequence(fileCache, "filters", configuration, dataset,
                                                                      filterInstanceMap, verticesPerSampleObject,
                                                                      experimentConfig, experimentInstanceRandomEngine,
-                                                                     resultsEntries, filteredSceneObject);
+                                                                     resultsEntries, filteredSceneObject, emptyJsonObject);
 
                 nlohmann::json modelFilterMetadata = applyFilterSequence(fileCache, "modelFilters", configuration, dataset,
                                                                          filterInstanceMap, verticesPerSampleObject,
                                                                          experimentConfig, experimentInstanceRandomEngine,
-                                                                         resultsEntries, filteredModelObject);
+                                                                         resultsEntries, filteredModelObject, sceneFilterMetadata);
 
 
                 // Filter execution complete, computing DDI and relevant statistics
@@ -537,6 +559,8 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             filterInstanceMap.at(filterName)->destroy();
         }
     }
+
+    DescriptorMethod::destroy();
 
     std::cout << "Experiments completed." << std::endl;
 }
