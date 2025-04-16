@@ -186,7 +186,7 @@
             "farPlaneDistance": 10.0,
             "fovYAngleRadians": 1.57,
             "objectDistanceFromCamera": 2.0,
-            "maxAngleBetweenObjects": 90
+            "maxAngleBetweenObjectsDegrees": 90
         },
         "alternateTriangulation": {
             "remeshIterationCount": 3,
