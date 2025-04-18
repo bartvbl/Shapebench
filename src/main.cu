@@ -127,7 +127,7 @@ int main(int argc, const char** argv) {
 
     // ADD METHODS TO TEST HERE BY DUPLICATING THE CALL TO testMethod() ALONG WITH ITS SURROUNDING IF STATEMENT
 
-    if(methodSettings.at(ShapeBench::GEDIMethod::getName()).at("enabled")) {
+    if(methodSettings.contains(ShapeBench::GEDIMethod::getName()) && methodSettings.at(ShapeBench::GEDIMethod::getName()).at("enabled")) {
         testMethod<ShapeBench::GEDIMethod, ShapeBench::GEDIMethod::DescriptorType>(setup, fileCache);
     }
     if(methodSettings.at(ShapeBench::QUICCIMethod::getName()).at("enabled")) {

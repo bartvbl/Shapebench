@@ -20,8 +20,7 @@ void ShapeBench::OcclusionFilter::saveCaches(const nlohmann::json &config) {
 ShapeBench::FilterOutput
 ShapeBench::OcclusionFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
                                    const Dataset &dataset,
-                                   ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
-                                   const nlohmann::json &filterOutputPreviousSequence) {
+                                   ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
     ShapeBench::randomEngine randomEngine(randomSeed);
     ShapeBench::FilterOutput output;
     OcclusionRendererSettings renderSettings;
@@ -45,12 +44,20 @@ ShapeBench::OcclusionFilter::apply(const nlohmann::json &config, ShapeBench::Fil
 
     sceneGenerator.computeOccludedMesh(renderSettings, scene);
 
-    // Not an entirely correct way to map all vertices, but this is the closest you can probably get
-    // In any case, the portion that is not visible from the camera is straight up removed, so no orientation changes
-    scene.sampleMeshTransformation *= glm::mat4(1.0);
-    for(uint32_t i = 0; i < scene.additiveNoiseInfo.size(); i++) {
-        scene.additiveNoiseInfo.at(i).transformation *= glm::mat4(1.0);
-    }
+    // This filter only removes triangles, so no need to transform the sample vertices
 
     return output;
 }
+
+ShapeBench::FilterOutput
+ShapeBench::OcclusionFilter::applyToBoth(const nlohmann::json &config, ShapeBench::FilteredMeshPair &model,
+                                         ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset,
+                                         ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
+    throw std::runtime_error("This filter is not meant to be applied on both meshes!");
+    return {};
+}
+
+const std::string ShapeBench::OcclusionFilter::getFilterName() const {
+    return "subtractive-noise";
+}
+

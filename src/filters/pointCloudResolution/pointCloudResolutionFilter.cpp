@@ -5,8 +5,7 @@
 ShapeBench::FilterOutput
 ShapeBench::PointCloudResolutionFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
                                               const Dataset &dataset,
-                                              ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
-                                              const nlohmann::json &filterOutputPreviousSequence) {
+                                              ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
 
 
     float minDeviation = config.at("filterSettings").at("pointCloudResolution").at("minScaleFactor");
@@ -40,3 +39,18 @@ void ShapeBench::PointCloudResolutionFilter::destroy() {
 void ShapeBench::PointCloudResolutionFilter::saveCaches(const nlohmann::json& config) {
 
 }
+
+
+ShapeBench::FilterOutput
+ShapeBench::PointCloudResolutionFilter::applyToBoth(const nlohmann::json &config, ShapeBench::FilteredMeshPair &model,
+                                                    ShapeBench::FilteredMeshPair &scene,
+                                                    const ShapeBench::Dataset &dataset,
+                                                    ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
+    throw std::runtime_error("This filter is not meant to be applied on both meshes!");
+    return {};
+}
+
+const std::string ShapeBench::PointCloudResolutionFilter::getFilterName() const {
+    return "alternate-point-cloud-resolution";
+}
+

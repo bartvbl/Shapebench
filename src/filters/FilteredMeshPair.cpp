@@ -17,3 +17,24 @@ ShapeDescriptor::cpu::Mesh ShapeBench::FilteredMeshPair::combinedFilteredMesh() 
 
     return outputMesh;
 }
+
+ShapeBench::FilteredMeshPair ShapeBench::FilteredMeshPair::clone() {
+    ShapeBench::FilteredMeshPair duplicated;
+    duplicated.originalMesh = originalMesh.clone();
+    duplicated.filteredSampleMesh = filteredSampleMesh.clone();
+    duplicated.filteredAdditiveNoise = filteredAdditiveNoise.clone();
+
+    duplicated.mappedReferenceVertexIndices = mappedReferenceVertexIndices;
+    duplicated.originalReferenceVertices = originalReferenceVertices;
+    duplicated.mappedReferenceVertices = mappedReferenceVertices;
+    duplicated.mappedVertexIncluded = mappedVertexIncluded;
+    duplicated.remainingTrianglesFromOriginalMesh = remainingTrianglesFromOriginalMesh;
+
+    duplicated.additiveNoiseInfo = additiveNoiseInfo;
+    duplicated.sampleMeshTransformation = sampleMeshTransformation;
+    duplicated.sampleMeshNormalTransformation = sampleMeshNormalTransformation;
+
+    duplicated.pointCloudConversionScaleFactor = pointCloudConversionScaleFactor = 1.0;
+
+    return duplicated;
+}

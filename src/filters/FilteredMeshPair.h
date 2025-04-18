@@ -21,20 +21,24 @@ namespace ShapeBench {
         ShapeDescriptor::cpu::Mesh filteredSampleMesh;
         ShapeDescriptor::cpu::Mesh filteredAdditiveNoise;
 
+
         std::vector<uint32_t> mappedReferenceVertexIndices;
         std::vector<ShapeDescriptor::OrientedPoint> originalReferenceVertices;
         std::vector<ShapeDescriptor::OrientedPoint> mappedReferenceVertices;
         std::vector<bool> mappedVertexIncluded;
+        std::vector<bool> remainingTrianglesFromOriginalMesh;
 
         // PRC related data
         std::vector<AdditiveNoiseObjectInfo> additiveNoiseInfo;
-        glm::mat4 sampleMeshTransformation;
+        glm::mat4 sampleMeshTransformation = glm::mat4(1.0);
+        glm::mat3 sampleMeshNormalTransformation = glm::mat3(1.0);
 
         // Scale factor for number of points to sample when converting this mesh into a point cloud
         float pointCloudConversionScaleFactor = 1.0;
 
         void free();
         ShapeDescriptor::cpu::Mesh combinedFilteredMesh();
+        FilteredMeshPair clone();
     };
 
     template<typename DescriptorMethod>

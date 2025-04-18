@@ -476,8 +476,7 @@ std::vector<ShapeBench::Orientation> ShapeBench::runPhysicsSimulation(ShapeBench
 
 ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
                                                     const Dataset &dataset,
-                                                    ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
-                                                    const nlohmann::json &filterOutputPreviousSequence) {
+                                                    ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
     const nlohmann::json& filterSettings = config.at("filterSettings").at("additiveNoise");
     ShapeBench::FilterOutput output;
     AdditiveNoiseFilterSettings settings = readAdditiveNoiseFilterSettings(config, filterSettings);
@@ -561,6 +560,7 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
 
         if(i == 0) {
             scene.sampleMeshTransformation *= transformationMatrix;
+            scene.sampleMeshNormalTransformation *= normalMatrix;
             for(uint32_t index = 0; index < scene.mappedReferenceVertices.size(); index++) {
                 // Move the vertices we intend to use for measurements to the updated location
                 ShapeDescriptor::cpu::float3 inputVertex = scene.mappedReferenceVertices.at(index).vertex;
@@ -606,6 +606,18 @@ ShapeBench::FilterOutput ShapeBench::AdditiveNoiseFilter::apply(const nlohmann::
     }
 
     return output;
+}
+
+ShapeBench::FilterOutput
+ShapeBench::AdditiveNoiseFilter::applyToBoth(const nlohmann::json &config, ShapeBench::FilteredMeshPair &model,
+                                             ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset,
+                                             ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
+    throw std::runtime_error("This filter is not meant to be applied on both meshes!");
+    return {};
+}
+
+const std::string ShapeBench::AdditiveNoiseFilter::getFilterName() const {
+    return "additive-noise";
 }
 
 

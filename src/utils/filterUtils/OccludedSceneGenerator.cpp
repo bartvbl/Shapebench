@@ -114,6 +114,7 @@ void ShapeBench::OccludedSceneGenerator::renderSceneToOffscreenBuffer(ShapeBench
 // Mesh is assumed to be fit inside unit sphere
 void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::OcclusionRendererSettings settings, ShapeBench::FilteredMeshPair &scene) {
     std::vector<unsigned char> localFramebufferCopy(3 * offscreenTextureWidth * offscreenTextureHeight);
+
     const uint32_t totalVertexCount = scene.filteredSampleMesh.vertexCount + scene.filteredAdditiveNoise.vertexCount;
     std::vector<ShapeDescriptor::cpu::float3> vertexColours(totalVertexCount);
     for (unsigned int triangle = 0; triangle < totalVertexCount / 3; triangle++) {
@@ -138,13 +139,18 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Occlusi
                 (((unsigned int) localFramebufferCopy.at(3 * pixel + 1)) << 8U) |
                 (((unsigned int) localFramebufferCopy.at(3 * pixel + 2)) << 0U);
 
+        unsigned int triangleIndex_commonArea = 0;
+
         // Test if pixel is background
-        if (triangleIndex == 0x00FFFFFF) {
+        // When common area mode is enabled, if either one is not visible we remove the triangle
+        if (triangleIndex == 0x00FFFFFF || triangleIndex_commonArea == 0x00FFFFFF) {
             continue;
         }
 
         triangleAppearsInImage.at(triangleIndex) = true;
     }
+
+
 
     uint32_t visibleSampleMeshVertexCount = 0;
     uint32_t visibleAdditiveNoiseVertexCount = 0;
@@ -167,6 +173,21 @@ void ShapeBench::OccludedSceneGenerator::computeOccludedMesh(ShapeBench::Occlusi
     for(uint32_t i = 0; i < scene.mappedVertexIncluded.size(); i++) {
         scene.mappedVertexIncluded.at(i) = false;
     }
+
+
+    assert(scene.remainingTrianglesFromOriginalMesh.size() == scene.originalMesh.vertexCount);
+    uint32_t nextFilteredMeshVertexIndex = 0;
+    for(uint32_t originalMeshVertexIndex = 0; originalMeshVertexIndex < scene.remainingTrianglesFromOriginalMesh.size(); originalMeshVertexIndex += 3) {
+        if(scene.remainingTrianglesFromOriginalMesh.at(originalMeshVertexIndex)) {
+            uint32_t nextFilteredMeshTriangleIndex = nextFilteredMeshVertexIndex / 3;
+            bool isTriangleVisible = triangleAppearsInImage.at(nextFilteredMeshTriangleIndex);
+            scene.remainingTrianglesFromOriginalMesh.at(originalMeshVertexIndex + 0) = isTriangleVisible;
+            scene.remainingTrianglesFromOriginalMesh.at(originalMeshVertexIndex + 1) = isTriangleVisible;
+            scene.remainingTrianglesFromOriginalMesh.at(originalMeshVertexIndex + 2) = isTriangleVisible;
+            nextFilteredMeshVertexIndex += 3;
+        }
+    }
+    assert(nextFilteredMeshVertexIndex == scene.filteredSampleMesh.vertexCount);
 
     for (unsigned int triangle = 0; triangle < triangleAppearsInImage.size(); triangle++) {
         if (triangleAppearsInImage.at(triangle)) {

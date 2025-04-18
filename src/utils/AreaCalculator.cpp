@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/normal.hpp>
+#include <algorithm>
 
 typedef glm::vec<2, double, glm::highp> dvec2;
 typedef glm::vec<3, double, glm::highp> dvec3;

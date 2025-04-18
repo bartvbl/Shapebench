@@ -13,7 +13,18 @@ namespace ShapeBench {
         void saveCaches(const nlohmann::json& config) override;
 
         FilterOutput apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene, const Dataset &dataset,
-                           ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
-                           const nlohmann::json &filterOutputPreviousSequence) override;
+                           ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) override;
+
+        FilterOutput applyToBoth(const nlohmann::json &config, ShapeBench::FilteredMeshPair &model,
+                                 ShapeBench::FilteredMeshPair &scene, const Dataset &dataset,
+                                 ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) override;
+
+        constexpr bool mustBeAppliedOnBothMeshes() override {
+            return false;
+        }
+        constexpr bool appliesNonrigidTransformation() override {
+            return false;
+        }
+        const std::string getFilterName() const override;
     };
 }

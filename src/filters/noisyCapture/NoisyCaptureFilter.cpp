@@ -6,8 +6,7 @@
 
 ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::json &config, ShapeBench::FilteredMeshPair &scene,
                                                    const Dataset &dataset,
-                                                   ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed,
-                                                   const nlohmann::json &filterOutputPreviousSequence) {
+                                                   ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
     ShapeBench::randomEngine randomEngine(randomSeed);
     ShapeBench::FilterOutput output;
     uint32_t initialVertexCount = scene.filteredSampleMesh.vertexCount;
@@ -67,6 +66,7 @@ ShapeBench::FilterOutput ShapeBench::NoisyCaptureFilter::apply(const nlohmann::j
     // Not an entirely correct way to map all vertices, but this is the closest you can probably get
     // In any case, the portion that is not visible from the camera is straight up removed, so no orientation changes
     scene.sampleMeshTransformation *= glm::mat4(1.0);
+    scene.sampleMeshNormalTransformation *= glm::mat3(1.0);
     for(uint32_t i = 0; i < scene.additiveNoiseInfo.size(); i++) {
         scene.additiveNoiseInfo.at(i).transformation *= glm::mat4(1.0);
     }
@@ -105,4 +105,17 @@ void ShapeBench::NoisyCaptureFilter::destroy() {
 void ShapeBench::NoisyCaptureFilter::saveCaches(const nlohmann::json& config) {
 
 }
+
+ShapeBench::FilterOutput
+ShapeBench::NoisyCaptureFilter::applyToBoth(const nlohmann::json &config, ShapeBench::FilteredMeshPair &model,
+                                            ShapeBench::FilteredMeshPair &scene, const ShapeBench::Dataset &dataset,
+                                            ShapeBench::LocalDatasetCache *fileCache, uint64_t randomSeed) {
+    throw std::runtime_error("This filter is not meant to be applied on both meshes!");
+    return {};
+}
+
+const std::string ShapeBench::NoisyCaptureFilter::getFilterName() const {
+    return "noisy-capture";
+}
+
 

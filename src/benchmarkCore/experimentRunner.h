@@ -31,6 +31,7 @@
 #include "filters/pointCloudResolution/pointCloudResolutionFilter.h"
 #include "filters/multiViewOcclusion/MultiViewOcclusion.h"
 #include "filters/gaussianNoise/gaussianNoiseFilter.h"
+#include "benchmarkCore/common-procedures/filterSequenceRunner.h"
 
 template <typename T>
 class lockGuard
@@ -59,64 +60,16 @@ ShapeBench::FilteredMeshPair initialiseFilteredMeshPair(const uint32_t verticesP
     filteredMesh.mappedReferenceVertices.resize(verticesPerSampleObject);
     filteredMesh.originalReferenceVertices.resize(verticesPerSampleObject);
     filteredMesh.mappedReferenceVertexIndices.resize(verticesPerSampleObject);
-    filteredMesh.mappedVertexIncluded.resize(verticesPerSampleObject);
+    filteredMesh.mappedVertexIncluded = std::vector<bool>(verticesPerSampleObject, true);
+    filteredMesh.remainingTrianglesFromOriginalMesh = std::vector<bool>(meshToBeFiltered.vertexCount, true);
     for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
         ShapeBench::VertexInDataset sampleVertex = sampleVerticesSet.at(sampleVertexIndex + i);
         filteredMesh.originalReferenceVertices.at(i).vertex = filteredMesh.originalMesh.vertices[sampleVertex.vertexIndex];
         filteredMesh.originalReferenceVertices.at(i).normal = filteredMesh.originalMesh.normals[sampleVertex.vertexIndex];
         filteredMesh.mappedReferenceVertexIndices.at(i) = sampleVertex.vertexIndex;
         filteredMesh.mappedReferenceVertices.at(i) = filteredMesh.originalReferenceVertices.at(i);
-        filteredMesh.mappedVertexIncluded.at(i) = true;
     }
     return filteredMesh;
-}
-
-inline nlohmann::json applyFilterSequence(
-                    ShapeBench::LocalDatasetCache *fileCache,
-                    const std::string filterSequenceJSONEntryLabel,
-                    const nlohmann::json &configuration,
-                    const ShapeBench::Dataset &dataset,
-                    const std::unordered_map<std::string, std::unique_ptr<ShapeBench::Filter>> &filterInstanceMap,
-                    const uint32_t verticesPerSampleObject,
-                    const nlohmann::json &experimentConfig,
-                    ShapeBench::randomEngine &experimentInstanceRandomEngine,
-                    std::vector<ShapeBench::ExperimentResultsEntry> &resultsEntries,
-                    ShapeBench::FilteredMeshPair &filteredSceneObject,
-                    const nlohmann::json& filterMetadataPreviousSequence) {
-    nlohmann::json filterMetadata {};
-    if(!experimentConfig.contains(filterSequenceJSONEntryLabel)) {
-        // No filters specified. Leave object unmodified
-        return filterMetadata;
-    }
-
-
-
-    for(uint32_t filterStepIndex = 0; filterStepIndex < experimentConfig.at(filterSequenceJSONEntryLabel).size(); filterStepIndex++) {
-        uint64_t filterRandomSeed = experimentInstanceRandomEngine();
-        const nlohmann::json &filterConfig = experimentConfig.at(filterSequenceJSONEntryLabel).at(filterStepIndex);
-        const std::string &filterType = filterConfig.at("type");
-
-        nlohmann::json copyOfConfiguration;
-        bool hasOverrideSettings = filterConfig.contains("overrideFilterSettings");
-        if(hasOverrideSettings) {
-            // Only create a copy when we absolutely have to
-            copyOfConfiguration = configuration;
-            copyOfConfiguration.at("filterSettings").merge_patch(filterConfig.at("overrideFilterSettings"));
-        }
-
-        const nlohmann::json& configToUse = hasOverrideSettings ? copyOfConfiguration : configuration;
-
-        ShapeBench::FilterOutput output = filterInstanceMap.at(filterType)->apply(configToUse, filteredSceneObject,
-                                                                                  dataset, fileCache, filterRandomSeed,
-                                                                                  filterMetadataPreviousSequence);
-
-        if(!output.metadata.empty()) {
-            for (uint32_t i = 0; i < verticesPerSampleObject; i++) {
-                filterMetadata.merge_patch(output.metadata.at(i));
-            }
-        }
-    }
-    return filterMetadata;
 }
 
 template<typename DescriptorMethod, typename DescriptorType>
@@ -148,18 +101,7 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
         std::cout << "Comparison against the Precision-Recall Curve evaluation strategy is enabled." << std::endl;
     }
 
-    // Initialise filters
-    std::unordered_map<std::string, std::unique_ptr<ShapeBench::Filter>> filterInstanceMap;
-    filterInstanceMap.insert(std::make_pair("repeated-capture", new ShapeBench::AlternateTriangulationFilter()));
-    filterInstanceMap.insert(std::make_pair("support-radius-deviation", new ShapeBench::SupportRadiusNoiseFilter()));
-    filterInstanceMap.insert(std::make_pair("normal-noise", new ShapeBench::NormalNoiseFilter()));
-    filterInstanceMap.insert(std::make_pair("additive-noise", new ShapeBench::AdditiveNoiseFilter()));
-    filterInstanceMap.insert(std::make_pair("subtractive-noise", new ShapeBench::OcclusionFilter()));
-    filterInstanceMap.insert(std::make_pair("depth-camera-capture", new ShapeBench::NoisyCaptureFilter()));
-    filterInstanceMap.insert(std::make_pair("gaussian-noise", new ShapeBench::GaussianNoiseFilter()));
-    filterInstanceMap.insert(std::make_pair("point-cloud-resolution", new ShapeBench::PointCloudResolutionFilter()));
-    filterInstanceMap.insert(std::make_pair("multi-view-occlusion", new ShapeBench::MultiViewOcclusionFilter()));
-    filterInstanceMap.insert(std::make_pair("fixed-level-gaussian-noise", new ShapeBench::FixedLevelGaussianNoiseFilter()));
+
 
     // Getting a support radius
     std::cout << "Determining support radius.." << std::endl;
@@ -194,6 +136,20 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             std::cout << "    If you ran the benchmark through the replication script, this will be done automatically." << std::endl;
         }
     }
+
+
+    // Initialise filters
+    std::unordered_map<std::string, std::unique_ptr<ShapeBench::Filter>> filterInstanceMap;
+    filterInstanceMap.insert(std::make_pair("repeated-capture", new ShapeBench::AlternateTriangulationFilter()));
+    filterInstanceMap.insert(std::make_pair("support-radius-deviation", new ShapeBench::SupportRadiusNoiseFilter()));
+    filterInstanceMap.insert(std::make_pair("normal-noise", new ShapeBench::NormalNoiseFilter()));
+    filterInstanceMap.insert(std::make_pair("additive-noise", new ShapeBench::AdditiveNoiseFilter()));
+    filterInstanceMap.insert(std::make_pair("subtractive-noise", new ShapeBench::OcclusionFilter()));
+    filterInstanceMap.insert(std::make_pair("depth-camera-capture", new ShapeBench::NoisyCaptureFilter()));
+    filterInstanceMap.insert(std::make_pair("gaussian-noise", new ShapeBench::GaussianNoiseFilter()));
+    filterInstanceMap.insert(std::make_pair("point-cloud-resolution", new ShapeBench::PointCloudResolutionFilter()));
+    filterInstanceMap.insert(std::make_pair("multi-view-occlusion", new ShapeBench::MultiViewOcclusionFilter<DescriptorMethod>(supportRadius)));
+    filterInstanceMap.insert(std::make_pair("fixed-level-gaussian-noise", new ShapeBench::FixedLevelGaussianNoiseFilter()));
 
     // Computing sample descriptors and their distance to the representative set
     const uint32_t representativeSetSize = configuration.at("commonExperimentSettings").at("representativeSetSize");
@@ -341,17 +297,11 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
             try {
                 // Run each of the filters in this experiment in the sequence defined in the JSON file
                 // This is done both on the scene and model object (depending on whether any filters are defined for these)
-                const nlohmann::json emptyJsonObject;
 
-                nlohmann::json sceneFilterMetadata = applyFilterSequence(fileCache, "filters", configuration, dataset,
-                                                                     filterInstanceMap, verticesPerSampleObject,
-                                                                     experimentConfig, experimentInstanceRandomEngine,
-                                                                     resultsEntries, filteredSceneObject, emptyJsonObject);
-
-                nlohmann::json modelFilterMetadata = applyFilterSequence(fileCache, "modelFilters", configuration, dataset,
-                                                                         filterInstanceMap, verticesPerSampleObject,
-                                                                         experimentConfig, experimentInstanceRandomEngine,
-                                                                         resultsEntries, filteredModelObject, sceneFilterMetadata);
+                ShapeBench::applyFilterSequence(
+                         fileCache, "modelFilters", "filters",
+                         configuration, dataset, filterInstanceMap, verticesPerSampleObject, experimentConfig, resultsEntries,
+                         experimentInstanceRandomEngine,filteredModelObject, filteredSceneObject);
 
 
                 // Filter execution complete, computing DDI and relevant statistics
@@ -400,10 +350,8 @@ void testMethod(const ShapeBench::BenchmarkConfiguration& setup, ShapeBench::Loc
                     resultsEntries.at(i).sourceVertex = sampleVerticesSet.at(sampleVertexIndex + i);
                     resultsEntries.at(i).modelObject.originalVertexLocation = filteredModelObject.originalReferenceVertices.at(i);
                     resultsEntries.at(i).modelObject.filteredVertexLocation = filteredModelObject.mappedReferenceVertices.at(i);
-                    resultsEntries.at(i).modelObject.filterOutput = modelFilterMetadata;
                     resultsEntries.at(i).sceneObject.originalVertexLocation = filteredSceneObject.originalReferenceVertices.at(i);
                     resultsEntries.at(i).sceneObject.filteredVertexLocation = filteredSceneObject.mappedReferenceVertices.at(i);
-                    resultsEntries.at(i).sceneObject.filterOutput = sceneFilterMetadata;
 
 
                     // Compute Descriptor Distance Index value
