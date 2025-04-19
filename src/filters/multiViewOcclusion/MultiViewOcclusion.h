@@ -12,6 +12,8 @@
 #include "utils/filterUtils/OccludedSceneGenerator.h"
 #include "benchmarkCore/randomEngine.h"
 #include "meshIntersectionCalculator.h"
+#include "types/AreaEstimate.h"
+#include "benchmarkCore/common-procedures/areaEstimator.h"
 #include <random>
 
 namespace ShapeBench {
