@@ -140,7 +140,7 @@ add_executable(shapebench ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCE
 target_link_libraries(shapebench PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt pybind11::embed) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
 target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp -diag-suppress 20012>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebench PRIVATE -frounding-math)
-set_property(TARGET shapebench PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
+set_property(TARGET shapebench PROPERTY CUDA_ARCHITECTURES native)
 #target_compile_definitions(shapebench PRIVATE ${PCL_DEFINITIONS})
 
 # Needed because Jolt drops a bunch of architecture specific compiler flags that NVCC doesn't understand
@@ -150,13 +150,13 @@ target_compile_options(shapebench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-u
 
 add_executable(armadillo tools/similarityrenderer/main.cpp)
 target_link_libraries(armadillo PUBLIC ShapeDescriptor)
-set_property(TARGET armadillo PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
+set_property(TARGET armadillo PROPERTY CUDA_ARCHITECTURES native)
 
 add_library(shapebenchstatic ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${LIBRARY_SOURCES})
 target_link_libraries(shapebenchstatic PUBLIC ShapeDescriptor OpenMP::OpenMP_CXX Jolt glfw gitinfo ceres CURL::libcurl GMP_Interface fmt::fmt pybind11::embed) # lsan ${PCL_LIBRARIES} ${SDL2_LIBRARIES}
 target_compile_options(shapebenchstatic PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-fopenmp -diag-suppress 20012>) #-Xcompiler=-fsanitize=leak
 target_compile_options(shapebenchstatic PRIVATE -frounding-math)
-set_property(TARGET shapebenchstatic PROPERTY CUDA_ARCHITECTURES 52 60 61 70 75 80 90)
+set_property(TARGET shapebenchstatic PROPERTY CUDA_ARCHITECTURES native)
 target_compile_options(shapebenchstatic PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler -diag-suppress 20012> -std=c++20)
 add_executable(shapebenchtests ${PROJECT_TESTS})
 target_link_libraries(shapebenchtests PRIVATE Catch2::Catch2WithMain shapebenchstatic)
